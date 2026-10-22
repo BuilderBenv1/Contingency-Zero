@@ -67,6 +67,35 @@ public partial class DevAutomation : Node
                 case "editor": root.ShowEditor(); break;
             }
         }
+        else if (_args.ContainsKey("--dev-replay"))
+        {
+            // Plays the newest saved replay, fast-forwarded by --dev-fastforward seconds.
+            using var dir = DirAccess.Open(GameData.ReplaysDir);
+            string? newest = dir?.GetFiles().Where(f => f.EndsWith(".czr")).OrderByDescending(f => f, StringComparer.Ordinal).FirstOrDefault();
+            if (newest is not null)
+            {
+                byte[] bytes = Godot.FileAccess.GetFileAsBytes($"{GameData.ReplaysDir}/{newest}");
+                using var ms = new System.IO.MemoryStream(bytes);
+                var replay = ContingencyZero.Sim.Replay.MatchReplay.Read(ms);
+                root.StartReplay(replay, replay.Title);
+                _match = root.GetNodeOrNull<MatchScene>("Match");
+                if (_match is not null) _match.Session.Speed = (double.Parse(Arg("--dev-replay-speed", "1"), System.Globalization.CultureInfo.InvariantCulture));
+                GD.Print($"DEV: replaying {newest}, {replay.TickCount} ticks, final hash {replay.FinalHash:X16}");
+            }
+        }
+        else if (_args.TryGetValue("--dev-mission", out var missionKey))
+        {
+            var mission = Missions.MissionInfo.LoadAll().First(m => m.Key == missionKey);
+            root.StartMission(mission);
+            _match = root.GetNodeOrNull<MatchScene>("Match");
+            int ff = int.Parse(Arg("--dev-fastforward", "0"));
+            if (_match is not null && ff > 0)
+            {
+                for (int i = 0; i < ff * 15; i++) _match.Session.World.Step();
+                _match.Units.Snapshot();
+                _match.Units.Snapshot();
+            }
+        }
         else if (_args.TryGetValue("--dev-skirmish", out var mapKey))
         {
             var entry = GameData.Maps().First(m => m.Key == mapKey);
@@ -134,9 +163,22 @@ public partial class DevAutomation : Node
             {
                 _match.Selection.Set(_match.Input.OwnUnits(_ => true));
             }
+            // --dev-orders: send our mobile units to the middle of the map, as a player would.
+            if (_args.ContainsKey("--dev-orders") && _match is not null)
+            {
+                var w = _match.Session.World;
+                var centre = FixVec2.FromInts(w.MapWidth / 2, w.MapHeight / 2);
+                foreach (int id in _match.Input.OwnUnits(d => d.CanMove && !d.IsCommander))
+                    _match.Session.Issue(new Command(0, 0, CommandType.Fight, id, centre));
+            }
         }
         if (_elapsed >= _quitAt)
         {
+            if (_args.ContainsKey("--dev-save-replay") && _match is not null)
+            {
+                string? saved = _match.SaveReplay();
+                GD.Print($"DEV: replay {saved}, tick {_match.Session.World.Tick}, hash {_match.Session.World.ComputeHash():X16}");
+            }
             GD.Print("DEV: done");
             GetTree().Quit();
         }
