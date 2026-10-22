@@ -235,7 +235,7 @@ public sealed class LockstepHost : LockstepChannel
             Log("everyone loaded: go");
         }
 
-        if (now >= _nextPing)
+        if (Started && now >= _nextPing) // probes sent while someone is still loading would read as lag
         {
             _nextPing = now + 0.5;
             byte[] ping = NetProtocol.Build(Msg.Ping, w => w.Write(now));

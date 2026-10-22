@@ -157,6 +157,7 @@ public partial class MultiplayerLobby : CanvasLayer
             if (HostGame(port) is { } err) Fail(err);
         }, 220, 19);
         hostButton.AddThemeColorOverride("font_color", UiTheme.Amber);
+        hostButton.SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin;
         hostCol.AddChild(hostButton);
         string lan = string.Join(", ", LanAddresses());
         hostCol.AddChild(Wrapped(UiTheme.Label(lan.Length > 0 ? $"Your LAN address: {lan}" : "No network address found (only this computer can join).", 14, UiTheme.Ink)));
@@ -185,6 +186,7 @@ public partial class MultiplayerLobby : CanvasLayer
         addr.TextSubmitted += _ => Join();
         var joinButton = UiTheme.Button("Join game", Join, 220, 19);
         joinButton.AddThemeColorOverride("font_color", UiTheme.Amber);
+        joinButton.SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin;
         joinCol.AddChild(joinButton);
         cols.AddChild(Grow(UiTheme.Panel(joinCol, 18), 1));
 

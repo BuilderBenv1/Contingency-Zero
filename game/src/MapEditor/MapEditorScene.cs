@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using ContingencyZero.Game.App;
 using ContingencyZero.Game.Match;
 using ContingencyZero.Game.View;
@@ -483,13 +484,47 @@ public partial class MapEditorScene : Node3D
         _validateIn = 0.25;
     }
 
-    private void Validate()
+    /// <summary>
+    /// Re-runs the checks. They take tens of milliseconds on big maps (path searches and flood
+    /// fills), so normally they run on a worker thread against a copy of the map.
+    /// </summary>
+    private void Validate(bool now = false)
     {
         _validateIn = -1;
-        if (Document is null) return;
-        Checks = MapValidator.Run(Document.Map);
-        _hud.ShowChecks(Checks);
-        _hud.Minimap.Refresh(Document.Map);
+        if (Document is not { } doc) return;
+        _hud.Minimap.Refresh(doc.Map);
+        int generation = ++_validateGeneration;
+        if (now)
+        {
+            ShowChecks(MapValidator.Run(doc.Map));
+            return;
+        }
+        MapData copy = CopyForChecks(doc.Map);
+        Task.Run(() => MapValidator.Run(copy)).ContinueWith(t => Callable.From(() =>
+        {
+            // Only the newest run counts, and only if the editor is still here.
+            if (!IsInstanceValid(this) || generation != _validateGeneration) return;
+            if (t.IsCompletedSuccessfully) ShowChecks(t.Result);
+            else GD.PushWarning($"Map checks failed: {t.Exception?.GetBaseException().Message}");
+        }).CallDeferred());
+    }
+
+    private int _validateGeneration;
+
+    private void ShowChecks(List<MapCheck> checks)
+    {
+        Checks = checks;
+        _hud.ShowChecks(checks);
+    }
+
+    /// <summary>The parts of a map the checks read, copied so editing can carry on meanwhile.</summary>
+    private static MapData CopyForChecks(MapData m)
+    {
+        var copy = new MapData(m.TilesX, m.TilesY) { WaterLevel = m.WaterLevel, Name = m.Name };
+        Array.Copy(m.Heights, copy.Heights, m.Heights.Length);
+        copy.MetalSpots.AddRange(m.MetalSpots);
+        copy.StartPositions.AddRange(m.StartPositions);
+        return copy;
     }
 
     // ---- Input -------------------------------------------------------------------------------
@@ -663,7 +698,8 @@ public partial class MapEditorScene : Node3D
                     map.Features.RemoveAll(f => MapEdits.MetalSpotOnTile(map, MapData.TileOf(f.Position.X), MapData.TileOf(f.Position.Y)) >= 0);
                 if (doc.Commit())
                 {
-                    _terrain.Build(map); // the metal spot discs belong to the game's terrain view
+                    // The discs belong to the game's terrain view; rebuild it only if they can't be updated in place.
+                    if (!_terrain.RefreshMetalDiscs()) _terrain.Build(map);
                     _features.Rebuild(map, _terrain);
                     AfterEdit(terrainChanged: true);
                     Audio.Sfx.Play(primary ? Audio.SfxKind.BuildStart : Audio.SfxKind.Reclaim);
@@ -847,7 +883,7 @@ public partial class MapEditorScene : Node3D
     internal void DevOpen(MapEntry entry) { DevCloseModal(); OpenEntry(entry); }
     internal void DevShowStart() => ShowStart(canCancel: Document is not null);
     internal void DevShowSave() => SaveAs();
-    internal void DevValidateNow() => Validate();
+    internal void DevValidateNow() => Validate(now: true);
     internal Vector3 DevCameraFocus { get => _rig.Focus; set => _rig.JumpTo(value); }
     internal void DevZoom(float size) => _rig.SetZoom(size);
     internal Camera3D DevCamera => _rig.Camera;

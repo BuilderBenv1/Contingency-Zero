@@ -203,6 +203,13 @@ public partial class EffectsView : Node3D
                     _nano.Add(new Beam { A = from, B = to, C = c, Life = 1, Max = 1, Width = 0.35f });
                     if (_rng.Randf() < 0.25f)
                         Flash(to + RandomInSphere(1.5f), c, 0.8f, 0.3f);
+                    // A soft working sound for your own builders, now and then (beams fire every tick).
+                    ulong now = Time.GetTicksMsec();
+                    if (_world.Units.Owner[e.Unit] == _localPlayer && now - _lastWorkSound > 900)
+                    {
+                        _lastWorkSound = now;
+                        Sfx.PlayAt(e.Type == GameEventType.NanoBeam ? SfxKind.Nano : SfxKind.Reclaim, to, listener, zoom, -14);
+                    }
                     break;
                 }
 
@@ -222,6 +229,8 @@ public partial class EffectsView : Node3D
             }
         }
     }
+
+    private ulong _lastWorkSound;
 
     private Vector3 RandomInSphere(float r) =>
         new Vector3(_rng.RandfRange(-1, 1), _rng.RandfRange(-1, 1), _rng.RandfRange(-1, 1)).LimitLength(1) * r;

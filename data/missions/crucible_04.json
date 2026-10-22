@@ -2,7 +2,7 @@
   "campaign": "crucible",
   "order": 4,
   "title": "Iron Tide",
-  "briefing": "The Lattice holds the strait at Coastal Divide. Its shipyards sit off the western shore, and its patrol boats shell anything we build at the water's edge. Both land bridges are walled. Build a Shipyard, put Destroyers and Battleships in the water, and sink both Lattice shipyards.",
+  "briefing": "The Lattice holds the strait at Coastal Divide. Its two shipyards sit off the western shore behind a harbour fleet, and its boats shell anything we build at the water's edge. Both land bridges are walled, and the Lattice Commander sits behind heavy guns. Don't fight the guns. Build a Shipyard, put Destroyers and Battleships in the water, and sink both Lattice shipyards.",
   "map": "coastal_divide",
   "players": [
     {
@@ -17,7 +17,7 @@
       "team": 1,
       "faction": "lattice",
       "start": 0,
-      "ai": "Hard"
+      "ai": "None"
     }
   ],
   "humanPlayer": 0,
@@ -30,10 +30,13 @@
     "Shipyard afloat. Destroyers first; Battleships when you can afford them.",
     "Harbour fleet on the bottom.",
     "Lattice boats crossing the strait.",
+    "Lattice column on the north bridge.",
     "Destroyers in the strait.",
-    "Their fleet is moving on our shore.",
-    "Battleship! Its guns reach well inland.",
     "Lattice bombers over the water.",
+    "Column with artillery on the south bridge.",
+    "Their fleet is moving on our shore.",
+    "Heavy column on the north bridge.",
+    "Battleship! Its guns reach well inland.",
     "Both yards on the seabed. The strait belongs to the Crucible."
   ],
   "objectives": [
@@ -75,6 +78,20 @@
       "y": 624
     },
     {
+      "tag": "",
+      "type": "crucible_anvil",
+      "owner": 0,
+      "x": 830,
+      "y": 500
+    },
+    {
+      "tag": "",
+      "type": "crucible_anvil",
+      "owner": 0,
+      "x": 836,
+      "y": 516
+    },
+    {
       "tag": "yards",
       "type": "lattice_shipyard",
       "owner": 1,
@@ -103,6 +120,13 @@
       "y": 492
     },
     {
+      "tag": "",
+      "type": "lattice_aa_turret",
+      "owner": 1,
+      "x": 364,
+      "y": 468
+    },
+    {
       "tag": "fleet",
       "type": "lattice_patrol_boat",
       "owner": 1,
@@ -129,6 +153,132 @@
       "owner": 1,
       "x": 450,
       "y": 440
+    },
+    {
+      "tag": "",
+      "type": "lattice_vehicle_plant",
+      "owner": 1,
+      "x": 108,
+      "y": 468
+    },
+    {
+      "tag": "",
+      "type": "lattice_bot_lab",
+      "owner": 1,
+      "x": 116,
+      "y": 564
+    },
+    {
+      "tag": "",
+      "type": "lattice_metal_extractor",
+      "owner": 1,
+      "x": 84,
+      "y": 476
+    },
+    {
+      "tag": "",
+      "type": "lattice_metal_extractor",
+      "owner": 1,
+      "x": 92,
+      "y": 500
+    },
+    {
+      "tag": "",
+      "type": "lattice_metal_extractor",
+      "owner": 1,
+      "x": 100,
+      "y": 556
+    },
+    {
+      "tag": "",
+      "type": "lattice_metal_extractor",
+      "owner": 1,
+      "x": 116,
+      "y": 580
+    },
+    {
+      "tag": "",
+      "type": "lattice_solar_collector",
+      "owner": 1,
+      "x": 64,
+      "y": 520
+    },
+    {
+      "tag": "",
+      "type": "lattice_solar_collector",
+      "owner": 1,
+      "x": 64,
+      "y": 448
+    },
+    {
+      "tag": "",
+      "type": "lattice_solar_collector",
+      "owner": 1,
+      "x": 72,
+      "y": 592
+    },
+    {
+      "tag": "",
+      "type": "lattice_heavy_turret",
+      "owner": 1,
+      "x": 200,
+      "y": 472
+    },
+    {
+      "tag": "",
+      "type": "lattice_heavy_turret",
+      "owner": 1,
+      "x": 208,
+      "y": 520
+    },
+    {
+      "tag": "",
+      "type": "lattice_heavy_turret",
+      "owner": 1,
+      "x": 200,
+      "y": 560
+    },
+    {
+      "tag": "",
+      "type": "lattice_light_turret",
+      "owner": 1,
+      "x": 188,
+      "y": 444
+    },
+    {
+      "tag": "",
+      "type": "lattice_light_turret",
+      "owner": 1,
+      "x": 228,
+      "y": 492
+    },
+    {
+      "tag": "",
+      "type": "lattice_light_turret",
+      "owner": 1,
+      "x": 228,
+      "y": 540
+    },
+    {
+      "tag": "",
+      "type": "lattice_light_turret",
+      "owner": 1,
+      "x": 188,
+      "y": 588
+    },
+    {
+      "tag": "",
+      "type": "lattice_aa_turret",
+      "owner": 1,
+      "x": 172,
+      "y": 500
+    },
+    {
+      "tag": "",
+      "type": "lattice_aa_turret",
+      "owner": 1,
+      "x": 172,
+      "y": 532
     },
     {
       "tag": "fortN",
@@ -184,6 +334,12 @@
         {
           "type": "message",
           "message": 0
+        },
+        {
+          "type": "attack",
+          "tag": "fleet",
+          "x": 430,
+          "y": 460
         }
       ]
     },
@@ -293,6 +449,45 @@
       ]
     },
     {
+      "id": "l1",
+      "when": {
+        "type": "time",
+        "seconds": 480
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 5
+        },
+        {
+          "type": "spawn",
+          "tag": "l1",
+          "units": [
+            {
+              "unit": "lattice_strider",
+              "owner": 1,
+              "x": 300,
+              "y": 160,
+              "count": 4
+            },
+            {
+              "unit": "lattice_assault_bot",
+              "owner": 1,
+              "x": 300,
+              "y": 172,
+              "count": 2
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "l1",
+          "x": 876,
+          "y": 508
+        }
+      ]
+    },
+    {
       "id": "n2",
       "when": {
         "type": "time",
@@ -301,7 +496,7 @@
       "actions": [
         {
           "type": "message",
-          "message": 5
+          "message": 6
         },
         {
           "type": "spawn",
@@ -332,6 +527,77 @@
       ]
     },
     {
+      "id": "air1",
+      "when": {
+        "type": "time",
+        "seconds": 780
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 7
+        },
+        {
+          "type": "spawn",
+          "tag": "air1",
+          "units": [
+            {
+              "unit": "lattice_bomber",
+              "owner": 1,
+              "x": 100,
+              "y": 516,
+              "count": 3
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "air1",
+          "x": 876,
+          "y": 508
+        }
+      ]
+    },
+    {
+      "id": "l2",
+      "when": {
+        "type": "time",
+        "seconds": 840
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 8
+        },
+        {
+          "type": "spawn",
+          "tag": "l2",
+          "units": [
+            {
+              "unit": "lattice_strider",
+              "owner": 1,
+              "x": 300,
+              "y": 860,
+              "count": 6
+            },
+            {
+              "unit": "lattice_artillery_vehicle",
+              "owner": 1,
+              "x": 300,
+              "y": 872,
+              "count": 2
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "l2",
+          "x": 876,
+          "y": 508
+        }
+      ]
+    },
+    {
       "id": "n3",
       "when": {
         "type": "time",
@@ -340,7 +606,7 @@
       "actions": [
         {
           "type": "message",
-          "message": 6
+          "message": 9
         },
         {
           "type": "spawn",
@@ -371,6 +637,52 @@
       ]
     },
     {
+      "id": "l3",
+      "when": {
+        "type": "time",
+        "seconds": 1200
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 10
+        },
+        {
+          "type": "spawn",
+          "tag": "l3",
+          "units": [
+            {
+              "unit": "lattice_strider",
+              "owner": 1,
+              "x": 300,
+              "y": 160,
+              "count": 8
+            },
+            {
+              "unit": "lattice_artillery_vehicle",
+              "owner": 1,
+              "x": 300,
+              "y": 172,
+              "count": 2
+            },
+            {
+              "unit": "lattice_heavy_assault",
+              "owner": 1,
+              "x": 300,
+              "y": 178,
+              "count": 2
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "l3",
+          "x": 876,
+          "y": 508
+        }
+      ]
+    },
+    {
       "id": "n4",
       "when": {
         "type": "time",
@@ -379,7 +691,7 @@
       "actions": [
         {
           "type": "message",
-          "message": 7
+          "message": 11
         },
         {
           "type": "spawn",
@@ -410,38 +722,6 @@
       ]
     },
     {
-      "id": "air1",
-      "when": {
-        "type": "time",
-        "seconds": 780
-      },
-      "actions": [
-        {
-          "type": "message",
-          "message": 8
-        },
-        {
-          "type": "spawn",
-          "tag": "air1",
-          "units": [
-            {
-              "unit": "lattice_bomber",
-              "owner": 1,
-              "x": 100,
-              "y": 516,
-              "count": 3
-            }
-          ]
-        },
-        {
-          "type": "attack",
-          "tag": "air1",
-          "x": 876,
-          "y": 508
-        }
-      ]
-    },
-    {
       "id": "win",
       "when": {
         "type": "destroyed",
@@ -450,7 +730,7 @@
       "actions": [
         {
           "type": "message",
-          "message": 9
+          "message": 12
         },
         {
           "type": "reveal"

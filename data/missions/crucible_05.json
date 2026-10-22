@@ -17,7 +17,7 @@
       "team": 0,
       "faction": "crucible",
       "start": 2,
-      "ai": "Normal"
+      "ai": "Hard"
     },
     {
       "name": "Lattice Prime",
@@ -105,6 +105,27 @@
       "owner": 0,
       "x": 162,
       "y": 178
+    },
+    {
+      "tag": "",
+      "type": "crucible_heavy_turret",
+      "owner": 0,
+      "x": 200,
+      "y": 200
+    },
+    {
+      "tag": "",
+      "type": "crucible_light_turret",
+      "owner": 0,
+      "x": 228,
+      "y": 164
+    },
+    {
+      "tag": "",
+      "type": "crucible_light_turret",
+      "owner": 0,
+      "x": 164,
+      "y": 228
     },
     {
       "tag": "prime",

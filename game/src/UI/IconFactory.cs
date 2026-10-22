@@ -122,6 +122,6 @@ public partial class IconFactory : Node
         _camera.LookAt(focus, Vector3.Up);
         _viewport.RenderTargetUpdateMode = SubViewport.UpdateMode.Always;
         _rendering = next;
-        _waitFrames = 2;
+        _waitFrames = 1;
     }
 }

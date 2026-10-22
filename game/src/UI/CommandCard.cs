@@ -162,7 +162,7 @@ public partial class CommandCard : VBoxContainer
         UnitDef d = World.Catalog[type];
         var b = new Button
         {
-            CustomMinimumSize = new Vector2(72, 88),
+            CustomMinimumSize = new Vector2(68, 88),
             TooltipText = Tooltip(d),
         };
         var icon = new TextureRect
@@ -171,7 +171,7 @@ public partial class CommandCard : VBoxContainer
             ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
             StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
             MouseFilter = MouseFilterEnum.Ignore,
-            Position = new Vector2(6, 3),
+            Position = new Vector2(4, 3),
             Size = new Vector2(60, 56),
         };
         b.AddChild(icon);
@@ -184,7 +184,7 @@ public partial class CommandCard : VBoxContainer
             ClipText = true,
             MouseFilter = MouseFilterEnum.Ignore,
             Position = new Vector2(1, 58),
-            Size = new Vector2(70, 28),
+            Size = new Vector2(66, 28),
         };
         name.AddThemeFontSizeOverride("font_size", 10);
         name.AddThemeConstantOverride("line_spacing", -3);

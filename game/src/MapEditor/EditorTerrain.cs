@@ -167,18 +167,21 @@ public partial class EditorTerrain : Node3D
     }
 
     /// <summary>Moves the game view's metal spot discs back onto the (re-sculpted) ground.</summary>
-    public void RefreshMetalDiscs()
+    /// <remarks>Also follows spots being added or removed, so placing one doesn't need a full rebuild. Returns false if the discs weren't found.</remarks>
+    public bool RefreshMetalDiscs()
     {
         foreach (Node child in _view.GetChildren())
         {
             if (child.IsQueuedForDeletion() || child is not MultiMeshInstance3D { Multimesh: { } mm }) continue;
-            if (mm.InstanceCount != Map.MetalSpots.Count) continue;
+            if (mm.InstanceCount != Map.MetalSpots.Count) mm.InstanceCount = Map.MetalSpots.Count;
             for (int i = 0; i < mm.InstanceCount; i++)
             {
                 Vector2 p = MapEdits.ToVec(Map.MetalSpots[i].Position);
                 mm.SetInstanceTransform(i, new Transform3D(Basis.Identity, new Vector3(p.X, HeightAt(p.X, p.Y) + 0.08f, p.Y)));
             }
+            return true;
         }
+        return false;
     }
 
     private void ComputeScale(out float baseline, out float range, out bool hasWater)
@@ -296,15 +299,15 @@ public partial class EditorTerrain : Node3D
 
         // Dispose the variants and the array at once: they hold native copies of the vertex data that
         // the GC can't see, and a stroke makes many of them (left to the finaliser, memory balloons).
-        using Variant verts = Variant.CreateFrom(d.Verts), normals = Variant.CreateFrom(d.Normals),
-            colours = Variant.CreateFrom(d.Colours), uvs = Variant.CreateFrom(d.Uvs), indices = Variant.CreateFrom(d.Indices);
+        using Variant vVerts = Variant.CreateFrom(d.Verts), vNormals = Variant.CreateFrom(d.Normals),
+            vColours = Variant.CreateFrom(d.Colours), vUvs = Variant.CreateFrom(d.Uvs), vIndices = Variant.CreateFrom(d.Indices);
         using var arrays = new Godot.Collections.Array();
         arrays.Resize((int)Mesh.ArrayType.Max);
-        arrays[(int)Mesh.ArrayType.Vertex] = verts;
-        arrays[(int)Mesh.ArrayType.Normal] = normals;
-        arrays[(int)Mesh.ArrayType.Color] = colours;
-        arrays[(int)Mesh.ArrayType.TexUV] = uvs;
-        arrays[(int)Mesh.ArrayType.Index] = indices;
+        arrays[(int)Mesh.ArrayType.Vertex] = vVerts;
+        arrays[(int)Mesh.ArrayType.Normal] = vNormals;
+        arrays[(int)Mesh.ArrayType.Color] = vColours;
+        arrays[(int)Mesh.ArrayType.TexUV] = vUvs;
+        arrays[(int)Mesh.ArrayType.Index] = vIndices;
         MeshInstance3D mi = _chunks[index];
         if (mi.Mesh is ArrayMesh existing)
         {

@@ -63,7 +63,7 @@ public partial class MatchScene : Node3D
             BackgroundColor = palette.Sky.Darkened(0.6f),
             AmbientLightSource = Godot.Environment.AmbientSource.Color,
             AmbientLightColor = palette.Sky.Lerp(Colors.White, 0.5f),
-            AmbientLightEnergy = 0.5f,
+            AmbientLightEnergy = 0.45f,
             // The Compatibility renderer works in display space; a linear tonemap keeps the
             // authored colours (filmic washes them out).
             TonemapMode = Godot.Environment.ToneMapper.Linear,
@@ -72,7 +72,7 @@ public partial class MatchScene : Node3D
         AddChild(new DirectionalLight3D
         {
             RotationDegrees = new Vector3(-52, -38, 0),
-            LightEnergy = world.Map.Theme == "lava" ? 0.75f : 0.9f,
+            LightEnergy = world.Map.Theme == "lava" ? 0.75f : 0.85f,
             LightColor = world.Map.Theme == "lava" ? new Color(1f, 0.82f, 0.7f) : new Color(1f, 0.97f, 0.92f),
             ShadowEnabled = true,
             DirectionalShadowMaxDistance = 600,
@@ -133,6 +133,15 @@ public partial class MatchScene : Node3D
                 Hud.Post("Build metal extractors on the glowing spots, then energy, then a factory.", UiTheme.Accent, 12);
                 Hud.Post("Destroy the enemy Commander to win. Keep yours alive.", UiTheme.Accent, 12);
             }
+        }
+
+        // Render build-menu portraits for our side in the background so menus open fully drawn.
+        if (session.LocalPlayer >= 0 && kind != MatchKind.MenuBackground)
+        {
+            string faction = world.Players[session.LocalPlayer].Faction;
+            Color team = UiTheme.TeamColour(session.LocalPlayer);
+            for (int t = 0; t < world.Catalog.Count; t++)
+                if (world.Catalog[t].Faction == faction) IconFactory.For(world.Catalog[t], team);
         }
 
         Session.Ticked += OnTicked;

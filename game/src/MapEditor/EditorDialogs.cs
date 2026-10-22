@@ -186,7 +186,8 @@ public partial class StartDialog : EditorDialog
         HBoxContainer row = ButtonRow(BoxContainer.AlignmentMode.Begin);
         row.AddChild(Btn(cancelText, () => { d.QueueFree(); onCancel(); }, 180));
         d.Body.AddChild(row);
-        d.OnCancel = canCancel ? () => { d.QueueFree(); onCancel(); } : null;
+        // Esc does what the bottom button does: close this, or (with no map open) leave the editor.
+        d.OnCancel = () => { d.QueueFree(); onCancel(); };
         return d;
     }
 

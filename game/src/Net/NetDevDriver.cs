@@ -55,6 +55,7 @@ public partial class NetDevDriver : Node
     private bool _waitShot;
     private int _ordersIssued;
     private bool _desyncSent;
+    private bool _chatShot;
     private readonly List<(double At, string Name)> _eventShots = new();
 
     public NetDevDriver(Dictionary<string, string> args) { _args = args; }
@@ -191,7 +192,11 @@ public partial class NetDevDriver : Node
             channel.Desynced += d => { Note($"DESYNC tick={d.Tick} host={d.HostHash:X16} peer={d.PeerHash:X16} player={d.Player}"); _eventShots.Add((_elapsed + 1.5, "desync")); };
             channel.PlayerLeft += p => { Note($"player left: {channel.NameOf(p)}"); _eventShots.Add((_elapsed + 1.5, "player_left")); };
             channel.Lost += why => { Note($"lost: {why}"); _eventShots.Add((_elapsed + 1.5, "lost")); };
-            channel.ChatReceived += (p, n, t) => Note($"chat from {n}: {t}");
+            channel.ChatReceived += (p, n, t) =>
+            {
+                Note($"chat from {n}: {t}");
+                if (!_chatShot) { _chatShot = true; _eventShots.Add((_elapsed + 1.0, "chat")); }
+            };
             Note($"match started: I am player {session.LocalPlayer} of {session.Scenario.Players.Count}, seed {session.Scenario.Seed:X}, map {session.World.Map.Name}");
         }
 

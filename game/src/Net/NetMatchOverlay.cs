@@ -51,11 +51,13 @@ public partial class NetMatchOverlay : CanvasLayer
     private Control _root = null!;
     private Label _waiting = null!;
     private PanelContainer _desyncPanel = null!;
+    private Label _desyncTitle = null!;
     private Label _desync = null!;
     private Label _status = null!;
     private PanelContainer _chatPanel = null!;
     private LineEdit _chat = null!;
     private bool _lostShown;
+    private readonly System.Collections.Generic.HashSet<int> _left = new();
     private double _statusTimer;
 
     public NetMatchOverlay(MatchScene match, LockstepChannel channel)
@@ -80,12 +82,17 @@ public partial class NetMatchOverlay : CanvasLayer
         _waiting.Visible = false;
         _root.AddChild(_waiting);
 
-        _desync = UiTheme.Label("", 16, UiTheme.Ink, HorizontalAlignment.Center);
+        _desyncTitle = UiTheme.Label("", 21, new Color(1f, 0.82f, 0.78f), HorizontalAlignment.Center);
+        _desync = UiTheme.Label("", 15, UiTheme.Ink, HorizontalAlignment.Center);
         _desync.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         _desync.CustomMinimumSize = new Vector2(640, 0);
+        var desyncBody = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+        desyncBody.AddThemeConstantOverride("separation", 4);
+        desyncBody.AddChild(_desyncTitle);
+        desyncBody.AddChild(_desync);
         _desyncPanel = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         _desyncPanel.AddThemeStyleboxOverride("panel", UiTheme.Box(new Color(0.28f, 0.05f, 0.05f, 0.92f), UiTheme.Bad, 2, 4, 10));
-        _desyncPanel.AddChild(_desync);
+        _desyncPanel.AddChild(desyncBody);
         _desyncPanel.AnchorLeft = 0.5f; _desyncPanel.AnchorRight = 0.5f;
         _desyncPanel.OffsetLeft = -340; _desyncPanel.OffsetRight = 340; _desyncPanel.OffsetTop = 60;
         _desyncPanel.GrowHorizontal = Control.GrowDirection.Both;
@@ -114,7 +121,11 @@ public partial class NetMatchOverlay : CanvasLayer
         _chatPanel.Visible = false;
         _root.AddChild(_chatPanel);
 
-        _channel.PlayerLeft += p => _match.Hud?.Post($"{_channel.NameOf(p)} left the game", UiTheme.Amber, 10);
+        _channel.PlayerLeft += p =>
+        {
+            _left.Add(p);
+            _match.Hud?.Post($"{_channel.NameOf(p)} left the game", UiTheme.Amber, 10);
+        };
         _channel.ChatReceived += OnChat;
         _channel.Desynced += OnDesync;
         _channel.Lost += _ => ShowLost();
@@ -133,7 +144,8 @@ public partial class NetMatchOverlay : CanvasLayer
     {
         string? saved = _match.SaveReplay();
         GD.PrintErr($"DESYNC at tick {d.Tick} ({NetProtocol.Clock(d.Tick)}): host hash {d.HostHash:X16}, {_channel.NameOf(d.Player)} hash {d.PeerHash:X16}. Replay: {saved ?? "not saved"}");
-        _desync.Text = $"Desync detected at {NetProtocol.Clock(d.Tick)}\nThis game is out of sync: players may now be seeing different battles. " +
+        _desyncTitle.Text = $"Desync detected at {NetProtocol.Clock(d.Tick)}";
+        _desync.Text = "This game is out of sync: players may now be seeing different battles. " +
             $"You can play on, but the result may not count.{(saved is null ? "" : $"\nReplay saved for a bug report: {saved}")}";
         _desyncPanel.Visible = true;
         Sfx.Play(SfxKind.Error);
@@ -190,7 +202,8 @@ public partial class NetMatchOverlay : CanvasLayer
                     .Where(p => p != host.LocalPlayer && host.IsConnected(p) && host.RoundTrip(p) > 0)
                     .Select(p => $"{_channel.NameOf(p)} {host.RoundTrip(p) * 1000:0} ms"))
                 : "";
-            _status.Text = $"Online · {humans} humans{(ais > 0 ? $", {ais} AI" : "")} · input delay {_channel.Delay * 1000 / Sim.World.TicksPerSecond} ms" + (ping.Length > 0 ? $"\n{ping}" : "");
+            string people = _left.Count > 0 ? $"{humans - _left.Count} of {humans} humans" : $"{humans} humans";
+            _status.Text = $"Online · {people}{(ais > 0 ? $", {ais} AI" : "")} · input delay {_channel.Delay * 1000 / Sim.World.TicksPerSecond} ms" + (ping.Length > 0 ? $"\n{ping}" : "");
         }
     }
 

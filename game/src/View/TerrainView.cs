@@ -31,8 +31,8 @@ public partial class TerrainView : Node3D
         "lava" => new TerrainPalette(new Color(0.25f, 0.18f, 0.16f), new Color(0.24f, 0.22f, 0.22f), new Color(0.32f, 0.28f, 0.26f),
             new Color(0.45f, 0.4f, 0.38f), new Color(0.18f, 0.15f, 0.15f), new Color(1.0f, 0.38f, 0.05f, 0.95f), new Color(0.9f, 0.15f, 0.02f), true,
             new Color(0.22f, 0.12f, 0.1f)),
-        "arctic" => new TerrainPalette(new Color(0.66f, 0.72f, 0.77f), new Color(0.76f, 0.8f, 0.85f), new Color(0.82f, 0.85f, 0.89f),
-            new Color(0.88f, 0.9f, 0.93f), new Color(0.48f, 0.52f, 0.58f), new Color(0.35f, 0.55f, 0.7f, 0.8f), new Color(0.12f, 0.25f, 0.4f), false,
+        "arctic" => new TerrainPalette(new Color(0.55f, 0.6f, 0.66f), new Color(0.62f, 0.67f, 0.73f), new Color(0.7f, 0.74f, 0.8f),
+            new Color(0.8f, 0.83f, 0.87f), new Color(0.48f, 0.52f, 0.58f), new Color(0.35f, 0.55f, 0.7f, 0.8f), new Color(0.12f, 0.25f, 0.4f), false,
             new Color(0.6f, 0.68f, 0.76f)),
         _ => new TerrainPalette(new Color(0.76f, 0.7f, 0.5f), new Color(0.36f, 0.45f, 0.28f), new Color(0.47f, 0.5f, 0.35f),
             new Color(0.6f, 0.6f, 0.5f), new Color(0.45f, 0.43f, 0.4f), new Color(0.15f, 0.4f, 0.55f, 0.78f), new Color(0.05f, 0.18f, 0.3f), false,
@@ -228,7 +228,11 @@ varying vec3 world_pos;
 void vertex() { world_pos = VERTEX; }
 void fragment() {
     vec2 uv = world_pos.xz / map_size;
-    vec2 fog = texture(fog_tex, uv).rg;
+    // Five taps soften the tile-shaped edge of what's in sight.
+    vec2 px = vec2(6.0) / map_size;
+    vec2 fog = texture(fog_tex, uv).rg * 0.4
+        + (texture(fog_tex, uv + vec2(px.x, 0.0)).rg + texture(fog_tex, uv - vec2(px.x, 0.0)).rg
+         + texture(fog_tex, uv + vec2(0.0, px.y)).rg + texture(fog_tex, uv - vec2(0.0, px.y)).rg) * 0.15;
     float light = mix(mix(0.18, 0.55, fog.g), 1.0, fog.r);
     // Subtle tile grid, like a planning map, only where explored.
     vec2 g = abs(fract(world_pos.xz / 8.0) - 0.5);
