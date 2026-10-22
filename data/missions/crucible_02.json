@@ -1,0 +1,561 @@
+{
+  "campaign": "crucible",
+  "order": 2,
+  "title": "Crater Claim",
+  "briefing": "Crater Basin holds the richest metal on Cairn, and a forge is only as hot as its ore. Spread out and claim it: run ten extractors at once. The Lattice has planted a sensor post on the rich deposits in the crater's heart and is sending fast raiders after anything you build. Burn the post and take the bowl.",
+  "map": "crater_basin",
+  "players": [
+    {
+      "name": "Crucible",
+      "team": 0,
+      "faction": "crucible",
+      "start": 2,
+      "ai": "None"
+    },
+    {
+      "name": "Lattice Survey",
+      "team": 1,
+      "faction": "lattice",
+      "start": 1,
+      "ai": "None"
+    }
+  ],
+  "humanPlayer": 0,
+  "startMetal": 1000,
+  "startEnergy": 1000,
+  "spawnCommanders": true,
+  "messages": [
+    "Spread out. Every deposit you hold is heat in the furnace.",
+    "The rich deposits are in the crater's heart. The Lattice post there sees for miles.",
+    "Ten extractors running. The forge roars.",
+    "Sensor post down. The crater is blind and it is ours.",
+    "Lattice scouts heading for the western deposits.",
+    "Striders sweeping the crater rim.",
+    "Raiders with artillery, heading for the base.",
+    "Another sweep on the west.",
+    "Lattice gunships! Get AA up.",
+    "Heavy raid inbound.",
+    "They want the crater back. Five Striders.",
+    "The crater is ours. Every lode in it feeds the forge."
+  ],
+  "objectives": [
+    {
+      "id": "ten",
+      "text": "Run 10 Metal Extractors at once"
+    },
+    {
+      "id": "sensor",
+      "text": "Destroy the Lattice sensor post in the crater"
+    },
+    {
+      "id": "deep",
+      "text": "Upgrade an extractor to a Deep Extractor",
+      "optional": true
+    }
+  ],
+  "spawns": [
+    {
+      "tag": "sensor",
+      "type": "lattice_metal_extractor",
+      "owner": 1,
+      "x": 476,
+      "y": 452
+    },
+    {
+      "tag": "sensor",
+      "type": "lattice_metal_extractor",
+      "owner": 1,
+      "x": 468,
+      "y": 476
+    },
+    {
+      "tag": "sensor",
+      "type": "lattice_metal_extractor",
+      "owner": 1,
+      "x": 436,
+      "y": 476
+    },
+    {
+      "tag": "sensor",
+      "type": "lattice_metal_extractor",
+      "owner": 1,
+      "x": 428,
+      "y": 452
+    },
+    {
+      "tag": "sensor",
+      "type": "lattice_radar_tower",
+      "owner": 1,
+      "x": 452,
+      "y": 452
+    },
+    {
+      "tag": "sensor",
+      "type": "lattice_light_turret",
+      "owner": 1,
+      "x": 452,
+      "y": 412
+    },
+    {
+      "tag": "sensor",
+      "type": "lattice_light_turret",
+      "owner": 1,
+      "x": 412,
+      "y": 468
+    },
+    {
+      "tag": "sensor",
+      "type": "lattice_light_turret",
+      "owner": 1,
+      "x": 452,
+      "y": 500
+    },
+    {
+      "tag": "sensor",
+      "type": "lattice_metal_storage",
+      "owner": 1,
+      "x": 488,
+      "y": 424
+    },
+    {
+      "tag": "",
+      "type": "lattice_strider",
+      "owner": 1,
+      "x": 470,
+      "y": 500
+    },
+    {
+      "tag": "",
+      "type": "lattice_strider",
+      "owner": 1,
+      "x": 430,
+      "y": 500
+    },
+    {
+      "tag": "",
+      "type": "lattice_light_turret",
+      "owner": 1,
+      "x": 764,
+      "y": 164
+    },
+    {
+      "tag": "",
+      "type": "lattice_light_turret",
+      "owner": 1,
+      "x": 732,
+      "y": 132
+    }
+  ],
+  "triggers": [
+    {
+      "id": "intro",
+      "when": {
+        "type": "time",
+        "seconds": 1
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 0
+        }
+      ]
+    },
+    {
+      "id": "intro2",
+      "when": {
+        "type": "time",
+        "seconds": 30
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 1
+        }
+      ]
+    },
+    {
+      "id": "tenMsg",
+      "when": {
+        "type": "count",
+        "player": 0,
+        "atLeast": 10,
+        "role": "metal_extractor"
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 2
+        }
+      ]
+    },
+    {
+      "id": "ten",
+      "when": {
+        "type": "count",
+        "player": 0,
+        "atLeast": 10,
+        "role": "metal_extractor"
+      },
+      "actions": [
+        {
+          "type": "objective",
+          "id": "ten",
+          "state": "complete"
+        }
+      ],
+      "repeat": true
+    },
+    {
+      "id": "sensorMsg",
+      "when": {
+        "type": "destroyed",
+        "tag": "sensor"
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 3
+        }
+      ]
+    },
+    {
+      "id": "sensor",
+      "when": {
+        "type": "destroyed",
+        "tag": "sensor"
+      },
+      "actions": [
+        {
+          "type": "objective",
+          "id": "sensor",
+          "state": "complete"
+        }
+      ],
+      "repeat": true
+    },
+    {
+      "id": "deep",
+      "when": {
+        "type": "count",
+        "player": 0,
+        "atLeast": 1,
+        "unit": "crucible_deep_extractor"
+      },
+      "actions": [
+        {
+          "type": "objective",
+          "id": "deep",
+          "state": "complete"
+        }
+      ],
+      "repeat": true
+    },
+    {
+      "id": "r1",
+      "when": {
+        "type": "time",
+        "seconds": 180
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 4
+        },
+        {
+          "type": "spawn",
+          "tag": "r1",
+          "units": [
+            {
+              "unit": "lattice_scout_bot",
+              "owner": 1,
+              "x": 520,
+              "y": 300,
+              "count": 4
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "r1",
+          "x": 60,
+          "y": 600
+        }
+      ]
+    },
+    {
+      "id": "r2",
+      "when": {
+        "type": "time",
+        "seconds": 360
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 5
+        },
+        {
+          "type": "spawn",
+          "tag": "r2",
+          "units": [
+            {
+              "unit": "lattice_strider",
+              "owner": 1,
+              "x": 520,
+              "y": 300,
+              "count": 3
+            },
+            {
+              "unit": "lattice_scout_bot",
+              "owner": 1,
+              "x": 520,
+              "y": 285,
+              "count": 2
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "r2",
+          "x": 200,
+          "y": 460
+        }
+      ]
+    },
+    {
+      "id": "r3",
+      "when": {
+        "type": "time",
+        "seconds": 540
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 6
+        },
+        {
+          "type": "spawn",
+          "tag": "r3",
+          "units": [
+            {
+              "unit": "lattice_strider",
+              "owner": 1,
+              "x": 520,
+              "y": 300,
+              "count": 4
+            },
+            {
+              "unit": "lattice_artillery_vehicle",
+              "owner": 1,
+              "x": 520,
+              "y": 285,
+              "count": 2
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "r3",
+          "x": 160,
+          "y": 740
+        }
+      ]
+    },
+    {
+      "id": "r4",
+      "when": {
+        "type": "time",
+        "seconds": 720
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 7
+        },
+        {
+          "type": "spawn",
+          "tag": "r4",
+          "units": [
+            {
+              "unit": "lattice_strider",
+              "owner": 1,
+              "x": 520,
+              "y": 300,
+              "count": 4
+            },
+            {
+              "unit": "lattice_assault_bot",
+              "owner": 1,
+              "x": 520,
+              "y": 285,
+              "count": 4
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "r4",
+          "x": 60,
+          "y": 600
+        }
+      ]
+    },
+    {
+      "id": "r5",
+      "when": {
+        "type": "time",
+        "seconds": 900
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 8
+        },
+        {
+          "type": "spawn",
+          "tag": "r5",
+          "units": [
+            {
+              "unit": "lattice_gunship",
+              "owner": 1,
+              "x": 700,
+              "y": 200,
+              "count": 2
+            },
+            {
+              "unit": "lattice_strider",
+              "owner": 1,
+              "x": 520,
+              "y": 300,
+              "count": 5
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "r5",
+          "x": 160,
+          "y": 740
+        }
+      ]
+    },
+    {
+      "id": "r6",
+      "when": {
+        "type": "time",
+        "seconds": 1140
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 9
+        },
+        {
+          "type": "spawn",
+          "tag": "r6",
+          "units": [
+            {
+              "unit": "lattice_strider",
+              "owner": 1,
+              "x": 520,
+              "y": 300,
+              "count": 6
+            },
+            {
+              "unit": "lattice_artillery_vehicle",
+              "owner": 1,
+              "x": 520,
+              "y": 285,
+              "count": 2
+            },
+            {
+              "unit": "lattice_gunship",
+              "owner": 1,
+              "x": 700,
+              "y": 200,
+              "count": 2
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "r6",
+          "x": 160,
+          "y": 740
+        }
+      ]
+    },
+    {
+      "id": "revenge",
+      "when": {
+        "type": "fired",
+        "trigger": "sensorMsg",
+        "after": 20
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 10
+        },
+        {
+          "type": "spawn",
+          "tag": "revenge",
+          "units": [
+            {
+              "unit": "lattice_strider",
+              "owner": 1,
+              "x": 520,
+              "y": 300,
+              "count": 5
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "revenge",
+          "x": 452,
+          "y": 452
+        }
+      ]
+    },
+    {
+      "id": "win",
+      "when": {
+        "type": "all",
+        "of": [
+          {
+            "type": "destroyed",
+            "tag": "sensor"
+          },
+          {
+            "type": "count",
+            "player": 0,
+            "atLeast": 10,
+            "role": "metal_extractor"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 11
+        },
+        {
+          "type": "reveal"
+        }
+      ]
+    },
+    {
+      "id": "winEnd",
+      "when": {
+        "type": "fired",
+        "trigger": "win",
+        "after": 4
+      },
+      "actions": [
+        {
+          "type": "victory"
+        }
+      ]
+    }
+  ]
+}

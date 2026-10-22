@@ -1,0 +1,23 @@
+{
+  "id": "crucible_bot_lab",
+  "name": "Foundry",
+  "faction": "crucible",
+  "role": "factory_bot",
+  "tier": 1,
+  "metalCost": 500,
+  "energyCost": 550,
+  "buildTime": 5000,
+  "health": 3120,
+  "footprint": 3,
+  "buildPower": 100,
+  "sightRange": 22.0,
+  "buildOptions": [
+    "crucible_rigger",
+    "crucible_scout_bot",
+    "crucible_assault_bot",
+    "crucible_aa_bot",
+    "crucible_mortar_bot"
+  ],
+  "description": "Builds walking units.",
+  "reclaimMultiplier": 1.4
+}

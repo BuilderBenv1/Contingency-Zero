@@ -1,0 +1,38 @@
+{
+  "id": "lattice_experimental",
+  "name": "Skywarden",
+  "faction": "lattice",
+  "role": "experimental",
+  "tier": 3,
+  "metalCost": 7500,
+  "energyCost": 60500,
+  "buildTime": 90000,
+  "health": 30400,
+  "moveClass": "bot",
+  "speed": 2.59,
+  "radius": 8,
+  "sightRange": 46.64,
+  "weapons": [
+    {
+      "kind": "laser",
+      "range": 62.4,
+      "damage": 420,
+      "reloadSeconds": 1.8,
+      "accuracy": 0.95
+    },
+    {
+      "kind": "missile",
+      "range": 37.44,
+      "damage": 90,
+      "reloadSeconds": 1.0,
+      "accuracy": 0.95,
+      "projectileSpeed": 90,
+      "targetsAir": true,
+      "targetsGround": false
+    }
+  ],
+  "deathExplosionDamage": 4000,
+  "deathExplosionRadius": 36,
+  "wreckFraction": 0.5,
+  "description": "Skywarden: a towering walker whose beam cuts a lane across the battlefield."
+}

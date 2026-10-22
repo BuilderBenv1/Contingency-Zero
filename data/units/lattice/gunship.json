@@ -1,0 +1,27 @@
+{
+  "id": "lattice_gunship",
+  "name": "Seraph",
+  "faction": "lattice",
+  "role": "gunship",
+  "tier": 1,
+  "metalCost": 260,
+  "energyCost": 3030,
+  "buildTime": 3200,
+  "health": 902,
+  "moveClass": "air",
+  "speed": 8.1,
+  "radius": 2.4,
+  "sightRange": 31.8,
+  "weapons": [
+    {
+      "kind": "laser",
+      "range": 16.64,
+      "damage": 23,
+      "reloadSeconds": 0.35,
+      "accuracy": 0.85,
+      "targetsAir": false,
+      "targetsGround": true
+    }
+  ],
+  "description": "Hovers and strafes ground targets."
+}

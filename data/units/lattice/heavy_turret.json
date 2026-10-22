@@ -1,0 +1,25 @@
+{
+  "id": "lattice_heavy_turret",
+  "name": "Bastion",
+  "faction": "lattice",
+  "role": "heavy_turret",
+  "tier": 2,
+  "metalCost": 900,
+  "energyCost": 6600,
+  "buildTime": 15000,
+  "health": 5890,
+  "footprint": 2,
+  "sightRange": 42.4,
+  "weapons": [
+    {
+      "kind": "cannon",
+      "range": 43.68,
+      "damage": 320,
+      "reloadSeconds": 2.2,
+      "accuracy": 0.85,
+      "splash": 3,
+      "projectileSpeed": 90
+    }
+  ],
+  "description": "Heavy cannon emplacement."
+}

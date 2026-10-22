@@ -1,0 +1,16 @@
+{
+  "id": "lattice_metal_maker",
+  "name": "Metal Maker",
+  "faction": "lattice",
+  "role": "metal_maker",
+  "tier": 1,
+  "metalCost": 1,
+  "energyCost": 1320,
+  "buildTime": 2600,
+  "health": 399,
+  "footprint": 2,
+  "convertEnergy": 60,
+  "convertMetal": 1,
+  "sightRange": 12.72,
+  "description": "Turns 60 energy into 1 metal a second while energy is above 10%."
+}

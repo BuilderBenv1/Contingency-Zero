@@ -1,0 +1,28 @@
+{
+  "id": "crucible_artillery_vehicle",
+  "name": "Howitzer Cart",
+  "faction": "crucible",
+  "role": "artillery_vehicle",
+  "tier": 1,
+  "metalCost": 220,
+  "energyCost": 1320,
+  "buildTime": 2400,
+  "health": 516,
+  "moveClass": "vehicle",
+  "speed": 2.94,
+  "radius": 2.4,
+  "sightRange": 24.0,
+  "weapons": [
+    {
+      "kind": "artillery",
+      "range": 54.32,
+      "minRange": 12,
+      "damage": 115,
+      "reloadSeconds": 4.0,
+      "accuracy": 0.7,
+      "splash": 5,
+      "projectileSpeed": 45
+    }
+  ],
+  "description": "Long-range howitzer. Keep it behind the line."
+}

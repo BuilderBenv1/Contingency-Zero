@@ -1,80 +1,117 @@
-using System;
 using ContingencyZero.Sim.Core;
 using ContingencyZero.Sim.State;
 using Xunit;
+using static ContingencyZero.Sim.Tests.TestData;
 
 namespace ContingencyZero.Sim.Tests;
 
 public class EconomyTests
 {
-    private static World NewWorld(int startMetal, int startEnergy) =>
-        new(TestData.Catalog, seed: 1, mapWidth: 256, mapHeight: 256, playerTeams: new[] { 0, 1 }, startMetal, startEnergy);
-
-    private static Command Build(World world, int builder, string typeId, FixVec2 at) =>
-        new(world.Tick, world.Units.Owner[builder], CommandType.Build, builder, at, TypeIndex: world.Catalog.IndexOf(typeId));
+    private static Command Build(World w, int builder, string typeId, FixVec2 at, bool queue = false) =>
+        new(w.Tick, w.Units.Owner[builder], CommandType.Build, builder, at, TypeIndex: Type(typeId), Queue: queue);
 
     [Fact]
     public void Commander_alone_earns_income_every_tick()
     {
-        World world = NewWorld(0, 0);
-        world.SpawnUnit("lattice_commander", 0, TestData.At(50, 50));
+        World world = Flat(0, 0);
+        world.SpawnUnit("lattice_commander", 0, At(50, 50));
 
         for (int i = 0; i < World.TicksPerSecond; i++) world.Step();
 
-        // 1 metal and 25 energy per second, give or take fixed-point rounding.
-        Assert.InRange(world.Players[0].Metal, Fix64.Parse("0.99"), Fix64.Parse("1.01"));
+        // 1.5 metal and 25 energy per second, give or take fixed-point rounding.
+        Assert.InRange(world.Players[0].Metal, Fix64.Parse("1.49"), Fix64.Parse("1.51"));
         Assert.InRange(world.Players[0].Energy, Fix64.Parse("24.99"), Fix64.Parse("25.01"));
     }
 
     [Fact]
-    public void Rich_player_builds_at_full_speed()
+    public void Builder_walks_to_the_site_puts_up_a_nanoframe_and_finishes_it()
     {
-        World world = NewWorld(1000, 1000);
-        int cmdr = world.SpawnUnit("lattice_commander", 0, TestData.At(50, 50));
+        World world = Flat();
+        int cmdr = world.SpawnUnit("lattice_commander", 0, At(40, 40));
+        world.Step(new[] { Build(world, cmdr, "lattice_solar_collector", At(120, 40)) });
 
-        world.Step(new[] { Build(world, cmdr, "lattice_strider", TestData.At(52, 50)) });
+        int frame = -1;
+        RunUntil(world, () =>
+        {
+            Order o = world.Units.CurrentOrder(cmdr);
+            if (o.Type == OrderType.Build && o.Target >= 0) frame = o.Target;
+            return frame >= 0;
+        }, 600);
+        Assert.True(frame >= 0, "the builder never started the frame");
+        Assert.False(world.Units.Complete[frame]);
+        Assert.True(world.Units.Position[cmdr].X > Fix64.FromInt(80), "the builder should have walked over");
 
-        BuildJob job = world.Jobs[0];
-        Assert.Equal(Fix64.One, world.Players[0].BuildRatio);
-        Assert.Equal(Fix64.FromInt(2), job.Progress); // 30 build power / 15 ticks
+        RunUntil(world, () => world.Units.Complete[frame], 2000);
+        world.Step(); // the builder notices on the next tick
+        Assert.True(world.Units.Complete[frame]);
+        Assert.Equal(world.Catalog[Type("lattice_solar_collector")].MaxHealth, world.Units.Health[frame]);
+        Assert.Equal(OrderType.None, world.Units.CurrentOrder(cmdr).Type);
     }
 
     [Fact]
     public void Poor_player_stalls_and_every_build_slows_by_the_same_ratio()
     {
-        World world = NewWorld(0, 0);
-        int cmdr = world.SpawnUnit("lattice_commander", 0, TestData.At(50, 50));
+        World world = Flat(0, 0);
+        int cmdr = world.SpawnUnit("lattice_commander", 0, At(50, 50));
+        world.Step(new[] { Build(world, cmdr, "lattice_solar_collector", At(60, 50)) });
+        RunUntil(world, () => world.Units.CurrentOrder(cmdr).Target >= 0, 200);
+        world.Step();
 
-        world.Step(new[] { Build(world, cmdr, "lattice_strider", TestData.At(52, 50)) });
-
-        // The strider wants 2.4 metal a second; the Commander makes 1, so it builds at about 1/2.4 speed.
+        // A solar wants 150 metal over 2000 work; at 150 build power that's 11.25 metal/s against 1.5 income.
         PlayerState p = world.Players[0];
-        Assert.InRange(p.BuildRatio, Fix64.Parse("0.41"), Fix64.Parse("0.42"));
-        Assert.True(world.Jobs[0].Progress < Fix64.One);
+        Assert.InRange(p.BuildRatio, Fix64.Parse("0.12"), Fix64.Parse("0.15"));
         Assert.True(p.Metal >= Fix64.Zero);
     }
 
     [Fact]
-    public void Finished_job_spawns_the_unit_and_costs_its_price()
+    public void Factory_builds_its_queue_and_sends_units_to_the_rally_point()
     {
-        World world = NewWorld(1000, 1000);
-        int cmdr = world.SpawnUnit("lattice_commander", 0, TestData.At(50, 50));
-        world.Step(new[] { Build(world, cmdr, "lattice_strider", TestData.At(52, 50)) });
+        World world = Flat();
+        world.SpawnUnit("lattice_fusion_reactor", 0, At(30, 220));
+        int lab = world.SpawnUnit("lattice_bot_lab", 0, At(100, 100));
+        world.Step(new[]
+        {
+            new Command(0, 0, CommandType.FactoryQueue, lab, TypeIndex: Type("lattice_assault_bot"), Arg: 2),
+            new Command(0, 0, CommandType.SetRally, lab, At(100, 200)),
+        });
 
-        for (int i = 0; i < 800 && !world.Jobs[0].Done; i++) world.Step();
+        RunUntil(world, () => world.Players[0].UnitsBuilt >= 2, 1500);
+        Assert.Equal(2, world.Players[0].UnitsBuilt);
+        Assert.Empty(world.Units.FactoryQueue[lab]);
 
-        BuildJob job = world.Jobs[0];
-        Assert.True(job.Done);
-        Assert.True(world.Units.IsValid(job.ResultUnit));
-        Assert.Equal(world.Catalog.IndexOf("lattice_strider"), world.Units.TypeIndex[job.ResultUnit]);
-        Assert.Equal(OrderType.None, world.Units.Order[cmdr]);
+        for (int i = 0; i < 600; i++) world.Step();
+        int bots = 0;
+        for (int id = 0; id < world.Units.Count; id++)
+        {
+            if (!world.Units.Alive[id] || world.Units.TypeIndex[id] != Type("lattice_assault_bot")) continue;
+            bots++;
+            Assert.True(FixVec2.Distance(world.Units.Position[id], At(100, 200)) < Fix64.FromInt(12),
+                $"bot {id} is at {world.Units.Position[id]}");
+        }
+        Assert.Equal(2, bots);
+    }
+
+    [Fact]
+    public void Repeat_keeps_a_factory_producing()
+    {
+        World world = Flat();
+        world.SpawnUnit("crucible_fusion_reactor", 1, At(30, 220));
+        int lab = world.SpawnUnit("crucible_bot_lab", 1, At(100, 100));
+        world.Step(new[]
+        {
+            new Command(0, 1, CommandType.FactoryQueue, lab, TypeIndex: Type("crucible_scout_bot"), Arg: 1),
+            new Command(0, 1, CommandType.FactoryRepeat, lab, Arg: 1),
+        });
+        RunUntil(world, () => world.Players[1].UnitsBuilt >= 3, 2000);
+        Assert.True(world.Players[1].UnitsBuilt >= 3);
+        Assert.Single(world.Units.FactoryQueue[lab]);
     }
 
     [Fact]
     public void Surplus_above_storage_is_wasted()
     {
-        World world = NewWorld(1490, 0);
-        world.SpawnUnit("lattice_commander", 0, TestData.At(50, 50));
+        World world = Flat(1490, 0);
+        world.SpawnUnit("lattice_commander", 0, At(50, 50));
 
         for (int i = 0; i < 20 * World.TicksPerSecond; i++) world.Step();
 
@@ -87,40 +124,60 @@ public class EconomyTests
     [Fact]
     public void Builders_reclaim_wrecks_for_metal()
     {
-        World world = NewWorld(0, 0);
-        int builder = world.SpawnUnit("lattice_surveyor", 0, TestData.At(50, 50));
-        int victim = world.SpawnUnit("crucible_anvil", 1, TestData.At(80, 50));
+        World world = Flat(0, 0);
+        int builder = world.SpawnUnit("lattice_surveyor", 0, At(50, 50));
+        int victim = world.SpawnUnit("crucible_anvil", 1, At(90, 50));
         world.Kill(victim);
 
-        Wreck wreck = world.Wrecks[0];
-        Assert.Equal(Fix64.FromInt(130) * Fix64.Parse("0.6"), wreck.Metal);
+        Feature wreck = world.Features[^1];
+        Fix64 expected = world.Catalog[Type("crucible_anvil")].MetalCost * Fix64.Parse("0.6");
+        Assert.Equal(expected, wreck.Metal);
 
         world.Step(new[] { new Command(0, 0, CommandType.Reclaim, builder, TargetId: wreck.Id) });
-        for (int i = 0; i < 300 && !wreck.Gone; i++) world.Step();
+        RunUntil(world, () => wreck.Gone, 600);
 
         Assert.True(wreck.Gone);
-        Assert.InRange(world.Players[0].Metal, Fix64.Parse("77.9"), Fix64.Parse("78.1"));
-        Assert.Equal(OrderType.None, world.Units.Order[builder]);
+        Assert.InRange(world.Players[0].Metal, expected - Fix64.Parse("0.1"), expected + Fix64.Parse("0.1"));
+        RunUntil(world, () => world.Units.CurrentOrder(builder).Type == OrderType.None, 30);
+        Assert.Equal(OrderType.None, world.Units.CurrentOrder(builder).Type);
     }
 
     [Fact]
-    public void Builders_cannot_build_another_factions_units()
+    public void Extractors_only_go_on_metal_spots_and_earn_the_spot_yield()
     {
-        World world = NewWorld(1000, 1000);
-        int cmdr = world.SpawnUnit("lattice_commander", 0, TestData.At(50, 50));
-        world.Step(new[] { Build(world, cmdr, "crucible_anvil", TestData.At(52, 50)) });
-        Assert.Empty(world.Jobs);
+        var map = Map.MapData.Flat("Spots", 32, 32);
+        map.MetalSpots.Add(new Map.MetalSpot(At(100, 100), Fix64.FromInt(3)));
+        var world = new World(Catalog, map, 1, new[] { new Match.PlayerSetup("A", 0, "lattice", 0) },
+            new Match.MatchOptions(SpawnCommanders: false));
+        int ex = Type("lattice_metal_extractor");
+
+        Assert.Equal(PlacementResult.NeedsMetalSpot, world.CanPlace(ex, 0, At(40, 40)));
+        Assert.Equal(PlacementResult.Ok, world.CanPlace(ex, 0, At(100, 100)));
+
+        int id = world.SpawnUnit(ex, 0, At(100, 100));
+        world.Step();
+        Assert.InRange(world.Players[0].MetalIncome * World.TicksPerSecond, Fix64.Parse("2.99"), Fix64.Parse("3.01"));
+        Assert.Equal(PlacementResult.Occupied, world.CanPlace(ex, 0, At(100, 100)));
+        Assert.Equal(PlacementResult.Ok, world.CanPlace(Type("lattice_deep_extractor"), 0, world.Units.Position[id]));
     }
 
     [Fact]
-    public void Unit_data_loads_and_converts_rates_to_per_tick()
+    public void Wind_turbines_follow_the_map_wind()
     {
-        var catalog = TestData.Catalog;
-        Assert.Equal(10, catalog.Count);
-        var strider = catalog[catalog.IndexOf("lattice_strider")];
-        Assert.Equal(Fix64.FromInt(4) / World.TicksPerSecond, strider.SpeedPerTick);
-        Assert.Equal(18, strider.ReloadTicks); // 1.2 s at 15 ticks a second
-        Assert.True(catalog[catalog.IndexOf("crucible_commander")].IsCommander);
-        Assert.Throws<System.Collections.Generic.KeyNotFoundException>(() => catalog.IndexOf("nope"));
+        World world = Flat(0, 0);
+        world.SpawnUnit("lattice_wind_turbine", 0, At(60, 60));
+        world.Step();
+        Fix64 perSecond = world.Players[0].EnergyIncome * World.TicksPerSecond;
+        Assert.InRange(perSecond, world.Map.WindMin, world.Map.WindMax);
+    }
+
+    [Fact]
+    public void Metal_makers_turn_spare_energy_into_metal()
+    {
+        World world = Flat(0, 900);
+        world.SpawnUnit("lattice_metal_maker", 0, At(60, 60));
+        for (int i = 0; i < World.TicksPerSecond; i++) world.Step();
+        Assert.InRange(world.Players[0].Metal, Fix64.Parse("0.98"), Fix64.Parse("1.01"));
+        Assert.True(world.Players[0].Energy < Fix64.FromInt(900));
     }
 }

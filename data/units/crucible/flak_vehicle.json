@@ -1,0 +1,28 @@
+{
+  "id": "crucible_flak_vehicle",
+  "name": "Flak Truck",
+  "faction": "crucible",
+  "role": "flak_vehicle",
+  "tier": 1,
+  "metalCost": 130,
+  "energyCost": 830,
+  "buildTime": 1400,
+  "health": 624,
+  "moveClass": "vehicle",
+  "speed": 4.05,
+  "radius": 2.2,
+  "sightRange": 28.0,
+  "weapons": [
+    {
+      "kind": "flak",
+      "range": 29.1,
+      "damage": 26,
+      "reloadSeconds": 0.5,
+      "accuracy": 0.9,
+      "splash": 2,
+      "targetsAir": true,
+      "targetsGround": false
+    }
+  ],
+  "description": "Shreds aircraft. Useless against ground."
+}

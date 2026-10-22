@@ -1,0 +1,19 @@
+{
+  "id": "crucible_experimental_gantry",
+  "name": "Colossus Gantry",
+  "faction": "crucible",
+  "role": "factory_gantry",
+  "tier": 2,
+  "metalCost": 6000,
+  "energyCost": 16500,
+  "buildTime": 40000,
+  "health": 10200,
+  "footprint": 4,
+  "buildPower": 600,
+  "sightRange": 24.0,
+  "buildOptions": [
+    "crucible_experimental"
+  ],
+  "description": "Builds your faction's experimental war machine.",
+  "reclaimMultiplier": 1.4
+}

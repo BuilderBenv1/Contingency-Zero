@@ -1,0 +1,23 @@
+{
+  "id": "lattice_bot_lab",
+  "name": "Bot Lab",
+  "faction": "lattice",
+  "role": "factory_bot",
+  "tier": 1,
+  "metalCost": 500,
+  "energyCost": 550,
+  "buildTime": 5000,
+  "health": 2470,
+  "footprint": 3,
+  "buildPower": 100,
+  "sightRange": 23.32,
+  "buildOptions": [
+    "lattice_surveyor",
+    "lattice_scout_bot",
+    "lattice_assault_bot",
+    "lattice_aa_bot",
+    "lattice_mortar_bot"
+  ],
+  "description": "Builds walking units.",
+  "reclaimMultiplier": 1.0
+}

@@ -2,11 +2,15 @@
   "id": "lattice_metal_extractor",
   "name": "Metal Extractor",
   "faction": "lattice",
+  "role": "metal_extractor",
+  "tier": 1,
   "metalCost": 50,
-  "energyCost": 500,
+  "energyCost": 290,
   "buildTime": 1000,
-  "health": 200,
-  "metalIncome": 2,
-  "metalStorage": 50,
-  "wreckFraction": 0.6
+  "health": 570,
+  "footprint": 1,
+  "needsMetalSpot": true,
+  "extractorMultiplier": 1,
+  "sightRange": 14.84,
+  "description": "Pulls metal from a metal spot."
 }

@@ -1,0 +1,27 @@
+{
+  "id": "lattice_amphibious",
+  "name": "Wader",
+  "faction": "lattice",
+  "role": "amphibious",
+  "tier": 2,
+  "metalCost": 250,
+  "energyCost": 1930,
+  "buildTime": 3500,
+  "health": 1472,
+  "moveClass": "amphibious",
+  "speed": 4.54,
+  "radius": 2.6,
+  "sightRange": 27.56,
+  "weapons": [
+    {
+      "kind": "laser",
+      "range": 18.72,
+      "damage": 36,
+      "reloadSeconds": 0.7,
+      "accuracy": 0.9,
+      "targetsAir": false,
+      "targetsGround": true
+    }
+  ],
+  "description": "Walks under water and climbs out on the far shore."
+}

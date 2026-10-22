@@ -1,0 +1,27 @@
+{
+  "id": "crucible_destroyer",
+  "name": "Hammerhead",
+  "faction": "crucible",
+  "role": "destroyer",
+  "tier": 1,
+  "metalCost": 340,
+  "energyCost": 2200,
+  "buildTime": 4000,
+  "health": 3120,
+  "moveClass": "ship",
+  "speed": 4.42,
+  "radius": 4,
+  "sightRange": 32.0,
+  "weapons": [
+    {
+      "kind": "cannon",
+      "range": 29.1,
+      "damage": 125,
+      "reloadSeconds": 2.0,
+      "accuracy": 0.85,
+      "splash": 2.5,
+      "projectileSpeed": 70
+    }
+  ],
+  "description": "Heavy hull and a big gun."
+}

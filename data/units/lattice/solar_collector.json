@@ -2,11 +2,15 @@
   "id": "lattice_solar_collector",
   "name": "Solar Collector",
   "faction": "lattice",
-  "metalCost": 60,
+  "role": "solar_collector",
+  "tier": 1,
+  "metalCost": 150,
   "energyCost": 0,
-  "buildTime": 1200,
-  "health": 250,
+  "buildTime": 2000,
+  "health": 760,
+  "footprint": 2,
   "energyIncome": 20,
   "energyStorage": 50,
-  "wreckFraction": 0.6
+  "sightRange": 14.84,
+  "description": "Steady 20 energy a second."
 }

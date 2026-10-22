@@ -1,0 +1,26 @@
+{
+  "id": "crucible_aa_turret",
+  "name": "Flak Nest",
+  "faction": "crucible",
+  "role": "aa_turret",
+  "tier": 1,
+  "metalCost": 150,
+  "energyCost": 770,
+  "buildTime": 2000,
+  "health": 1020,
+  "footprint": 1,
+  "sightRange": 34.0,
+  "weapons": [
+    {
+      "kind": "missile",
+      "range": 40.74,
+      "damage": 62,
+      "reloadSeconds": 1.4,
+      "accuracy": 0.95,
+      "projectileSpeed": 90,
+      "targetsAir": true,
+      "targetsGround": false
+    }
+  ],
+  "description": "Anti-air missile battery."
+}

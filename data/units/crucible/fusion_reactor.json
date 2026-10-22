@@ -1,0 +1,18 @@
+{
+  "id": "crucible_fusion_reactor",
+  "name": "Fusion Furnace",
+  "faction": "crucible",
+  "role": "fusion_reactor",
+  "tier": 2,
+  "metalCost": 4000,
+  "energyCost": 16500,
+  "buildTime": 70000,
+  "health": 6240,
+  "footprint": 3,
+  "energyIncome": 1000,
+  "energyStorage": 2500,
+  "sightRange": 16.0,
+  "deathExplosionDamage": 3500,
+  "deathExplosionRadius": 34,
+  "description": "1,000 energy a second. A huge blast if it dies."
+}

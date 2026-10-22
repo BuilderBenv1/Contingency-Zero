@@ -1,0 +1,31 @@
+{
+  "id": "crucible_builder_adv",
+  "name": "Foreman",
+  "faction": "crucible",
+  "role": "builder_adv",
+  "tier": 2,
+  "metalCost": 400,
+  "energyCost": 2750,
+  "buildTime": 6000,
+  "health": 1140,
+  "moveClass": "vehicle",
+  "speed": 3.5,
+  "radius": 2.6,
+  "sightRange": 26.0,
+  "buildPower": 240,
+  "buildRange": 14,
+  "buildOptions": [
+    "crucible_deep_extractor",
+    "crucible_fusion_reactor",
+    "crucible_heavy_turret",
+    "crucible_plasma_battery",
+    "crucible_advanced_assembly",
+    "crucible_experimental_gantry",
+    "crucible_metal_extractor",
+    "crucible_solar_collector",
+    "crucible_radar_tower",
+    "crucible_metal_maker"
+  ],
+  "description": "Builds fusion, deep extractors, heavy defences and gantries.",
+  "reclaimMultiplier": 1.4
+}

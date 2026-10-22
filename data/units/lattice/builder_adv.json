@@ -1,0 +1,31 @@
+{
+  "id": "lattice_builder_adv",
+  "name": "Architect",
+  "faction": "lattice",
+  "role": "builder_adv",
+  "tier": 2,
+  "metalCost": 400,
+  "energyCost": 2750,
+  "buildTime": 6000,
+  "health": 902,
+  "moveClass": "vehicle",
+  "speed": 4.1,
+  "radius": 2.6,
+  "sightRange": 27.56,
+  "buildPower": 240,
+  "buildRange": 14,
+  "buildOptions": [
+    "lattice_deep_extractor",
+    "lattice_fusion_reactor",
+    "lattice_heavy_turret",
+    "lattice_plasma_battery",
+    "lattice_advanced_assembly",
+    "lattice_experimental_gantry",
+    "lattice_metal_extractor",
+    "lattice_solar_collector",
+    "lattice_radar_tower",
+    "lattice_metal_maker"
+  ],
+  "description": "Builds fusion, deep extractors, heavy defences and gantries.",
+  "reclaimMultiplier": 1.0
+}

@@ -1,0 +1,15 @@
+{
+  "id": "lattice_wind_turbine",
+  "name": "Wind Turbine",
+  "faction": "lattice",
+  "role": "wind_turbine",
+  "tier": 1,
+  "metalCost": 40,
+  "energyCost": 100,
+  "buildTime": 1200,
+  "health": 304,
+  "footprint": 1,
+  "usesWind": true,
+  "sightRange": 12.72,
+  "description": "Cheap energy that rises and falls with the map's wind."
+}

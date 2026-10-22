@@ -1,0 +1,481 @@
+{
+  "campaign": "lattice",
+  "order": 1,
+  "title": "First Light",
+  "briefing": "Contingency Zero has woken you on Cairn, a dead colony world with metal in its bones. You are not alone: a Crucible vanguard has dug in on the far side of the proving grounds. Build Metal Extractors and power, raise a Bot Lab, and break the raids they send to test you.",
+  "map": "proving_grounds",
+  "players": [
+    {
+      "name": "Lattice",
+      "team": 0,
+      "faction": "lattice",
+      "start": 0,
+      "ai": "None"
+    },
+    {
+      "name": "Crucible Vanguard",
+      "team": 1,
+      "faction": "crucible",
+      "start": 1,
+      "ai": "None"
+    }
+  ],
+  "humanPlayer": 0,
+  "startMetal": 1000,
+  "startEnergy": 1000,
+  "spawnCommanders": true,
+  "messages": [
+    "Oversight online. The network starts with metal: build Metal Extractors on the glowing deposits.",
+    "Every structure costs energy too. Solar Collectors are steady; Wind Turbines are cheap but fickle.",
+    "Extractors humming. Now raise a Bot Lab.",
+    "Bot Lab online. Queue Assault Bots and set a rally point south of the base.",
+    "Forward camp erased. They will remember that.",
+    "Contact south! Crucible scouts probing the perimeter.",
+    "Second raid inbound. Mortars with it: don't let them sit and shell you.",
+    "Heavy signatures. Anvil tanks leading the third raid. Hold the line.",
+    "Raid broken. They'll be back.",
+    "Second raid scrapped.",
+    "Third raid destroyed. The vanguard is spent.",
+    "Perimeter secure. The network grows. Phase one complete."
+  ],
+  "objectives": [
+    {
+      "id": "eco",
+      "text": "Build 4 Metal Extractors"
+    },
+    {
+      "id": "power",
+      "text": "Build 2 Solar Collectors or Wind Turbines"
+    },
+    {
+      "id": "lab",
+      "text": "Build a Bot Lab"
+    },
+    {
+      "id": "raids",
+      "text": "Repel all three Crucible raids",
+      "hidden": true
+    },
+    {
+      "id": "camp",
+      "text": "Destroy the Crucible forward camp",
+      "optional": true
+    }
+  ],
+  "spawns": [
+    {
+      "tag": "camp",
+      "type": "crucible_metal_extractor",
+      "owner": 1,
+      "x": 292,
+      "y": 468
+    },
+    {
+      "tag": "camp",
+      "type": "crucible_metal_extractor",
+      "owner": 1,
+      "x": 300,
+      "y": 404
+    },
+    {
+      "tag": "camp",
+      "type": "crucible_solar_collector",
+      "owner": 1,
+      "x": 224,
+      "y": 472
+    },
+    {
+      "tag": "camp",
+      "type": "crucible_solar_collector",
+      "owner": 1,
+      "x": 224,
+      "y": 440
+    },
+    {
+      "tag": "camp",
+      "type": "crucible_light_turret",
+      "owner": 1,
+      "x": 268,
+      "y": 404
+    }
+  ],
+  "triggers": [
+    {
+      "id": "intro",
+      "when": {
+        "type": "time",
+        "seconds": 1
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 0
+        }
+      ]
+    },
+    {
+      "id": "intro2",
+      "when": {
+        "type": "time",
+        "seconds": 25
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 1
+        }
+      ]
+    },
+    {
+      "id": "ecoMsg",
+      "when": {
+        "type": "count",
+        "player": 0,
+        "atLeast": 4,
+        "role": "metal_extractor"
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 2
+        }
+      ]
+    },
+    {
+      "id": "eco",
+      "when": {
+        "type": "count",
+        "player": 0,
+        "atLeast": 4,
+        "role": "metal_extractor"
+      },
+      "actions": [
+        {
+          "type": "objective",
+          "id": "eco",
+          "state": "complete"
+        }
+      ],
+      "repeat": true
+    },
+    {
+      "id": "power",
+      "when": {
+        "type": "any",
+        "of": [
+          {
+            "type": "count",
+            "player": 0,
+            "atLeast": 2,
+            "unit": "lattice_solar_collector"
+          },
+          {
+            "type": "count",
+            "player": 0,
+            "atLeast": 2,
+            "unit": "lattice_wind_turbine"
+          },
+          {
+            "type": "all",
+            "of": [
+              {
+                "type": "count",
+                "player": 0,
+                "atLeast": 1,
+                "unit": "lattice_solar_collector"
+              },
+              {
+                "type": "count",
+                "player": 0,
+                "atLeast": 1,
+                "unit": "lattice_wind_turbine"
+              }
+            ]
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "objective",
+          "id": "power",
+          "state": "complete"
+        }
+      ],
+      "repeat": true
+    },
+    {
+      "id": "labMsg",
+      "when": {
+        "type": "count",
+        "player": 0,
+        "atLeast": 1,
+        "unit": "lattice_bot_lab"
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 3
+        }
+      ]
+    },
+    {
+      "id": "lab",
+      "when": {
+        "type": "count",
+        "player": 0,
+        "atLeast": 1,
+        "unit": "lattice_bot_lab"
+      },
+      "actions": [
+        {
+          "type": "objective",
+          "id": "lab",
+          "state": "complete"
+        }
+      ],
+      "repeat": true
+    },
+    {
+      "id": "campDown",
+      "when": {
+        "type": "destroyed",
+        "tag": "camp"
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 4
+        }
+      ]
+    },
+    {
+      "id": "camp",
+      "when": {
+        "type": "destroyed",
+        "tag": "camp"
+      },
+      "actions": [
+        {
+          "type": "objective",
+          "id": "camp",
+          "state": "complete"
+        }
+      ],
+      "repeat": true
+    },
+    {
+      "id": "raid1",
+      "when": {
+        "type": "time",
+        "seconds": 150
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 5
+        },
+        {
+          "type": "spawn",
+          "tag": "raid1",
+          "units": [
+            {
+              "unit": "crucible_scout_bot",
+              "owner": 1,
+              "x": 252,
+              "y": 380,
+              "count": 2
+            },
+            {
+              "unit": "crucible_assault_bot",
+              "owner": 1,
+              "x": 252,
+              "y": 372,
+              "count": 2
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "raid1",
+          "x": 260,
+          "y": 100
+        },
+        {
+          "type": "objective",
+          "id": "raids",
+          "state": "active"
+        }
+      ]
+    },
+    {
+      "id": "raid2",
+      "when": {
+        "type": "time",
+        "seconds": 330
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 6
+        },
+        {
+          "type": "spawn",
+          "tag": "raid2",
+          "units": [
+            {
+              "unit": "crucible_assault_bot",
+              "owner": 1,
+              "x": 252,
+              "y": 372,
+              "count": 5
+            },
+            {
+              "unit": "crucible_mortar_bot",
+              "owner": 1,
+              "x": 252,
+              "y": 390,
+              "count": 1
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "raid2",
+          "x": 260,
+          "y": 100
+        }
+      ]
+    },
+    {
+      "id": "raid3",
+      "when": {
+        "type": "time",
+        "seconds": 510
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 7
+        },
+        {
+          "type": "spawn",
+          "tag": "raid3",
+          "units": [
+            {
+              "unit": "crucible_assault_bot",
+              "owner": 1,
+              "x": 252,
+              "y": 372,
+              "count": 4
+            },
+            {
+              "unit": "crucible_anvil",
+              "owner": 1,
+              "x": 230,
+              "y": 395,
+              "count": 2
+            },
+            {
+              "unit": "crucible_mortar_bot",
+              "owner": 1,
+              "x": 275,
+              "y": 395,
+              "count": 1
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "raid3",
+          "x": 260,
+          "y": 100
+        }
+      ]
+    },
+    {
+      "id": "raid1Down",
+      "when": {
+        "type": "destroyed",
+        "tag": "raid1"
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 8
+        }
+      ]
+    },
+    {
+      "id": "raid2Down",
+      "when": {
+        "type": "destroyed",
+        "tag": "raid2"
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 9
+        }
+      ]
+    },
+    {
+      "id": "raidsDone",
+      "when": {
+        "type": "all",
+        "of": [
+          {
+            "type": "destroyed",
+            "tag": "raid1"
+          },
+          {
+            "type": "destroyed",
+            "tag": "raid2"
+          },
+          {
+            "type": "destroyed",
+            "tag": "raid3"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "objective",
+          "id": "raids",
+          "state": "complete"
+        },
+        {
+          "type": "message",
+          "message": 10
+        }
+      ]
+    },
+    {
+      "id": "win",
+      "when": {
+        "type": "objectivesDone"
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 11
+        },
+        {
+          "type": "reveal"
+        }
+      ]
+    },
+    {
+      "id": "winEnd",
+      "when": {
+        "type": "fired",
+        "trigger": "win",
+        "after": 4
+      },
+      "actions": [
+        {
+          "type": "victory"
+        }
+      ]
+    }
+  ]
+}

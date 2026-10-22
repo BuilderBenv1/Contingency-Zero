@@ -1,0 +1,23 @@
+{
+  "id": "lattice_vehicle_plant",
+  "name": "Vehicle Plant",
+  "faction": "lattice",
+  "role": "factory_vehicle",
+  "tier": 1,
+  "metalCost": 600,
+  "energyCost": 660,
+  "buildTime": 6000,
+  "health": 2945,
+  "footprint": 3,
+  "buildPower": 100,
+  "sightRange": 23.32,
+  "buildOptions": [
+    "lattice_builder_vehicle",
+    "lattice_strider",
+    "lattice_flak_vehicle",
+    "lattice_artillery_vehicle",
+    "lattice_salvager"
+  ],
+  "description": "Builds tanks and vehicles.",
+  "reclaimMultiplier": 1.0
+}

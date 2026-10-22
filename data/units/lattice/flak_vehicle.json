@@ -1,0 +1,28 @@
+{
+  "id": "lattice_flak_vehicle",
+  "name": "Prism",
+  "faction": "lattice",
+  "role": "flak_vehicle",
+  "tier": 1,
+  "metalCost": 130,
+  "energyCost": 830,
+  "buildTime": 1400,
+  "health": 494,
+  "moveClass": "vehicle",
+  "speed": 4.75,
+  "radius": 2.2,
+  "sightRange": 29.68,
+  "weapons": [
+    {
+      "kind": "flak",
+      "range": 31.2,
+      "damage": 26,
+      "reloadSeconds": 0.5,
+      "accuracy": 0.9,
+      "splash": 2,
+      "targetsAir": true,
+      "targetsGround": false
+    }
+  ],
+  "description": "Shreds aircraft. Useless against ground."
+}

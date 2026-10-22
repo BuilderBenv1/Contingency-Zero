@@ -1,0 +1,18 @@
+{
+  "id": "lattice_fusion_reactor",
+  "name": "Fusion Reactor",
+  "faction": "lattice",
+  "role": "fusion_reactor",
+  "tier": 2,
+  "metalCost": 4000,
+  "energyCost": 16500,
+  "buildTime": 70000,
+  "health": 4940,
+  "footprint": 3,
+  "energyIncome": 1000,
+  "energyStorage": 2500,
+  "sightRange": 16.96,
+  "deathExplosionDamage": 3500,
+  "deathExplosionRadius": 34,
+  "description": "1,000 energy a second. A huge blast if it dies."
+}

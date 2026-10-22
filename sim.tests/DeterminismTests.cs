@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
+using ContingencyZero.Sim.Match;
 using ContingencyZero.Sim.Replay;
 using Xunit;
 
@@ -7,7 +8,7 @@ namespace ContingencyZero.Sim.Tests;
 
 /// <summary>
 /// The M1 gate: a 1,000-unit battle must replay to the same state hash every time, on every OS.
-/// CI runs this on Linux and Windows; the golden hash below is the cross-platform check.
+/// CI runs this on Linux, Windows and macOS; the golden hashes below are the cross-platform check.
 /// </summary>
 public class DeterminismTests
 {
@@ -16,11 +17,14 @@ public class DeterminismTests
     private const ulong Seed = 20261022;
 
     /// <summary>
-    /// Final hash of <see cref="TestData.Battle"/> with the settings above. If a deliberate sim change
-    /// moves it, update it in the same commit and say why. If it changes by accident, something in
-    /// the sim has stopped being deterministic or has changed behaviour.
+    /// Final hash of the line battle with the settings above. If a deliberate sim change moves it,
+    /// update it in the same commit and say why. If it changes by accident, something in the sim
+    /// has stopped being deterministic or has changed behaviour.
     /// </summary>
-    private const ulong GoldenHash = 0xF0012FE2728DA4B1UL;
+    private const ulong GoldenBattleHash = 0UL;
+
+    /// <summary>Final hash of a 6-minute Hard-vs-Normal AI game on Proving Grounds.</summary>
+    private const ulong GoldenAiHash = 0UL;
 
     private static List<ulong> HashTrace(MatchReplay replay)
     {
@@ -44,7 +48,7 @@ public class DeterminismTests
     {
         World world = TestData.Battle(UnitsPerSide, Seed, Ticks).Play(TestData.Catalog);
         Assert.Equal(2 + 2 * UnitsPerSide, world.Units.Count);
-        Assert.NotEmpty(world.Wrecks);
+        Assert.NotEmpty(world.Features);
     }
 
     [Fact]
@@ -59,8 +63,7 @@ public class DeterminismTests
         Assert.Equal(
             original.Play(TestData.Catalog).ComputeHash(),
             loaded.Play(TestData.Catalog).ComputeHash());
-        // 1,000 orders and 1,002 starting units come to about 70 KB; a minute of full state would be megabytes.
-        Assert.True(stream.Length < 128 * 1024, $"Replay was {stream.Length} bytes");
+        Assert.True(stream.Length < 64 * 1024, $"Replay was {stream.Length} bytes");
     }
 
     [Fact]
@@ -75,6 +78,15 @@ public class DeterminismTests
     public void Battle_matches_the_golden_hash()
     {
         ulong hash = TestData.Battle(UnitsPerSide, Seed, Ticks).Play(TestData.Catalog).ComputeHash();
-        Assert.True(hash == GoldenHash, $"State hash is 0x{hash:X16}, golden is 0x{GoldenHash:X16}");
+        Assert.True(hash == GoldenBattleHash, $"State hash is 0x{hash:X16}, golden is 0x{GoldenBattleHash:X16}");
+    }
+
+    [Fact]
+    public void Ai_game_matches_the_golden_hash()
+    {
+        var scenario = Scenarios.AiSkirmish(TestData.LoadMap("proving_grounds"), 77, AiDifficulty.Hard, AiDifficulty.Normal);
+        World world = new MatchReplay(scenario, new List<Core.Command>(), 6 * 60 * World.TicksPerSecond).Play(TestData.Catalog);
+        ulong hash = world.ComputeHash();
+        Assert.True(hash == GoldenAiHash, $"State hash is 0x{hash:X16}, golden is 0x{GoldenAiHash:X16}");
     }
 }

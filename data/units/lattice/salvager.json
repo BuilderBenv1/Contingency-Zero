@@ -1,0 +1,20 @@
+{
+  "id": "lattice_salvager",
+  "name": "Gleaner",
+  "faction": "lattice",
+  "role": "salvager",
+  "tier": 1,
+  "metalCost": 90,
+  "energyCost": 500,
+  "buildTime": 900,
+  "health": 456,
+  "moveClass": "vehicle",
+  "speed": 6.48,
+  "radius": 2,
+  "sightRange": 25.44,
+  "buildPower": 40,
+  "buildRange": 12,
+  "reclaimMultiplier": 4.0,
+  "buildOptions": [],
+  "description": "Strips wrecks four times faster than a builder. Can't build."
+}

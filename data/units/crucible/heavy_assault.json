@@ -1,0 +1,36 @@
+{
+  "id": "crucible_heavy_assault",
+  "name": "Bulwark",
+  "faction": "crucible",
+  "role": "heavy_assault",
+  "tier": 2,
+  "metalCost": 480,
+  "energyCost": 3300,
+  "buildTime": 6000,
+  "health": 3960,
+  "moveClass": "vehicle",
+  "speed": 3.13,
+  "radius": 3,
+  "sightRange": 28.0,
+  "weapons": [
+    {
+      "kind": "cannon",
+      "range": 22.31,
+      "damage": 160,
+      "reloadSeconds": 1.6,
+      "accuracy": 0.85,
+      "splash": 2.2,
+      "projectileSpeed": 70
+    },
+    {
+      "kind": "laser",
+      "range": 15.52,
+      "damage": 30,
+      "reloadSeconds": 0.5,
+      "accuracy": 0.9,
+      "targetsAir": false,
+      "targetsGround": true
+    }
+  ],
+  "description": "Siege tank. Soaks damage and hits hard."
+}

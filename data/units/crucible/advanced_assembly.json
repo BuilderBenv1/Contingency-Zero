@@ -1,0 +1,22 @@
+{
+  "id": "crucible_advanced_assembly",
+  "name": "Heavy Works",
+  "faction": "crucible",
+  "role": "factory_adv",
+  "tier": 2,
+  "metalCost": 2800,
+  "energyCost": 4950,
+  "buildTime": 20000,
+  "health": 6240,
+  "footprint": 3,
+  "buildPower": 240,
+  "sightRange": 22.0,
+  "buildOptions": [
+    "crucible_builder_adv",
+    "crucible_heavy_assault",
+    "crucible_long_artillery",
+    "crucible_amphibious"
+  ],
+  "description": "Builds tier 2 units and the advanced builder.",
+  "reclaimMultiplier": 1.4
+}

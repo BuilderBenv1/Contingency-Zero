@@ -1,0 +1,58 @@
+CONTINGENCY ZERO
+================
+
+Starting the game
+-----------------
+Windows: unzip the folder anywhere and double-click ContingencyZero.exe.
+  (Windows may say "Windows protected your PC" because the game isn't signed.
+   Click "More info", then "Run anyway".)
+Linux:   extract the archive and run ./ContingencyZero.x86_64
+
+Your first match
+----------------
+1. Main menu > Skirmish. Pick a map (Proving Grounds is small and quick),
+   your faction, and one computer opponent on Easy. Press Start.
+2. Your Commander is selected with the Home key. Its build menu is on the right.
+3. Build Metal Extractors on the glowing metal spots near your base,
+   then Solar Collectors (or Wind Turbines on windy maps) for energy,
+   then a Bot Lab or Vehicle Plant.
+4. Select the factory and left-click units to queue them (shift-click adds 5).
+5. Drag a box around your army, then Ctrl+right-click (attack-move) toward the enemy.
+6. Destroy the enemy Commander to win. Keep yours alive: lose it and you lose.
+
+Economy
+-------
+Metal and energy flow continuously. Everything under construction draws from
+the flow; if income can't keep up, all building slows down evenly (a "stall").
+Watch the two bars at the top. Wrecks, rocks and trees can be reclaimed by
+builders (R) for metal and energy.
+
+Controls
+--------
+Camera     Arrow keys or screen edges scroll, mouse wheel zooms,
+           middle-drag pans, Q / E turn the view, click the minimap to jump.
+Select     Left click, or drag a box. Shift adds. Double-click selects all of
+           that type on screen. Ctrl+A all combat units, Ctrl+B all builders,
+           Home your Commander. Ctrl+1..9 saves a group, 1..9 recalls it.
+Orders     Right click: move / attack / help build / reclaim / set rally point.
+           Shift+right click queues orders. Ctrl+right click attack-moves.
+           A attack, S stop, M move, P patrol, G guard, R reclaim,
+           D Breach Cannon (Commander), F fire state, Tab health bars.
+Building   Pick a structure, click to place. Drag to place a row,
+           hold shift to keep placing. Right click cancels.
+Game       + / - game speed (single player), Pause pauses, Esc menu.
+
+The in-game Controls screen (main menu or Esc menu) has the full list.
+
+Modes
+-----
+Skirmish     You against up to 7 computer players (Easy, Normal, Hard, Brutal).
+Campaign     Two short campaigns, one per faction.
+Multiplayer  Host or join over a LAN or by IP address (port 7777). Internet
+             play needs that port forwarded on the host's router.
+Map Editor   Make your own maps; they appear in the Skirmish map list.
+Replays      Every match can be saved and watched again.
+
+Your settings, maps, replays and campaign progress are kept in
+  Windows: %APPDATA%\Godot\app_userdata\Contingency Zero\
+  Linux:   ~/.local/share/godot/app_userdata/Contingency Zero/

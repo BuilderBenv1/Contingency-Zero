@@ -100,7 +100,7 @@ public readonly struct Fix64 : IEquatable<Fix64>, IComparable<Fix64>, IComparabl
         foreach (char c in frac)
         {
             if (c < '0' || c > '9') throw new FormatException($"Not a number: '{text}'");
-            if (fracDenominator >= 1_000_000_000_000L) break; // more digits than 16 fractional bits can hold
+            if (fracDenominator >= 100_000_000_000_000_000L) break; // 17 digits is more than 16 fractional bits can use
             fracNumerator = fracNumerator * 10 + (c - '0');
             fracDenominator *= 10;
         }

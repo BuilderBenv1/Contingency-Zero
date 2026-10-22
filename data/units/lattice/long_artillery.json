@@ -1,0 +1,28 @@
+{
+  "id": "lattice_long_artillery",
+  "name": "Longbow",
+  "faction": "lattice",
+  "role": "long_artillery",
+  "tier": 2,
+  "metalCost": 700,
+  "energyCost": 4950,
+  "buildTime": 9000,
+  "health": 1188,
+  "moveClass": "vehicle",
+  "speed": 2.81,
+  "radius": 3.2,
+  "sightRange": 27.56,
+  "weapons": [
+    {
+      "kind": "artillery",
+      "range": 98.8,
+      "minRange": 20,
+      "damage": 270,
+      "reloadSeconds": 6.0,
+      "accuracy": 0.6,
+      "splash": 7,
+      "projectileSpeed": 45
+    }
+  ],
+  "description": "Shells bases from across the map. Needs radar or spotters."
+}

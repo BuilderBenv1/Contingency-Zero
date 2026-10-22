@@ -1,0 +1,16 @@
+{
+  "id": "lattice_deep_extractor",
+  "name": "Deep Extractor",
+  "faction": "lattice",
+  "role": "deep_extractor",
+  "tier": 2,
+  "metalCost": 600,
+  "energyCost": 3850,
+  "buildTime": 10000,
+  "health": 2470,
+  "footprint": 1,
+  "needsMetalSpot": true,
+  "extractorMultiplier": 3,
+  "sightRange": 14.84,
+  "description": "Three times the metal of a standard extractor. Built over your old one."
+}

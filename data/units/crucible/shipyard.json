@@ -1,0 +1,23 @@
+{
+  "id": "crucible_shipyard",
+  "name": "Drydock",
+  "faction": "crucible",
+  "role": "factory_ship",
+  "tier": 1,
+  "metalCost": 600,
+  "energyCost": 660,
+  "buildTime": 6000,
+  "health": 3720,
+  "footprint": 3,
+  "buildPower": 100,
+  "needsWater": true,
+  "sightRange": 22.0,
+  "buildOptions": [
+    "crucible_builder_sea",
+    "crucible_patrol_boat",
+    "crucible_destroyer",
+    "crucible_battleship"
+  ],
+  "description": "Builds ships. Must sit in deep water.",
+  "reclaimMultiplier": 1.4
+}

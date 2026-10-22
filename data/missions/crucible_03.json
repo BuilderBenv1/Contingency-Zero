@@ -1,0 +1,781 @@
+{
+  "campaign": "crucible",
+  "order": 3,
+  "title": "Iron Wall",
+  "briefing": "On the Ashfall Plains our Reclamation Furnace is melting the wrecks of the old war into armour, and the Lattice has set up a siege camp to stop it. Hold the Furnace, just south-east of your base, for twelve minutes. Its heavy gun is the wall; you are the iron. The Lattice will come fast and from the air, so build AA. Then reinforcements arrive and you break the siege.",
+  "map": "ashfall_plains",
+  "players": [
+    {
+      "name": "Crucible",
+      "team": 0,
+      "faction": "crucible",
+      "start": 1,
+      "ai": "None"
+    },
+    {
+      "name": "Lattice Siege",
+      "team": 1,
+      "faction": "lattice",
+      "start": 0,
+      "ai": "None"
+    }
+  ],
+  "humanPlayer": 0,
+  "startMetal": 1000,
+  "startEnergy": 1000,
+  "spawnCommanders": true,
+  "messages": [
+    "The Furnace is gone. Cold iron.",
+    "Twelve minutes. Keep the Furnace burning.",
+    "The Lattice flies. AA Turrets and Flak Vehicles before the first aircraft show up.",
+    "Striders from the north.",
+    "Fast raid from the west.",
+    "A Lattice gunship is scouting us. Bombers will follow. Build AA.",
+    "Artillery with the northern column. It outranges your turrets.",
+    "Bombers heading for the Furnace!",
+    "Big push from the west.",
+    "Gunships with a ground column.",
+    "Two fronts at once.",
+    "Everything they have. Hold!",
+    "Six minutes left.",
+    "Reinforcements on the field: six Anvils and two Artillery. Now break their siege camp on the north-west mesa.",
+    "They're throwing everything left at the Furnace.",
+    "Siege broken. The Furnace burns on, and the plains are ours."
+  ],
+  "objectives": [
+    {
+      "id": "furnace",
+      "text": "Keep the Reclamation Furnace alive"
+    },
+    {
+      "id": "hold",
+      "text": "Hold until reinforcements arrive (12:00)"
+    },
+    {
+      "id": "siege",
+      "text": "Destroy the Lattice siege camp",
+      "hidden": true
+    },
+    {
+      "id": "aa",
+      "text": "Build 2 AA Turrets",
+      "optional": true
+    }
+  ],
+  "spawns": [
+    {
+      "tag": "furnace",
+      "type": "crucible_metal_storage",
+      "owner": 0,
+      "x": 672,
+      "y": 672
+    },
+    {
+      "tag": "",
+      "type": "crucible_heavy_turret",
+      "owner": 0,
+      "x": 648,
+      "y": 640
+    },
+    {
+      "tag": "",
+      "type": "crucible_light_turret",
+      "owner": 0,
+      "x": 652,
+      "y": 676
+    },
+    {
+      "tag": "",
+      "type": "crucible_light_turret",
+      "owner": 0,
+      "x": 676,
+      "y": 652
+    },
+    {
+      "tag": "",
+      "type": "crucible_aa_turret",
+      "owner": 0,
+      "x": 692,
+      "y": 692
+    },
+    {
+      "tag": "",
+      "type": "crucible_light_turret",
+      "owner": 0,
+      "x": 604,
+      "y": 564
+    },
+    {
+      "tag": "",
+      "type": "crucible_light_turret",
+      "owner": 0,
+      "x": 564,
+      "y": 604
+    },
+    {
+      "tag": "",
+      "type": "crucible_anvil",
+      "owner": 0,
+      "x": 590,
+      "y": 590
+    },
+    {
+      "tag": "",
+      "type": "crucible_anvil",
+      "owner": 0,
+      "x": 600,
+      "y": 582
+    },
+    {
+      "tag": "",
+      "type": "crucible_anvil",
+      "owner": 0,
+      "x": 582,
+      "y": 600
+    },
+    {
+      "tag": "",
+      "type": "crucible_anvil",
+      "owner": 0,
+      "x": 596,
+      "y": 596
+    },
+    {
+      "tag": "siege",
+      "type": "lattice_radar_tower",
+      "owner": 1,
+      "x": 300,
+      "y": 244
+    },
+    {
+      "tag": "siege",
+      "type": "lattice_light_turret",
+      "owner": 1,
+      "x": 324,
+      "y": 260
+    },
+    {
+      "tag": "siege",
+      "type": "lattice_light_turret",
+      "owner": 1,
+      "x": 284,
+      "y": 268
+    },
+    {
+      "tag": "siege",
+      "type": "lattice_light_turret",
+      "owner": 1,
+      "x": 332,
+      "y": 228
+    },
+    {
+      "tag": "siege",
+      "type": "lattice_metal_storage",
+      "owner": 1,
+      "x": 304,
+      "y": 224
+    },
+    {
+      "tag": "siege",
+      "type": "lattice_solar_collector",
+      "owner": 1,
+      "x": 280,
+      "y": 240
+    },
+    {
+      "tag": "",
+      "type": "lattice_long_artillery",
+      "owner": 1,
+      "x": 310,
+      "y": 250
+    },
+    {
+      "tag": "",
+      "type": "lattice_long_artillery",
+      "owner": 1,
+      "x": 296,
+      "y": 258
+    }
+  ],
+  "triggers": [
+    {
+      "id": "lost",
+      "when": {
+        "type": "destroyed",
+        "tag": "furnace"
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 0
+        },
+        {
+          "type": "objective",
+          "id": "furnace",
+          "state": "failed"
+        },
+        {
+          "type": "defeat"
+        }
+      ]
+    },
+    {
+      "id": "intro",
+      "when": {
+        "type": "time",
+        "seconds": 1
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 1
+        }
+      ]
+    },
+    {
+      "id": "intro2",
+      "when": {
+        "type": "time",
+        "seconds": 25
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 2
+        }
+      ]
+    },
+    {
+      "id": "aa",
+      "when": {
+        "type": "count",
+        "player": 0,
+        "atLeast": 2,
+        "unit": "crucible_aa_turret"
+      },
+      "actions": [
+        {
+          "type": "objective",
+          "id": "aa",
+          "state": "complete"
+        }
+      ],
+      "repeat": true
+    },
+    {
+      "id": "w1",
+      "when": {
+        "type": "time",
+        "seconds": 100
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 3
+        },
+        {
+          "type": "spawn",
+          "tag": "w1",
+          "units": [
+            {
+              "unit": "lattice_strider",
+              "owner": 1,
+              "x": 600,
+              "y": 230,
+              "count": 2
+            },
+            {
+              "unit": "lattice_scout_bot",
+              "owner": 1,
+              "x": 600,
+              "y": 242,
+              "count": 2
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "w1",
+          "x": 672,
+          "y": 672
+        }
+      ]
+    },
+    {
+      "id": "w2",
+      "when": {
+        "type": "time",
+        "seconds": 190
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 4
+        },
+        {
+          "type": "spawn",
+          "tag": "w2",
+          "units": [
+            {
+              "unit": "lattice_strider",
+              "owner": 1,
+              "x": 230,
+              "y": 600,
+              "count": 3
+            },
+            {
+              "unit": "lattice_scout_bot",
+              "owner": 1,
+              "x": 230,
+              "y": 612,
+              "count": 2
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "w2",
+          "x": 672,
+          "y": 672
+        }
+      ]
+    },
+    {
+      "id": "eye",
+      "when": {
+        "type": "time",
+        "seconds": 250
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 5
+        },
+        {
+          "type": "spawn",
+          "tag": "eye",
+          "units": [
+            {
+              "unit": "lattice_gunship",
+              "owner": 1,
+              "x": 150,
+              "y": 150,
+              "count": 1
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "eye",
+          "x": 620,
+          "y": 620
+        }
+      ]
+    },
+    {
+      "id": "w3",
+      "when": {
+        "type": "time",
+        "seconds": 290
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 6
+        },
+        {
+          "type": "spawn",
+          "tag": "w3",
+          "units": [
+            {
+              "unit": "lattice_strider",
+              "owner": 1,
+              "x": 600,
+              "y": 230,
+              "count": 4
+            },
+            {
+              "unit": "lattice_artillery_vehicle",
+              "owner": 1,
+              "x": 600,
+              "y": 242,
+              "count": 1
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "w3",
+          "x": 672,
+          "y": 672
+        }
+      ]
+    },
+    {
+      "id": "w4",
+      "when": {
+        "type": "time",
+        "seconds": 390
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 7
+        },
+        {
+          "type": "spawn",
+          "tag": "w4",
+          "units": [
+            {
+              "unit": "lattice_bomber",
+              "owner": 1,
+              "x": 150,
+              "y": 150,
+              "count": 2
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "w4",
+          "x": 672,
+          "y": 672
+        }
+      ]
+    },
+    {
+      "id": "w5",
+      "when": {
+        "type": "time",
+        "seconds": 450
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 8
+        },
+        {
+          "type": "spawn",
+          "tag": "w5",
+          "units": [
+            {
+              "unit": "lattice_strider",
+              "owner": 1,
+              "x": 230,
+              "y": 600,
+              "count": 5
+            },
+            {
+              "unit": "lattice_assault_bot",
+              "owner": 1,
+              "x": 230,
+              "y": 612,
+              "count": 3
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "w5",
+          "x": 672,
+          "y": 672
+        }
+      ]
+    },
+    {
+      "id": "w6",
+      "when": {
+        "type": "time",
+        "seconds": 530
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 9
+        },
+        {
+          "type": "spawn",
+          "tag": "w6",
+          "units": [
+            {
+              "unit": "lattice_gunship",
+              "owner": 1,
+              "x": 150,
+              "y": 150,
+              "count": 2
+            },
+            {
+              "unit": "lattice_strider",
+              "owner": 1,
+              "x": 600,
+              "y": 230,
+              "count": 4
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "w6",
+          "x": 672,
+          "y": 672
+        }
+      ]
+    },
+    {
+      "id": "w7",
+      "when": {
+        "type": "time",
+        "seconds": 610
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 10
+        },
+        {
+          "type": "spawn",
+          "tag": "w7",
+          "units": [
+            {
+              "unit": "lattice_strider",
+              "owner": 1,
+              "x": 600,
+              "y": 230,
+              "count": 4
+            },
+            {
+              "unit": "lattice_artillery_vehicle",
+              "owner": 1,
+              "x": 600,
+              "y": 242,
+              "count": 2
+            },
+            {
+              "unit": "lattice_strider",
+              "owner": 1,
+              "x": 230,
+              "y": 600,
+              "count": 4
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "w7",
+          "x": 672,
+          "y": 672
+        }
+      ]
+    },
+    {
+      "id": "w8",
+      "when": {
+        "type": "time",
+        "seconds": 680
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 11
+        },
+        {
+          "type": "spawn",
+          "tag": "w8",
+          "units": [
+            {
+              "unit": "lattice_bomber",
+              "owner": 1,
+              "x": 150,
+              "y": 150,
+              "count": 2
+            },
+            {
+              "unit": "lattice_gunship",
+              "owner": 1,
+              "x": 160,
+              "y": 150,
+              "count": 2
+            },
+            {
+              "unit": "lattice_strider",
+              "owner": 1,
+              "x": 230,
+              "y": 600,
+              "count": 4
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "w8",
+          "x": 672,
+          "y": 672
+        }
+      ]
+    },
+    {
+      "id": "half",
+      "when": {
+        "type": "time",
+        "seconds": 360
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 12
+        }
+      ]
+    },
+    {
+      "id": "phase2",
+      "when": {
+        "type": "time",
+        "seconds": 720
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 13
+        },
+        {
+          "type": "objective",
+          "id": "hold",
+          "state": "complete"
+        },
+        {
+          "type": "objective",
+          "id": "siege",
+          "state": "active"
+        },
+        {
+          "type": "spawn",
+          "tag": "reinf",
+          "units": [
+            {
+              "unit": "crucible_anvil",
+              "owner": 0,
+              "x": 740,
+              "y": 640,
+              "count": 6
+            },
+            {
+              "unit": "crucible_artillery_vehicle",
+              "owner": 0,
+              "x": 740,
+              "y": 660,
+              "count": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "w9",
+      "when": {
+        "type": "fired",
+        "trigger": "phase2",
+        "after": 150
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 14
+        },
+        {
+          "type": "spawn",
+          "tag": "w9",
+          "units": [
+            {
+              "unit": "lattice_strider",
+              "owner": 1,
+              "x": 600,
+              "y": 230,
+              "count": 5
+            },
+            {
+              "unit": "lattice_gunship",
+              "owner": 1,
+              "x": 150,
+              "y": 150,
+              "count": 2
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "w9",
+          "x": 672,
+          "y": 672
+        }
+      ]
+    },
+    {
+      "id": "siegeDone",
+      "when": {
+        "type": "all",
+        "of": [
+          {
+            "type": "fired",
+            "trigger": "phase2",
+            "after": 0
+          },
+          {
+            "type": "destroyed",
+            "tag": "siege"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "objective",
+          "id": "siege",
+          "state": "complete"
+        },
+        {
+          "type": "objective",
+          "id": "furnace",
+          "state": "complete"
+        }
+      ]
+    },
+    {
+      "id": "win",
+      "when": {
+        "type": "all",
+        "of": [
+          {
+            "type": "fired",
+            "trigger": "phase2",
+            "after": 0
+          },
+          {
+            "type": "destroyed",
+            "tag": "siege"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 15
+        },
+        {
+          "type": "reveal"
+        }
+      ]
+    },
+    {
+      "id": "winEnd",
+      "when": {
+        "type": "fired",
+        "trigger": "win",
+        "after": 4
+      },
+      "actions": [
+        {
+          "type": "victory"
+        }
+      ]
+    }
+  ]
+}

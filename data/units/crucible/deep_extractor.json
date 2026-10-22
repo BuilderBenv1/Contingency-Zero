@@ -1,0 +1,16 @@
+{
+  "id": "crucible_deep_extractor",
+  "name": "Deep Bore",
+  "faction": "crucible",
+  "role": "deep_extractor",
+  "tier": 2,
+  "metalCost": 600,
+  "energyCost": 3850,
+  "buildTime": 10000,
+  "health": 3120,
+  "footprint": 1,
+  "needsMetalSpot": true,
+  "extractorMultiplier": 3,
+  "sightRange": 14.0,
+  "description": "Three times the metal of a standard extractor. Built over your old one."
+}

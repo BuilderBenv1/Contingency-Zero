@@ -1,0 +1,26 @@
+{
+  "id": "lattice_aa_turret",
+  "name": "Spire",
+  "faction": "lattice",
+  "role": "aa_turret",
+  "tier": 1,
+  "metalCost": 150,
+  "energyCost": 770,
+  "buildTime": 2000,
+  "health": 808,
+  "footprint": 1,
+  "sightRange": 36.04,
+  "weapons": [
+    {
+      "kind": "missile",
+      "range": 43.68,
+      "damage": 62,
+      "reloadSeconds": 1.4,
+      "accuracy": 0.95,
+      "projectileSpeed": 90,
+      "targetsAir": true,
+      "targetsGround": false
+    }
+  ],
+  "description": "Anti-air missile battery."
+}

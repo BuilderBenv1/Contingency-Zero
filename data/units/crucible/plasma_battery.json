@@ -1,0 +1,26 @@
+{
+  "id": "crucible_plasma_battery",
+  "name": "Slag Battery",
+  "faction": "crucible",
+  "role": "plasma_battery",
+  "tier": 2,
+  "metalCost": 3000,
+  "energyCost": 22000,
+  "buildTime": 50000,
+  "health": 5040,
+  "footprint": 2,
+  "sightRange": 30.0,
+  "weapons": [
+    {
+      "kind": "artillery",
+      "range": 213.4,
+      "minRange": 40,
+      "damage": 480,
+      "reloadSeconds": 6.5,
+      "accuracy": 0.55,
+      "splash": 8,
+      "projectileSpeed": 60
+    }
+  ],
+  "description": "Strategic artillery. Covers a third of the map."
+}

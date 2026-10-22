@@ -1,0 +1,27 @@
+{
+  "id": "crucible_assault_bot",
+  "name": "Brawler",
+  "faction": "crucible",
+  "role": "assault_bot",
+  "tier": 1,
+  "metalCost": 60,
+  "energyCost": 390,
+  "buildTime": 800,
+  "health": 324,
+  "moveClass": "bot",
+  "speed": 5.34,
+  "radius": 1.4,
+  "sightRange": 26.0,
+  "weapons": [
+    {
+      "kind": "laser",
+      "range": 13.58,
+      "damage": 17,
+      "reloadSeconds": 0.6,
+      "accuracy": 0.85,
+      "targetsAir": false,
+      "targetsGround": true
+    }
+  ],
+  "description": "Cheap laser infantry. Good in numbers."
+}

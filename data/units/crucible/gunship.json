@@ -1,0 +1,27 @@
+{
+  "id": "crucible_gunship",
+  "name": "Buzzsaw",
+  "faction": "crucible",
+  "role": "gunship",
+  "tier": 1,
+  "metalCost": 260,
+  "energyCost": 3030,
+  "buildTime": 3200,
+  "health": 1140,
+  "moveClass": "air",
+  "speed": 6.9,
+  "radius": 2.4,
+  "sightRange": 30.0,
+  "weapons": [
+    {
+      "kind": "laser",
+      "range": 15.52,
+      "damage": 23,
+      "reloadSeconds": 0.35,
+      "accuracy": 0.85,
+      "targetsAir": false,
+      "targetsGround": true
+    }
+  ],
+  "description": "Hovers and strafes ground targets."
+}

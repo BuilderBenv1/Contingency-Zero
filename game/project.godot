@@ -6,19 +6,30 @@ config_version=5
 [application]
 
 config/name="Contingency Zero"
+config/description="A machine-war RTS in the spirit of Total Annihilation."
 run/main_scene="res://Main.tscn"
-config/features=PackedStringArray("4.3", "C#", "Forward Plus")
+config/features=PackedStringArray("4.3", "C#", "GL Compatibility")
+config/icon="res://icon.svg"
 
 [display]
 
 window/size/viewport_width=1600
 window/size/viewport_height=900
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
 
 [dotnet]
 
 project/assembly_name="ContingencyZero.Game"
 
-[physics]
+[gui]
 
-common/physics_ticks_per_second=15
-common/max_physics_steps_per_frame=4
+theme/default_font_antialiasing=1
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+anti_aliasing/quality/msaa_3d=2
+lights_and_shadows/directional_shadow/size=4096
+textures/canvas_textures/default_texture_filter=1

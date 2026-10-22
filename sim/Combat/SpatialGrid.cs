@@ -1,12 +1,13 @@
 using System;
+using System.Collections.Generic;
 using ContingencyZero.Sim.Core;
 using ContingencyZero.Sim.State;
 
 namespace ContingencyZero.Sim.Combat;
 
 /// <summary>
-/// Uniform grid of unit ids, rebuilt every tick, for range queries. Each cell is a singly linked list
-/// threaded through an array, so there are no per-tick allocations.
+/// Uniform grid of living unit ids for range queries. Each cell is a singly linked list threaded
+/// through an array, so rebuilding allocates nothing. Cells list ids in ascending order.
 /// </summary>
 public sealed class SpatialGrid
 {
@@ -22,6 +23,7 @@ public sealed class SpatialGrid
         _cols = mapWidth / CellSize + 1;
         _rows = mapHeight / CellSize + 1;
         _head = new int[_cols * _rows];
+        Array.Fill(_head, -1);
     }
 
     public void Rebuild(UnitStore units)
@@ -29,7 +31,6 @@ public sealed class SpatialGrid
         Array.Fill(_head, -1);
         if (_next.Length < units.Count) Array.Resize(ref _next, units.Count * 2);
 
-        // Insert in descending id order so each cell list reads in ascending id order.
         for (int id = units.Count - 1; id >= 0; id--)
         {
             if (!units.Alive[id]) continue;
@@ -39,13 +40,36 @@ public sealed class SpatialGrid
         }
     }
 
+    /// <summary>Appends every living unit within <paramref name="radius"/> (plus <paramref name="pad"/>) of <paramref name="centre"/>.</summary>
+    public void Query(UnitStore units, FixVec2 centre, Fix64 radius, List<int> results, Fix64 pad = default)
+    {
+        Fix64 reachDist = radius + pad;
+        Fix64 limitSq = reachDist * reachDist;
+        int reach = reachDist.ToIntFloor() / CellSize + 1;
+        int cx = Col(centre.X), cy = Row(centre.Y);
+        for (int y = cy - reach; y <= cy + reach; y++)
+        {
+            if (y < 0 || y >= _rows) continue;
+            for (int x = cx - reach; x <= cx + reach; x++)
+            {
+                if (x < 0 || x >= _cols) continue;
+                for (int id = _head[y * _cols + x]; id != -1; id = _next[id])
+                {
+                    if (FixVec2.DistanceSquared(centre, units.Position[id]) <= limitSq)
+                        results.Add(id);
+                }
+            }
+        }
+    }
+
     /// <summary>
-    /// Nearest living unit not on <paramref name="team"/> within <paramref name="range"/> of <paramref name="from"/>.
+    /// Nearest unit within <paramref name="range"/> that passes <paramref name="accept"/>.
     /// Ties go to the lowest id. Returns -1 if none.
     /// </summary>
-    public int FindNearestEnemy(UnitStore units, PlayerState[] players, FixVec2 from, int team, Fix64 range)
+    public int FindNearest(UnitStore units, FixVec2 from, Fix64 range, Func<int, bool> accept, Fix64 minRange = default)
     {
         Fix64 bestDistSq = range * range;
+        Fix64 minSq = minRange * minRange;
         int best = -1;
 
         int reach = range.ToIntFloor() / CellSize + 1;
@@ -58,13 +82,12 @@ public sealed class SpatialGrid
                 if (x < 0 || x >= _cols) continue;
                 for (int id = _head[y * _cols + x]; id != -1; id = _next[id])
                 {
-                    if (players[units.Owner[id]].Team == team) continue;
                     Fix64 d = FixVec2.DistanceSquared(from, units.Position[id]);
-                    if (d < bestDistSq || (d == bestDistSq && (best == -1 || id < best)))
-                    {
-                        bestDistSq = d;
-                        best = id;
-                    }
+                    if (d > bestDistSq || d < minSq) continue;
+                    if (d == bestDistSq && best != -1 && id > best) continue;
+                    if (!accept(id)) continue;
+                    bestDistSq = d;
+                    best = id;
                 }
             }
         }

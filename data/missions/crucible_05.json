@@ -1,0 +1,416 @@
+{
+  "campaign": "crucible",
+  "order": 5,
+  "title": "The Last Lode",
+  "briefing": "Frostline. The Lattice mind lives here: Lattice Prime in the far corner, and its Spire node to the east. A sister foundry has woken in the south-west to march with us. Destroy the Prime's core and the Spire's core and the Lattice goes dark for good. Lose your Commander and it is over.",
+  "map": "frostline",
+  "players": [
+    {
+      "name": "Crucible",
+      "team": 0,
+      "faction": "crucible",
+      "start": 0,
+      "ai": "None"
+    },
+    {
+      "name": "Sister Foundry",
+      "team": 0,
+      "faction": "crucible",
+      "start": 2,
+      "ai": "Normal"
+    },
+    {
+      "name": "Lattice Prime",
+      "team": 1,
+      "faction": "lattice",
+      "start": 3,
+      "ai": "Hard"
+    },
+    {
+      "name": "Lattice Spire",
+      "team": 1,
+      "faction": "lattice",
+      "start": 1,
+      "ai": "Easy"
+    }
+  ],
+  "humanPlayer": 0,
+  "startMetal": 1500,
+  "startEnergy": 1500,
+  "spawnCommanders": true,
+  "messages": [
+    "The last lode on Cairn. The sister foundry is with us in the south-west.",
+    "The Spire is the smaller target. Break it and the Prime fights alone.",
+    "Lattice Prime's core is slag.",
+    "The Spire is down.",
+    "Lattice gunships heading for our base.",
+    "Prime's heavy column is coming for us.",
+    "The sister foundry sent armour: four Heavy Assault tanks at our base.",
+    "The Lattice is dark. Cairn's metal belongs to the furnace."
+  ],
+  "objectives": [
+    {
+      "id": "prime",
+      "text": "Destroy Lattice Prime's core (south-east)"
+    },
+    {
+      "id": "spire",
+      "text": "Destroy the Lattice Spire's core (north-east)"
+    },
+    {
+      "id": "lode",
+      "text": "Run 15 Metal Extractors at once",
+      "optional": true
+    }
+  ],
+  "spawns": [
+    {
+      "tag": "",
+      "type": "crucible_solar_collector",
+      "owner": 0,
+      "x": 64,
+      "y": 64
+    },
+    {
+      "tag": "",
+      "type": "crucible_solar_collector",
+      "owner": 0,
+      "x": 88,
+      "y": 48
+    },
+    {
+      "tag": "",
+      "type": "crucible_solar_collector",
+      "owner": 0,
+      "x": 48,
+      "y": 88
+    },
+    {
+      "tag": "",
+      "type": "crucible_anvil",
+      "owner": 0,
+      "x": 170,
+      "y": 170
+    },
+    {
+      "tag": "",
+      "type": "crucible_anvil",
+      "owner": 0,
+      "x": 178,
+      "y": 162
+    },
+    {
+      "tag": "",
+      "type": "crucible_anvil",
+      "owner": 0,
+      "x": 162,
+      "y": 178
+    },
+    {
+      "tag": "prime",
+      "type": "lattice_bot_lab",
+      "owner": 2,
+      "x": 844,
+      "y": 860
+    },
+    {
+      "tag": "prime",
+      "type": "lattice_vehicle_plant",
+      "owner": 2,
+      "x": 852,
+      "y": 820
+    },
+    {
+      "tag": "prime",
+      "type": "lattice_heavy_turret",
+      "owner": 2,
+      "x": 824,
+      "y": 824
+    },
+    {
+      "tag": "prime",
+      "type": "lattice_light_turret",
+      "owner": 2,
+      "x": 804,
+      "y": 860
+    },
+    {
+      "tag": "prime",
+      "type": "lattice_light_turret",
+      "owner": 2,
+      "x": 860,
+      "y": 788
+    },
+    {
+      "tag": "prime",
+      "type": "lattice_aa_turret",
+      "owner": 2,
+      "x": 884,
+      "y": 852
+    },
+    {
+      "tag": "spire",
+      "type": "lattice_vehicle_plant",
+      "owner": 3,
+      "x": 852,
+      "y": 172
+    },
+    {
+      "tag": "spire",
+      "type": "lattice_light_turret",
+      "owner": 3,
+      "x": 820,
+      "y": 148
+    },
+    {
+      "tag": "spire",
+      "type": "lattice_light_turret",
+      "owner": 3,
+      "x": 860,
+      "y": 204
+    },
+    {
+      "tag": "spire",
+      "type": "lattice_radar_tower",
+      "owner": 3,
+      "x": 884,
+      "y": 180
+    }
+  ],
+  "triggers": [
+    {
+      "id": "intro",
+      "when": {
+        "type": "time",
+        "seconds": 1
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 0
+        }
+      ]
+    },
+    {
+      "id": "intro2",
+      "when": {
+        "type": "time",
+        "seconds": 30
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 1
+        }
+      ]
+    },
+    {
+      "id": "primeMsg",
+      "when": {
+        "type": "destroyed",
+        "tag": "prime"
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 2
+        }
+      ]
+    },
+    {
+      "id": "prime",
+      "when": {
+        "type": "destroyed",
+        "tag": "prime"
+      },
+      "actions": [
+        {
+          "type": "objective",
+          "id": "prime",
+          "state": "complete"
+        }
+      ],
+      "repeat": true
+    },
+    {
+      "id": "spireMsg",
+      "when": {
+        "type": "destroyed",
+        "tag": "spire"
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 3
+        }
+      ]
+    },
+    {
+      "id": "spire",
+      "when": {
+        "type": "destroyed",
+        "tag": "spire"
+      },
+      "actions": [
+        {
+          "type": "objective",
+          "id": "spire",
+          "state": "complete"
+        }
+      ],
+      "repeat": true
+    },
+    {
+      "id": "lode",
+      "when": {
+        "type": "count",
+        "player": 0,
+        "atLeast": 15,
+        "role": "metal_extractor"
+      },
+      "actions": [
+        {
+          "type": "objective",
+          "id": "lode",
+          "state": "complete"
+        }
+      ],
+      "repeat": true
+    },
+    {
+      "id": "strike1",
+      "when": {
+        "type": "time",
+        "seconds": 720
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 4
+        },
+        {
+          "type": "spawn",
+          "tag": "strike1",
+          "units": [
+            {
+              "unit": "lattice_gunship",
+              "owner": 2,
+              "x": 860,
+              "y": 940,
+              "count": 4
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "strike1",
+          "x": 132,
+          "y": 132
+        }
+      ]
+    },
+    {
+      "id": "strike2",
+      "when": {
+        "type": "time",
+        "seconds": 1260
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 5
+        },
+        {
+          "type": "spawn",
+          "tag": "strike2",
+          "units": [
+            {
+              "unit": "lattice_heavy_assault",
+              "owner": 2,
+              "x": 760,
+              "y": 760,
+              "count": 3
+            },
+            {
+              "unit": "lattice_strider",
+              "owner": 2,
+              "x": 760,
+              "y": 780,
+              "count": 6
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "strike2",
+          "x": 132,
+          "y": 132
+        }
+      ]
+    },
+    {
+      "id": "reinf",
+      "when": {
+        "type": "time",
+        "seconds": 900
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 6
+        },
+        {
+          "type": "spawn",
+          "tag": "reinf",
+          "units": [
+            {
+              "unit": "crucible_heavy_assault",
+              "owner": 0,
+              "x": 180,
+              "y": 120,
+              "count": 4
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "win",
+      "when": {
+        "type": "all",
+        "of": [
+          {
+            "type": "destroyed",
+            "tag": "prime"
+          },
+          {
+            "type": "destroyed",
+            "tag": "spire"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 7
+        },
+        {
+          "type": "reveal"
+        }
+      ]
+    },
+    {
+      "id": "winEnd",
+      "when": {
+        "type": "fired",
+        "trigger": "win",
+        "after": 4
+      },
+      "actions": [
+        {
+          "type": "victory"
+        }
+      ]
+    }
+  ]
+}
