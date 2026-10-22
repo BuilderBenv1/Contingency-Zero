@@ -1,0 +1,24 @@
+; Engine configuration file.
+; Open this folder in Godot 4.3+ (.NET edition).
+
+config_version=5
+
+[application]
+
+config/name="Contingency Zero"
+run/main_scene="res://Main.tscn"
+config/features=PackedStringArray("4.3", "C#", "Forward Plus")
+
+[display]
+
+window/size/viewport_width=1600
+window/size/viewport_height=900
+
+[dotnet]
+
+project/assembly_name="ContingencyZero.Game"
+
+[physics]
+
+common/physics_ticks_per_second=15
+common/max_physics_steps_per_frame=4

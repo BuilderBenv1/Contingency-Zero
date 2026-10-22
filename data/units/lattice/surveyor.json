@@ -1,0 +1,14 @@
+{
+  "id": "lattice_surveyor",
+  "name": "Surveyor",
+  "faction": "lattice",
+  "metalCost": 110,
+  "energyCost": 1400,
+  "buildTime": 1800,
+  "health": 300,
+  "speed": 3.5,
+  "sightRange": 18,
+  "buildPower": 15,
+  "buildRange": 6,
+  "wreckFraction": 0.6
+}

@@ -1,0 +1,12 @@
+bin/
+obj/
+.godot/
+.import/
+*.user
+*.suo
+.vs/
+.idea/
+.vscode/
+TestResults/
+mono_crash.*
+export_presets.cfg

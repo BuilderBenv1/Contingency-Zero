@@ -1,0 +1,16 @@
+{
+  "id": "lattice_strider",
+  "name": "Strider",
+  "faction": "lattice",
+  "metalCost": 120,
+  "energyCost": 900,
+  "buildTime": 1500,
+  "health": 520,
+  "speed": 4,
+  "sightRange": 20,
+  "weaponRange": 14,
+  "weaponDamage": 22,
+  "reloadSeconds": 1.2,
+  "accuracy": 0.8,
+  "wreckFraction": 0.6
+}

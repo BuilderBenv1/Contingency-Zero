@@ -1,0 +1,12 @@
+{
+  "id": "lattice_metal_extractor",
+  "name": "Metal Extractor",
+  "faction": "lattice",
+  "metalCost": 50,
+  "energyCost": 500,
+  "buildTime": 1000,
+  "health": 200,
+  "metalIncome": 2,
+  "metalStorage": 50,
+  "wreckFraction": 0.6
+}

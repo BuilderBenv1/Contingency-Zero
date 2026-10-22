@@ -1,0 +1,12 @@
+{
+  "id": "lattice_solar_collector",
+  "name": "Solar Collector",
+  "faction": "lattice",
+  "metalCost": 60,
+  "energyCost": 0,
+  "buildTime": 1200,
+  "health": 250,
+  "energyIncome": 20,
+  "energyStorage": 50,
+  "wreckFraction": 0.6
+}

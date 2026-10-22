@@ -1,0 +1,12 @@
+{
+  "id": "crucible_solar_collector",
+  "name": "Solar Collector",
+  "faction": "crucible",
+  "metalCost": 60,
+  "energyCost": 0,
+  "buildTime": 1200,
+  "health": 300,
+  "energyIncome": 20,
+  "energyStorage": 50,
+  "wreckFraction": 0.6
+}

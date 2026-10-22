@@ -1,0 +1,12 @@
+{
+  "id": "crucible_metal_extractor",
+  "name": "Metal Extractor",
+  "faction": "crucible",
+  "metalCost": 50,
+  "energyCost": 500,
+  "buildTime": 1000,
+  "health": 240,
+  "metalIncome": 2,
+  "metalStorage": 50,
+  "wreckFraction": 0.6
+}

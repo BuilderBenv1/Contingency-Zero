@@ -1,0 +1,16 @@
+{
+  "id": "crucible_anvil",
+  "name": "Anvil",
+  "faction": "crucible",
+  "metalCost": 130,
+  "energyCost": 900,
+  "buildTime": 1600,
+  "health": 640,
+  "speed": 3.2,
+  "sightRange": 16,
+  "weaponRange": 12,
+  "weaponDamage": 26,
+  "reloadSeconds": 1.3,
+  "accuracy": 0.8,
+  "wreckFraction": 0.6
+}

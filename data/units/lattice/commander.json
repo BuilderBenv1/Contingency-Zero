@@ -1,0 +1,23 @@
+{
+  "id": "lattice_commander",
+  "name": "Lattice Commander",
+  "faction": "lattice",
+  "commander": true,
+  "metalCost": 2500,
+  "energyCost": 25000,
+  "buildTime": 60000,
+  "health": 3000,
+  "speed": 2.5,
+  "sightRange": 24,
+  "weaponRange": 12,
+  "weaponDamage": 40,
+  "reloadSeconds": 1,
+  "accuracy": 0.9,
+  "buildPower": 30,
+  "buildRange": 6,
+  "metalIncome": 1,
+  "energyIncome": 25,
+  "metalStorage": 500,
+  "energyStorage": 500,
+  "wreckFraction": 0.6
+}

@@ -1,0 +1,14 @@
+{
+  "id": "crucible_rigger",
+  "name": "Rigger",
+  "faction": "crucible",
+  "metalCost": 120,
+  "energyCost": 1400,
+  "buildTime": 1800,
+  "health": 380,
+  "speed": 3,
+  "sightRange": 15,
+  "buildPower": 15,
+  "buildRange": 6,
+  "wreckFraction": 0.6
+}
