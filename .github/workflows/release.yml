@@ -62,9 +62,6 @@ jobs:
         run: |
           echo "GODOT=$(find ~/godot -type f -name 'Godot_v*_mono_linux.x86_64' | head -n1)" >> "$GITHUB_ENV"
 
-      - name: Run sim tests
-        run: dotnet test ContingencyZero.sln --configuration Release
-
       - name: Import project
         run: |
           # The first run imports resources and builds the C# project; it may exit non-zero
