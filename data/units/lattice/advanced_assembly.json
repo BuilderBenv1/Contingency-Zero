@@ -1,0 +1,22 @@
+{
+  "id": "lattice_advanced_assembly",
+  "name": "Advanced Assembly",
+  "faction": "lattice",
+  "role": "factory_adv",
+  "tier": 2,
+  "metalCost": 2800,
+  "energyCost": 4950,
+  "buildTime": 20000,
+  "health": 4940,
+  "footprint": 3,
+  "buildPower": 240,
+  "sightRange": 23.32,
+  "buildOptions": [
+    "lattice_builder_adv",
+    "lattice_heavy_assault",
+    "lattice_long_artillery",
+    "lattice_amphibious"
+  ],
+  "description": "Builds tier 2 units and the advanced builder.",
+  "reclaimMultiplier": 1.0
+}

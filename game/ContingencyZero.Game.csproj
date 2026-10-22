@@ -5,10 +5,18 @@
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <RootNamespace>ContingencyZero.Game</RootNamespace>
     <Nullable>enable</Nullable>
+    <LangVersion>12</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\sim\ContingencyZero.Sim.csproj" />
+  </ItemGroup>
+
+  <!-- Unit, map and mission data ship inside the game assembly, so exports need no loose files. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\data\**\*.json">
+      <LogicalName>data/%(RecursiveDir)%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 
 </Project>

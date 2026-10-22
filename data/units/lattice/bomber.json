@@ -1,0 +1,27 @@
+{
+  "id": "lattice_bomber",
+  "name": "Lancet",
+  "faction": "lattice",
+  "role": "bomber",
+  "tier": 1,
+  "metalCost": 160,
+  "energyCost": 2640,
+  "buildTime": 2400,
+  "health": 608,
+  "moveClass": "air",
+  "speed": 10.8,
+  "radius": 2.6,
+  "sightRange": 29.68,
+  "weapons": [
+    {
+      "kind": "bomb",
+      "range": 7.28,
+      "damage": 170,
+      "reloadSeconds": 3.0,
+      "accuracy": 0.9,
+      "splash": 6,
+      "projectileSpeed": 20
+    }
+  ],
+  "description": "Flies over its target and drops a heavy payload."
+}

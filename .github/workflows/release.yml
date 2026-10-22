@@ -1,0 +1,120 @@
+name: Release
+
+# Builds the playable game for Windows and Linux with Godot's exporter.
+# Push a tag like v1.0.0 to publish a GitHub Release with the zips attached;
+# run it by hand (Actions > Release > Run workflow) to just get the zips as build artifacts.
+
+on:
+  push:
+    tags: ['v*']
+    # Pushing to this branch runs the export without publishing (a dry run).
+    branches: [release-check]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  GODOT_VERSION: 4.3
+  GODOT_RELEASE: stable
+
+jobs:
+  export:
+    name: Export Windows + Linux
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Cache Godot and export templates
+        id: godot-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/godot
+            ~/.local/share/godot/export_templates
+          key: godot-${{ env.GODOT_VERSION }}-${{ env.GODOT_RELEASE }}-mono-win-linux
+
+      - name: Download Godot (.NET) and export templates
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-${GODOT_RELEASE}"
+          mkdir -p ~/godot
+          curl -fsSL -o /tmp/godot.zip "$base/Godot_v${GODOT_VERSION}-${GODOT_RELEASE}_mono_linux_x86_64.zip"
+          unzip -q /tmp/godot.zip -d ~/godot
+          curl -fsSL -o /tmp/templates.tpz "$base/Godot_v${GODOT_VERSION}-${GODOT_RELEASE}_mono_export_templates.tpz"
+          dest=~/.local/share/godot/export_templates/${GODOT_VERSION}.${GODOT_RELEASE}.mono
+          mkdir -p "$dest"
+          # Only the templates we export with (the full archive is ~1 GB).
+          unzip -q -j /tmp/templates.tpz \
+            templates/version.txt \
+            templates/linux_release.x86_64 templates/linux_debug.x86_64 \
+            templates/windows_release_x86_64.exe templates/windows_debug_x86_64.exe \
+            templates/windows_release_x86_64_console.exe templates/windows_debug_x86_64_console.exe \
+            -d "$dest"
+          rm /tmp/godot.zip /tmp/templates.tpz
+
+      - name: Locate Godot
+        run: |
+          echo "GODOT=$(find ~/godot -type f -name 'Godot_v*_mono_linux.x86_64' | head -n1)" >> "$GITHUB_ENV"
+
+      - name: Import project
+        run: |
+          # The first run imports resources and builds the C# project; it may exit non-zero
+          # on a fresh checkout, so don't fail on it — the export below is the real check.
+          "$GODOT" --headless --path game --import || true
+          dotnet build game/ContingencyZero.Game.csproj --configuration Debug
+
+      - name: Export Windows
+        run: |
+          mkdir -p build/windows
+          "$GODOT" --headless --path game --export-release "Windows" ../build/windows/ContingencyZero.exe
+          test -f build/windows/ContingencyZero.exe
+
+      - name: Export Linux
+        run: |
+          mkdir -p build/linux
+          "$GODOT" --headless --path game --export-release "Linux" ../build/linux/ContingencyZero.x86_64
+          test -f build/linux/ContingencyZero.x86_64
+
+      - name: Package
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME}"
+          [[ "$GITHUB_REF_TYPE" == "tag" ]] || version="dev-${GITHUB_SHA::7}"
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          cp docs/HOW_TO_PLAY.txt build/windows/
+          cp docs/HOW_TO_PLAY.txt build/linux/
+          chmod +x build/linux/ContingencyZero.x86_64
+          mkdir -p dist
+          (cd build/windows && zip -qr "../../dist/ContingencyZero-${version}-windows.zip" .)
+          (cd build/linux && tar -czf "../../dist/ContingencyZero-${version}-linux.tar.gz" .)
+          ls -la dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ContingencyZero-${{ env.VERSION }}
+          path: dist/*
+
+      - name: Publish GitHub Release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --title "Contingency Zero $GITHUB_REF_NAME" \
+            --notes-file docs/RELEASE_NOTES.md
+
+      - name: Publish dry-run draft (release-check branch only)
+        if: github.ref == 'refs/heads/release-check'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete release-check-draft --yes || true
+          gh release create release-check-draft dist/* --draft --target "$GITHUB_SHA" \
+            --title "Release check (draft, not a real release)" \
+            --notes "Automated dry-run build from the release-check branch."

@@ -1,0 +1,22 @@
+{
+  "id": "crucible_aircraft_plant",
+  "name": "Hangar",
+  "faction": "crucible",
+  "role": "factory_air",
+  "tier": 1,
+  "metalCost": 800,
+  "energyCost": 880,
+  "buildTime": 7500,
+  "health": 2520,
+  "footprint": 3,
+  "buildPower": 100,
+  "sightRange": 22.0,
+  "buildOptions": [
+    "crucible_builder_air",
+    "crucible_fighter",
+    "crucible_bomber",
+    "crucible_gunship"
+  ],
+  "description": "Builds aircraft.",
+  "reclaimMultiplier": 1.4
+}

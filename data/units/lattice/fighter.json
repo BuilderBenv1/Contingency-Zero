@@ -1,0 +1,28 @@
+{
+  "id": "lattice_fighter",
+  "name": "Swift",
+  "faction": "lattice",
+  "role": "fighter",
+  "tier": 1,
+  "metalCost": 90,
+  "energyCost": 1430,
+  "buildTime": 1500,
+  "health": 180,
+  "moveClass": "air",
+  "speed": 16.2,
+  "radius": 1.8,
+  "sightRange": 36.04,
+  "weapons": [
+    {
+      "kind": "missile",
+      "range": 22.88,
+      "damage": 48,
+      "reloadSeconds": 1.0,
+      "accuracy": 0.95,
+      "projectileSpeed": 120,
+      "targetsAir": true,
+      "targetsGround": false
+    }
+  ],
+  "description": "Air superiority. Only shoots aircraft."
+}

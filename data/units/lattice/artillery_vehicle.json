@@ -1,0 +1,28 @@
+{
+  "id": "lattice_artillery_vehicle",
+  "name": "Lancer Array",
+  "faction": "lattice",
+  "role": "artillery_vehicle",
+  "tier": 1,
+  "metalCost": 220,
+  "energyCost": 1320,
+  "buildTime": 2400,
+  "health": 408,
+  "moveClass": "vehicle",
+  "speed": 3.46,
+  "radius": 2.4,
+  "sightRange": 25.44,
+  "weapons": [
+    {
+      "kind": "artillery",
+      "range": 58.24,
+      "minRange": 12,
+      "damage": 115,
+      "reloadSeconds": 4.0,
+      "accuracy": 0.7,
+      "splash": 5,
+      "projectileSpeed": 45
+    }
+  ],
+  "description": "Long-range howitzer. Keep it behind the line."
+}

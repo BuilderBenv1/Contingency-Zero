@@ -1,0 +1,15 @@
+{
+  "id": "crucible_radar_tower",
+  "name": "Watchtower",
+  "faction": "crucible",
+  "role": "radar_tower",
+  "tier": 1,
+  "metalCost": 50,
+  "energyCost": 280,
+  "buildTime": 800,
+  "health": 384,
+  "footprint": 1,
+  "sightRange": 22.0,
+  "radarRange": 140,
+  "description": "Shows enemy movement as radar blips. Lets artillery fire at range."
+}

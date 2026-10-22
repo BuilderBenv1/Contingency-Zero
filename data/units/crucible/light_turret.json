@@ -1,0 +1,25 @@
+{
+  "id": "crucible_light_turret",
+  "name": "Brander",
+  "faction": "crucible",
+  "role": "light_turret",
+  "tier": 1,
+  "metalCost": 95,
+  "energyCost": 550,
+  "buildTime": 1500,
+  "health": 1500,
+  "footprint": 1,
+  "sightRange": 30.0,
+  "weapons": [
+    {
+      "kind": "laser",
+      "range": 27.16,
+      "damage": 32,
+      "reloadSeconds": 0.6,
+      "accuracy": 0.9,
+      "targetsAir": false,
+      "targetsGround": true
+    }
+  ],
+  "description": "Cheap laser tower."
+}

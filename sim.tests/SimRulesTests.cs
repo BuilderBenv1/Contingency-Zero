@@ -20,6 +20,7 @@ public class SimRulesTests
         (@"\bGuid\.NewGuid\b", "ids must be deterministic"),
         (@"\bHashSet<", "iteration order is undefined; use arrays or sorted lists"),
         (@"\bGodot\b", "the sim must not depend on Godot"),
+        (@"\bstatic\s+(readonly\s+)?(List|Dictionary|Queue|Stack)<", "shared mutable state breaks parallel worlds; keep it on World"),
     };
 
     [Fact]

@@ -1,0 +1,27 @@
+{
+  "id": "crucible_scout_bot",
+  "name": "Spark",
+  "faction": "crucible",
+  "role": "scout_bot",
+  "tier": 1,
+  "metalCost": 30,
+  "energyCost": 250,
+  "buildTime": 450,
+  "health": 132,
+  "moveClass": "bot",
+  "speed": 8.74,
+  "radius": 1.2,
+  "sightRange": 40.0,
+  "weapons": [
+    {
+      "kind": "laser",
+      "range": 9.7,
+      "damage": 9,
+      "reloadSeconds": 0.45,
+      "accuracy": 0.7,
+      "targetsAir": false,
+      "targetsGround": true
+    }
+  ],
+  "description": "Fast and fragile. Sees far."
+}

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using ContingencyZero.Sim.Core;
 
 namespace ContingencyZero.Sim.State;
@@ -7,9 +8,48 @@ public enum OrderType : byte
 {
     None = 0,
     Move = 1,
-    Build = 2,
-    Reclaim = 3,
-    Attack = 4,
+    /// <summary>Attack a unit (Target).</summary>
+    Attack = 2,
+    /// <summary>Fire at a ground position (Position).</summary>
+    AttackGround = 3,
+    /// <summary>Build TypeIndex at Position. Target becomes the nanoframe's id once it exists.</summary>
+    Build = 4,
+    /// <summary>Reclaim feature Target.</summary>
+    Reclaim = 5,
+    /// <summary>Guard/assist unit Target: help build it, help its factory, repair it, or follow it.</summary>
+    Assist = 6,
+    /// <summary>Patrol between where the order was given and Position.</summary>
+    Patrol = 7,
+    /// <summary>Fire the Breach Cannon at Position.</summary>
+    DGun = 8,
+    /// <summary>Attack-move: head for Position, stopping to fight anything met on the way.</summary>
+    Fight = 9,
+}
+
+public enum FireState : byte
+{
+    HoldFire = 0,
+    ReturnFire = 1,
+    FireAtWill = 2,
+}
+
+public struct Order
+{
+    public OrderType Type;
+    public FixVec2 Position;
+    /// <summary>Patrol's other end, captured when the order starts.</summary>
+    public FixVec2 Origin;
+    public int Target;
+    public int TypeIndex;
+
+    public Order(OrderType type, FixVec2 position, int target = -1, int typeIndex = -1)
+    {
+        Type = type;
+        Position = position;
+        Origin = position;
+        Target = target;
+        TypeIndex = typeIndex;
+    }
 }
 
 /// <summary>
@@ -18,6 +58,7 @@ public enum OrderType : byte
 /// </summary>
 public sealed class UnitStore
 {
+    public const int MaxWeapons = 2;
     private const int InitialCapacity = 256;
 
     public int Count { get; private set; }
@@ -27,17 +68,52 @@ public sealed class UnitStore
     public bool[] Alive = new bool[InitialCapacity];
     public FixVec2[] Position = new FixVec2[InitialCapacity];
     public Fix64[] Health = new Fix64[InitialCapacity];
-    public int[] ReloadLeft = new int[InitialCapacity];
-    /// <summary>Current weapon target unit id, or -1.</summary>
-    public int[] WeaponTarget = new int[InitialCapacity];
 
-    // Current order
-    public OrderType[] Order = new OrderType[InitialCapacity];
-    public FixVec2[] OrderPosition = new FixVec2[InitialCapacity];
-    /// <summary>Wreck id for Reclaim, enemy unit id for Attack, build job id for Build.</summary>
-    public int[] OrderTarget = new int[InitialCapacity];
+    /// <summary>Build work done so far. Equal to the type's build time once complete.</summary>
+    public Fix64[] BuildProgress = new Fix64[InitialCapacity];
+    public bool[] Complete = new bool[InitialCapacity];
+    /// <summary>Tick the unit was created, for display and AI bookkeeping.</summary>
+    public int[] BornTick = new int[InitialCapacity];
 
-    public int Add(int typeIndex, int owner, FixVec2 position, Fix64 health)
+    // Weapons: slot 0 and 1
+    public int[] Reload0 = new int[InitialCapacity];
+    public int[] Reload1 = new int[InitialCapacity];
+    public int[] Target0 = new int[InitialCapacity];
+    public int[] Target1 = new int[InitialCapacity];
+    public FireState[] Fire = new FireState[InitialCapacity];
+    public int[] Kills = new int[InitialCapacity];
+    /// <summary>Last unit that damaged this one, for return fire.</summary>
+    public int[] LastAttacker = new int[InitialCapacity];
+
+    // Orders and movement
+    public List<Order>[] Orders = new List<Order>[InitialCapacity];
+    public List<FixVec2>?[] Path = new List<FixVec2>?[InitialCapacity];
+    public int[] PathIndex = new int[InitialCapacity];
+    public FixVec2[] PathGoal = new FixVec2[InitialCapacity];
+    public bool[] PathPending = new bool[InitialCapacity];
+    /// <summary>Goal of the queued path search (valid while PathPending).</summary>
+    public FixVec2[] PathRequestGoal = new FixVec2[InitialCapacity];
+    public int[] StuckTicks = new int[InitialCapacity];
+    /// <summary>Where an idle unit was parked, so it returns after chasing something.</summary>
+    public FixVec2[] Anchor = new FixVec2[InitialCapacity];
+    /// <summary>Movement direction last tick (for aircraft and the renderer).</summary>
+    public FixVec2[] Velocity = new FixVec2[InitialCapacity];
+
+    // Factories
+    public List<int>[] FactoryQueue = new List<int>[InitialCapacity];
+    public bool[] FactoryRepeat = new bool[InitialCapacity];
+    public int[] FactoryCurrent = new int[InitialCapacity];
+    public FixVec2[] Rally = new FixVec2[InitialCapacity];
+    public bool[] HasRally = new bool[InitialCapacity];
+
+    // Structures
+    /// <summary>Top-left tile of a structure's footprint.</summary>
+    public int[] TileX = new int[InitialCapacity];
+    public int[] TileY = new int[InitialCapacity];
+    /// <summary>Metal per tick an extractor pulls from its spot.</summary>
+    public Fix64[] ExtractorYield = new Fix64[InitialCapacity];
+
+    public int Add(int typeIndex, int owner, FixVec2 position, Fix64 health, bool complete, int tick)
     {
         if (Count == TypeIndex.Length) Grow();
         int id = Count++;
@@ -46,21 +122,61 @@ public sealed class UnitStore
         Alive[id] = true;
         Position[id] = position;
         Health[id] = health;
-        ReloadLeft[id] = 0;
-        WeaponTarget[id] = -1;
-        Order[id] = OrderType.None;
-        OrderPosition[id] = position;
-        OrderTarget[id] = -1;
+        BuildProgress[id] = Fix64.Zero;
+        Complete[id] = complete;
+        BornTick[id] = tick;
+        Reload0[id] = 0;
+        Reload1[id] = 0;
+        Target0[id] = -1;
+        Target1[id] = -1;
+        Fire[id] = FireState.FireAtWill;
+        Kills[id] = 0;
+        LastAttacker[id] = -1;
+        Orders[id] = new List<Order>();
+        Path[id] = null;
+        PathIndex[id] = 0;
+        PathGoal[id] = position;
+        PathPending[id] = false;
+        PathRequestGoal[id] = position;
+        StuckTicks[id] = 0;
+        Anchor[id] = position;
+        Velocity[id] = FixVec2.Zero;
+        FactoryQueue[id] = new List<int>();
+        FactoryRepeat[id] = false;
+        FactoryCurrent[id] = -1;
+        Rally[id] = position;
+        HasRally[id] = false;
+        TileX[id] = -1;
+        TileY[id] = -1;
+        ExtractorYield[id] = Fix64.Zero;
         return id;
     }
 
     public bool IsValid(int id) => id >= 0 && id < Count && Alive[id];
 
-    public void ClearOrder(int id)
+    public Order CurrentOrder(int id) => Orders[id].Count > 0 ? Orders[id][0] : default;
+
+    public void ClearPath(int id)
     {
-        Order[id] = OrderType.None;
-        OrderTarget[id] = -1;
-        OrderPosition[id] = Position[id];
+        Path[id] = null;
+        PathIndex[id] = 0;
+        PathPending[id] = false;
+        StuckTicks[id] = 0;
+    }
+
+    public void ClearOrders(int id)
+    {
+        Orders[id].Clear();
+        ClearPath(id);
+        Anchor[id] = Position[id];
+    }
+
+    /// <summary>Finishes the current order and moves on to the next queued one.</summary>
+    public void PopOrder(int id)
+    {
+        if (Orders[id].Count > 0) Orders[id].RemoveAt(0);
+        ClearPath(id);
+        if (Orders[id].Count == 0) Anchor[id] = Position[id];
     }
 
     private void Grow()
@@ -71,10 +187,32 @@ public sealed class UnitStore
         Array.Resize(ref Alive, size);
         Array.Resize(ref Position, size);
         Array.Resize(ref Health, size);
-        Array.Resize(ref ReloadLeft, size);
-        Array.Resize(ref WeaponTarget, size);
-        Array.Resize(ref Order, size);
-        Array.Resize(ref OrderPosition, size);
-        Array.Resize(ref OrderTarget, size);
+        Array.Resize(ref BuildProgress, size);
+        Array.Resize(ref Complete, size);
+        Array.Resize(ref BornTick, size);
+        Array.Resize(ref Reload0, size);
+        Array.Resize(ref Reload1, size);
+        Array.Resize(ref Target0, size);
+        Array.Resize(ref Target1, size);
+        Array.Resize(ref Fire, size);
+        Array.Resize(ref Kills, size);
+        Array.Resize(ref LastAttacker, size);
+        Array.Resize(ref Orders, size);
+        Array.Resize(ref Path, size);
+        Array.Resize(ref PathIndex, size);
+        Array.Resize(ref PathGoal, size);
+        Array.Resize(ref PathPending, size);
+        Array.Resize(ref PathRequestGoal, size);
+        Array.Resize(ref StuckTicks, size);
+        Array.Resize(ref Anchor, size);
+        Array.Resize(ref Velocity, size);
+        Array.Resize(ref FactoryQueue, size);
+        Array.Resize(ref FactoryRepeat, size);
+        Array.Resize(ref FactoryCurrent, size);
+        Array.Resize(ref Rally, size);
+        Array.Resize(ref HasRally, size);
+        Array.Resize(ref TileX, size);
+        Array.Resize(ref TileY, size);
+        Array.Resize(ref ExtractorYield, size);
     }
 }

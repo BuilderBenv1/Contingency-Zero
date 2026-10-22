@@ -1,0 +1,28 @@
+{
+  "id": "crucible_mortar_bot",
+  "name": "Pounder",
+  "faction": "crucible",
+  "role": "mortar_bot",
+  "tier": 1,
+  "metalCost": 140,
+  "energyCost": 880,
+  "buildTime": 1600,
+  "health": 360,
+  "moveClass": "bot",
+  "speed": 3.68,
+  "radius": 1.6,
+  "sightRange": 26.0,
+  "weapons": [
+    {
+      "kind": "artillery",
+      "range": 36.86,
+      "minRange": 8,
+      "damage": 75,
+      "reloadSeconds": 3.0,
+      "accuracy": 0.7,
+      "splash": 4,
+      "projectileSpeed": 45
+    }
+  ],
+  "description": "Lobs shells over walls and hills."
+}

@@ -1,0 +1,17 @@
+{
+  "id": "lattice_energy_storage",
+  "name": "Energy Storage",
+  "faction": "lattice",
+  "role": "energy_storage",
+  "tier": 1,
+  "metalCost": 170,
+  "energyCost": 940,
+  "buildTime": 2500,
+  "health": 1520,
+  "footprint": 2,
+  "energyStorage": 6000,
+  "sightRange": 12.72,
+  "deathExplosionDamage": 400,
+  "deathExplosionRadius": 12,
+  "description": "Holds 6,000 more energy. Explodes when destroyed."
+}

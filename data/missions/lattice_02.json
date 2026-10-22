@@ -1,0 +1,665 @@
+{
+  "campaign": "lattice",
+  "order": 2,
+  "title": "Ash and Iron",
+  "briefing": "The Crucible has fortified the metal fields of the Ashfall Plains with turret outposts. Take them back. Their Light Turrets outrange your tanks, so bring Mortar Bots or Artillery to crack them from a distance. Expect the foundry in the south-east to answer every outpost you burn.",
+  "map": "ashfall_plains",
+  "players": [
+    {
+      "name": "Lattice",
+      "team": 0,
+      "faction": "lattice",
+      "start": 0,
+      "ai": "None"
+    },
+    {
+      "name": "Crucible Foundry",
+      "team": 1,
+      "faction": "crucible",
+      "start": 1,
+      "ai": "None"
+    }
+  ],
+  "humanPlayer": 0,
+  "startMetal": 1200,
+  "startEnergy": 1000,
+  "spawnCommanders": true,
+  "messages": [
+    "Three Crucible outposts sit on our metal. The nearest is on the ridge, north-east of base.",
+    "Their turrets outrange Striders. Lead with Mortar Bots, then roll in.",
+    "Ridge outpost burned. That metal is ours again.",
+    "Kiln Field burned. That metal is ours again.",
+    "Cinder Flats burned. That metal is ours again.",
+    "Crucible raiders leaving the foundry. Heading your way.",
+    "Anvils inbound from the south-east.",
+    "Another column moving. Mortars this time.",
+    "Heavy column with artillery. Meet it before it sets up.",
+    "The foundry is answering. Three Anvils.",
+    "Retaliation column inbound.",
+    "The plains are ours. Every extractor out there now feeds the network."
+  ],
+  "objectives": [
+    {
+      "id": "out1",
+      "text": "Destroy the Ridge outpost"
+    },
+    {
+      "id": "out2",
+      "text": "Destroy the Kiln Field outpost"
+    },
+    {
+      "id": "out3",
+      "text": "Destroy the Cinder Flats outpost"
+    },
+    {
+      "id": "eco",
+      "text": "Run 8 Metal Extractors at once",
+      "optional": true
+    }
+  ],
+  "spawns": [
+    {
+      "tag": "",
+      "type": "lattice_strider",
+      "owner": 0,
+      "x": 190,
+      "y": 180
+    },
+    {
+      "tag": "",
+      "type": "lattice_strider",
+      "owner": 0,
+      "x": 200,
+      "y": 172
+    },
+    {
+      "tag": "",
+      "type": "lattice_strider",
+      "owner": 0,
+      "x": 180,
+      "y": 192
+    },
+    {
+      "tag": "",
+      "type": "lattice_mortar_bot",
+      "owner": 0,
+      "x": 176,
+      "y": 176
+    },
+    {
+      "tag": "",
+      "type": "lattice_mortar_bot",
+      "owner": 0,
+      "x": 168,
+      "y": 186
+    },
+    {
+      "tag": "out1",
+      "type": "crucible_metal_extractor",
+      "owner": 1,
+      "x": 284,
+      "y": 140
+    },
+    {
+      "tag": "out1",
+      "type": "crucible_metal_extractor",
+      "owner": 1,
+      "x": 276,
+      "y": 196
+    },
+    {
+      "tag": "out1",
+      "type": "crucible_light_turret",
+      "owner": 1,
+      "x": 300,
+      "y": 172
+    },
+    {
+      "tag": "out1",
+      "type": "crucible_light_turret",
+      "owner": 1,
+      "x": 260,
+      "y": 172
+    },
+    {
+      "tag": "out2",
+      "type": "crucible_metal_extractor",
+      "owner": 1,
+      "x": 412,
+      "y": 108
+    },
+    {
+      "tag": "out2",
+      "type": "crucible_metal_extractor",
+      "owner": 1,
+      "x": 476,
+      "y": 180
+    },
+    {
+      "tag": "out2",
+      "type": "crucible_light_turret",
+      "owner": 1,
+      "x": 428,
+      "y": 132
+    },
+    {
+      "tag": "out2",
+      "type": "crucible_light_turret",
+      "owner": 1,
+      "x": 460,
+      "y": 156
+    },
+    {
+      "tag": "out2",
+      "type": "crucible_light_turret",
+      "owner": 1,
+      "x": 412,
+      "y": 164
+    },
+    {
+      "tag": "out2",
+      "type": "crucible_radar_tower",
+      "owner": 1,
+      "x": 452,
+      "y": 124
+    },
+    {
+      "tag": "out3",
+      "type": "crucible_metal_extractor",
+      "owner": 1,
+      "x": 236,
+      "y": 412
+    },
+    {
+      "tag": "out3",
+      "type": "crucible_metal_extractor",
+      "owner": 1,
+      "x": 204,
+      "y": 268
+    },
+    {
+      "tag": "out3",
+      "type": "crucible_light_turret",
+      "owner": 1,
+      "x": 220,
+      "y": 396
+    },
+    {
+      "tag": "out3",
+      "type": "crucible_light_turret",
+      "owner": 1,
+      "x": 260,
+      "y": 396
+    },
+    {
+      "tag": "out3",
+      "type": "crucible_light_turret",
+      "owner": 1,
+      "x": 212,
+      "y": 284
+    },
+    {
+      "tag": "out3",
+      "type": "crucible_metal_storage",
+      "owner": 1,
+      "x": 248,
+      "y": 432
+    },
+    {
+      "tag": "g2",
+      "type": "crucible_anvil",
+      "owner": 1,
+      "x": 440,
+      "y": 175
+    },
+    {
+      "tag": "g2",
+      "type": "crucible_anvil",
+      "owner": 1,
+      "x": 425,
+      "y": 150
+    },
+    {
+      "tag": "g3",
+      "type": "crucible_anvil",
+      "owner": 1,
+      "x": 240,
+      "y": 380
+    },
+    {
+      "tag": "g3",
+      "type": "crucible_assault_bot",
+      "owner": 1,
+      "x": 230,
+      "y": 375
+    },
+    {
+      "tag": "g3",
+      "type": "crucible_assault_bot",
+      "owner": 1,
+      "x": 248,
+      "y": 372
+    },
+    {
+      "tag": "base",
+      "type": "crucible_vehicle_plant",
+      "owner": 1,
+      "x": 580,
+      "y": 588
+    },
+    {
+      "tag": "base",
+      "type": "crucible_bot_lab",
+      "owner": 1,
+      "x": 644,
+      "y": 572
+    },
+    {
+      "tag": "base",
+      "type": "crucible_light_turret",
+      "owner": 1,
+      "x": 572,
+      "y": 548
+    },
+    {
+      "tag": "base",
+      "type": "crucible_light_turret",
+      "owner": 1,
+      "x": 548,
+      "y": 572
+    }
+  ],
+  "triggers": [
+    {
+      "id": "intro",
+      "when": {
+        "type": "time",
+        "seconds": 1
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 0
+        }
+      ]
+    },
+    {
+      "id": "intro2",
+      "when": {
+        "type": "time",
+        "seconds": 20
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 1
+        }
+      ]
+    },
+    {
+      "id": "out1Msg",
+      "when": {
+        "type": "destroyed",
+        "tag": "out1"
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 2
+        }
+      ]
+    },
+    {
+      "id": "out1",
+      "when": {
+        "type": "destroyed",
+        "tag": "out1"
+      },
+      "actions": [
+        {
+          "type": "objective",
+          "id": "out1",
+          "state": "complete"
+        }
+      ],
+      "repeat": true
+    },
+    {
+      "id": "out2Msg",
+      "when": {
+        "type": "destroyed",
+        "tag": "out2"
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 3
+        }
+      ]
+    },
+    {
+      "id": "out2",
+      "when": {
+        "type": "destroyed",
+        "tag": "out2"
+      },
+      "actions": [
+        {
+          "type": "objective",
+          "id": "out2",
+          "state": "complete"
+        }
+      ],
+      "repeat": true
+    },
+    {
+      "id": "out3Msg",
+      "when": {
+        "type": "destroyed",
+        "tag": "out3"
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 4
+        }
+      ]
+    },
+    {
+      "id": "out3",
+      "when": {
+        "type": "destroyed",
+        "tag": "out3"
+      },
+      "actions": [
+        {
+          "type": "objective",
+          "id": "out3",
+          "state": "complete"
+        }
+      ],
+      "repeat": true
+    },
+    {
+      "id": "eco",
+      "when": {
+        "type": "count",
+        "player": 0,
+        "atLeast": 8,
+        "role": "metal_extractor"
+      },
+      "actions": [
+        {
+          "type": "objective",
+          "id": "eco",
+          "state": "complete"
+        }
+      ],
+      "repeat": true
+    },
+    {
+      "id": "raidA",
+      "when": {
+        "type": "time",
+        "seconds": 240
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 5
+        },
+        {
+          "type": "spawn",
+          "tag": "raidA",
+          "units": [
+            {
+              "unit": "crucible_assault_bot",
+              "owner": 1,
+              "x": 540,
+              "y": 520,
+              "count": 4
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "raidA",
+          "x": 170,
+          "y": 170
+        }
+      ]
+    },
+    {
+      "id": "raidB",
+      "when": {
+        "type": "time",
+        "seconds": 480
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 6
+        },
+        {
+          "type": "spawn",
+          "tag": "raidB",
+          "units": [
+            {
+              "unit": "crucible_anvil",
+              "owner": 1,
+              "x": 540,
+              "y": 520,
+              "count": 3
+            },
+            {
+              "unit": "crucible_assault_bot",
+              "owner": 1,
+              "x": 540,
+              "y": 540,
+              "count": 2
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "raidB",
+          "x": 170,
+          "y": 170
+        }
+      ]
+    },
+    {
+      "id": "raidC",
+      "when": {
+        "type": "time",
+        "seconds": 720
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 7
+        },
+        {
+          "type": "spawn",
+          "tag": "raidC",
+          "units": [
+            {
+              "unit": "crucible_anvil",
+              "owner": 1,
+              "x": 540,
+              "y": 520,
+              "count": 4
+            },
+            {
+              "unit": "crucible_mortar_bot",
+              "owner": 1,
+              "x": 540,
+              "y": 545,
+              "count": 2
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "raidC",
+          "x": 170,
+          "y": 170
+        }
+      ]
+    },
+    {
+      "id": "raidD",
+      "when": {
+        "type": "time",
+        "seconds": 960
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 8
+        },
+        {
+          "type": "spawn",
+          "tag": "raidD",
+          "units": [
+            {
+              "unit": "crucible_anvil",
+              "owner": 1,
+              "x": 540,
+              "y": 520,
+              "count": 5
+            },
+            {
+              "unit": "crucible_artillery_vehicle",
+              "owner": 1,
+              "x": 540,
+              "y": 545,
+              "count": 2
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "raidD",
+          "x": 170,
+          "y": 170
+        }
+      ]
+    },
+    {
+      "id": "revenge1",
+      "when": {
+        "type": "fired",
+        "trigger": "out1Msg",
+        "after": 30
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 9
+        },
+        {
+          "type": "spawn",
+          "tag": "revenge1",
+          "units": [
+            {
+              "unit": "crucible_anvil",
+              "owner": 1,
+              "x": 540,
+              "y": 520,
+              "count": 3
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "revenge1",
+          "x": 170,
+          "y": 170
+        }
+      ]
+    },
+    {
+      "id": "revenge2",
+      "when": {
+        "type": "fired",
+        "trigger": "out2Msg",
+        "after": 30
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 10
+        },
+        {
+          "type": "spawn",
+          "tag": "revenge2",
+          "units": [
+            {
+              "unit": "crucible_anvil",
+              "owner": 1,
+              "x": 540,
+              "y": 520,
+              "count": 3
+            },
+            {
+              "unit": "crucible_mortar_bot",
+              "owner": 1,
+              "x": 540,
+              "y": 545,
+              "count": 2
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "revenge2",
+          "x": 170,
+          "y": 170
+        }
+      ]
+    },
+    {
+      "id": "win",
+      "when": {
+        "type": "all",
+        "of": [
+          {
+            "type": "destroyed",
+            "tag": "out1"
+          },
+          {
+            "type": "destroyed",
+            "tag": "out2"
+          },
+          {
+            "type": "destroyed",
+            "tag": "out3"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 11
+        },
+        {
+          "type": "reveal"
+        }
+      ]
+    },
+    {
+      "id": "winEnd",
+      "when": {
+        "type": "fired",
+        "trigger": "win",
+        "after": 4
+      },
+      "actions": [
+        {
+          "type": "victory"
+        }
+      ]
+    }
+  ]
+}

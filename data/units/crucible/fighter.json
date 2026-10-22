@@ -1,0 +1,28 @@
+{
+  "id": "crucible_fighter",
+  "name": "Hornet",
+  "faction": "crucible",
+  "role": "fighter",
+  "tier": 1,
+  "metalCost": 90,
+  "energyCost": 1430,
+  "buildTime": 1500,
+  "health": 228,
+  "moveClass": "air",
+  "speed": 13.8,
+  "radius": 1.8,
+  "sightRange": 34.0,
+  "weapons": [
+    {
+      "kind": "missile",
+      "range": 21.34,
+      "damage": 48,
+      "reloadSeconds": 1.0,
+      "accuracy": 0.95,
+      "projectileSpeed": 120,
+      "targetsAir": true,
+      "targetsGround": false
+    }
+  ],
+  "description": "Air superiority. Only shoots aircraft."
+}

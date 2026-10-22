@@ -1,0 +1,28 @@
+{
+  "id": "lattice_mortar_bot",
+  "name": "Mortar Walker",
+  "faction": "lattice",
+  "role": "mortar_bot",
+  "tier": 1,
+  "metalCost": 140,
+  "energyCost": 880,
+  "buildTime": 1600,
+  "health": 285,
+  "moveClass": "bot",
+  "speed": 4.32,
+  "radius": 1.6,
+  "sightRange": 27.56,
+  "weapons": [
+    {
+      "kind": "artillery",
+      "range": 39.52,
+      "minRange": 8,
+      "damage": 75,
+      "reloadSeconds": 3.0,
+      "accuracy": 0.7,
+      "splash": 4,
+      "projectileSpeed": 45
+    }
+  ],
+  "description": "Lobs shells over walls and hills."
+}

@@ -1,0 +1,15 @@
+{
+  "id": "crucible_wind_turbine",
+  "name": "Wind Turbine",
+  "faction": "crucible",
+  "role": "wind_turbine",
+  "tier": 1,
+  "metalCost": 40,
+  "energyCost": 100,
+  "buildTime": 1200,
+  "health": 384,
+  "footprint": 1,
+  "usesWind": true,
+  "sightRange": 12.0,
+  "description": "Cheap energy that rises and falls with the map's wind."
+}

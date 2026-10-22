@@ -1,0 +1,37 @@
+{
+  "id": "crucible_patrol_boat",
+  "name": "Cutter",
+  "faction": "crucible",
+  "role": "patrol_boat",
+  "tier": 1,
+  "metalCost": 110,
+  "energyCost": 600,
+  "buildTime": 1300,
+  "health": 744,
+  "moveClass": "ship",
+  "speed": 6.9,
+  "radius": 2.6,
+  "sightRange": 30.0,
+  "weapons": [
+    {
+      "kind": "cannon",
+      "range": 19.4,
+      "damage": 42,
+      "reloadSeconds": 1.0,
+      "accuracy": 0.85,
+      "splash": 1.5,
+      "projectileSpeed": 70
+    },
+    {
+      "kind": "missile",
+      "range": 21.34,
+      "damage": 30,
+      "reloadSeconds": 1.6,
+      "accuracy": 0.95,
+      "projectileSpeed": 90,
+      "targetsAir": true,
+      "targetsGround": false
+    }
+  ],
+  "description": "Fast boat with a light gun and anti-air."
+}

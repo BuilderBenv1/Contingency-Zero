@@ -2,11 +2,15 @@
   "id": "crucible_solar_collector",
   "name": "Solar Collector",
   "faction": "crucible",
-  "metalCost": 60,
+  "role": "solar_collector",
+  "tier": 1,
+  "metalCost": 150,
   "energyCost": 0,
-  "buildTime": 1200,
-  "health": 300,
+  "buildTime": 2000,
+  "health": 960,
+  "footprint": 2,
   "energyIncome": 20,
   "energyStorage": 50,
-  "wreckFraction": 0.6
+  "sightRange": 14.0,
+  "description": "Steady 20 energy a second."
 }

@@ -28,6 +28,7 @@ public readonly struct FixVec2 : IEquatable<FixVec2>
     public Fix64 Length() => Fix64.Sqrt(LengthSquared());
 
     public static Fix64 DistanceSquared(FixVec2 a, FixVec2 b) => (a - b).LengthSquared();
+    public static Fix64 Distance(FixVec2 a, FixVec2 b) => (a - b).Length();
 
     /// <summary>Moves from <paramref name="from"/> toward <paramref name="to"/> by at most <paramref name="step"/>.</summary>
     public static FixVec2 MoveTowards(FixVec2 from, FixVec2 to, Fix64 step)

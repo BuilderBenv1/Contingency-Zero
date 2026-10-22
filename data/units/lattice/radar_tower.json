@@ -1,0 +1,15 @@
+{
+  "id": "lattice_radar_tower",
+  "name": "Oracle Mast",
+  "faction": "lattice",
+  "role": "radar_tower",
+  "tier": 1,
+  "metalCost": 50,
+  "energyCost": 280,
+  "buildTime": 800,
+  "health": 304,
+  "footprint": 1,
+  "sightRange": 23.32,
+  "radarRange": 140,
+  "description": "Shows enemy movement as radar blips. Lets artillery fire at range."
+}

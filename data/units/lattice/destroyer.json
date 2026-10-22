@@ -1,0 +1,27 @@
+{
+  "id": "lattice_destroyer",
+  "name": "Reef",
+  "faction": "lattice",
+  "role": "destroyer",
+  "tier": 1,
+  "metalCost": 340,
+  "energyCost": 2200,
+  "buildTime": 4000,
+  "health": 2470,
+  "moveClass": "ship",
+  "speed": 5.18,
+  "radius": 4,
+  "sightRange": 33.92,
+  "weapons": [
+    {
+      "kind": "cannon",
+      "range": 31.2,
+      "damage": 125,
+      "reloadSeconds": 2.0,
+      "accuracy": 0.85,
+      "splash": 2.5,
+      "projectileSpeed": 70
+    }
+  ],
+  "description": "Heavy hull and a big gun."
+}

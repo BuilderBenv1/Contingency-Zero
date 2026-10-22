@@ -1,0 +1,457 @@
+{
+  "campaign": "lattice",
+  "order": 5,
+  "title": "Zero Hour",
+  "briefing": "Everything leads here. The Crucible has dug its citadel into the south-east rim of Crater Basin, and its Commander directs the whole war from inside. Oversight has staged a forward base for you in the north-west. Raze the citadel: its factories, its reactor, its guns. Kill the Commander and the whole citadel goes with it.",
+  "map": "crater_basin",
+  "players": [
+    {
+      "name": "Lattice",
+      "team": 0,
+      "faction": "lattice",
+      "start": 0,
+      "ai": "None"
+    },
+    {
+      "name": "Crucible Citadel",
+      "team": 1,
+      "faction": "crucible",
+      "start": 3,
+      "ai": "Hard"
+    }
+  ],
+  "humanPlayer": 0,
+  "startMetal": 1500,
+  "startEnergy": 1500,
+  "spawnCommanders": true,
+  "messages": [
+    "Zero Hour. The citadel is in the south-east corner. Everything we have is yours.",
+    "The crater's centre holds the richest metal on Cairn. Whoever holds it wins the long game.",
+    "Oversight has diverted a strike wing to you. Four Gunships, north-west corner.",
+    "Citadel column on the move. Artillery with it.",
+    "Heavy Assault tanks leading the next column.",
+    "The citadel is dust. Contingency Zero is complete. Cairn belongs to the Lattice."
+  ],
+  "objectives": [
+    {
+      "id": "citadel",
+      "text": "Destroy the citadel: factories, reactor and defences"
+    },
+    {
+      "id": "lode",
+      "text": "Run 12 Metal Extractors at once",
+      "optional": true
+    }
+  ],
+  "spawns": [
+    {
+      "tag": "",
+      "type": "lattice_metal_extractor",
+      "owner": 0,
+      "x": 148,
+      "y": 68
+    },
+    {
+      "tag": "",
+      "type": "lattice_metal_extractor",
+      "owner": 0,
+      "x": 156,
+      "y": 124
+    },
+    {
+      "tag": "",
+      "type": "lattice_metal_extractor",
+      "owner": 0,
+      "x": 172,
+      "y": 148
+    },
+    {
+      "tag": "",
+      "type": "lattice_metal_extractor",
+      "owner": 0,
+      "x": 124,
+      "y": 196
+    },
+    {
+      "tag": "",
+      "type": "lattice_solar_collector",
+      "owner": 0,
+      "x": 72,
+      "y": 80
+    },
+    {
+      "tag": "",
+      "type": "lattice_solar_collector",
+      "owner": 0,
+      "x": 64,
+      "y": 112
+    },
+    {
+      "tag": "",
+      "type": "lattice_solar_collector",
+      "owner": 0,
+      "x": 88,
+      "y": 56
+    },
+    {
+      "tag": "",
+      "type": "lattice_strider",
+      "owner": 0,
+      "x": 150,
+      "y": 165
+    },
+    {
+      "tag": "",
+      "type": "lattice_strider",
+      "owner": 0,
+      "x": 162,
+      "y": 175
+    },
+    {
+      "tag": "",
+      "type": "lattice_strider",
+      "owner": 0,
+      "x": 172,
+      "y": 165
+    },
+    {
+      "tag": "",
+      "type": "lattice_strider",
+      "owner": 0,
+      "x": 160,
+      "y": 185
+    },
+    {
+      "tag": "",
+      "type": "lattice_builder_vehicle",
+      "owner": 0,
+      "x": 130,
+      "y": 150
+    },
+    {
+      "tag": "",
+      "type": "lattice_surveyor",
+      "owner": 0,
+      "x": 140,
+      "y": 160
+    },
+    {
+      "tag": "citadel",
+      "type": "crucible_vehicle_plant",
+      "owner": 1,
+      "x": 732,
+      "y": 804
+    },
+    {
+      "tag": "citadel",
+      "type": "crucible_bot_lab",
+      "owner": 1,
+      "x": 820,
+      "y": 740
+    },
+    {
+      "tag": "citadel",
+      "type": "crucible_fusion_reactor",
+      "owner": 1,
+      "x": 804,
+      "y": 852
+    },
+    {
+      "tag": "",
+      "type": "crucible_metal_extractor",
+      "owner": 1,
+      "x": 740,
+      "y": 772
+    },
+    {
+      "tag": "",
+      "type": "crucible_metal_extractor",
+      "owner": 1,
+      "x": 724,
+      "y": 748
+    },
+    {
+      "tag": "",
+      "type": "crucible_metal_extractor",
+      "owner": 1,
+      "x": 772,
+      "y": 700
+    },
+    {
+      "tag": "",
+      "type": "crucible_metal_extractor",
+      "owner": 1,
+      "x": 748,
+      "y": 828
+    },
+    {
+      "tag": "",
+      "type": "crucible_metal_extractor",
+      "owner": 1,
+      "x": 860,
+      "y": 684
+    },
+    {
+      "tag": "",
+      "type": "crucible_solar_collector",
+      "owner": 1,
+      "x": 864,
+      "y": 800
+    },
+    {
+      "tag": "",
+      "type": "crucible_solar_collector",
+      "owner": 1,
+      "x": 864,
+      "y": 768
+    },
+    {
+      "tag": "citadel",
+      "type": "crucible_light_turret",
+      "owner": 1,
+      "x": 692,
+      "y": 724
+    },
+    {
+      "tag": "citadel",
+      "type": "crucible_light_turret",
+      "owner": 1,
+      "x": 724,
+      "y": 692
+    },
+    {
+      "tag": "citadel",
+      "type": "crucible_light_turret",
+      "owner": 1,
+      "x": 684,
+      "y": 764
+    },
+    {
+      "tag": "citadel",
+      "type": "crucible_light_turret",
+      "owner": 1,
+      "x": 764,
+      "y": 668
+    },
+    {
+      "tag": "citadel",
+      "type": "crucible_heavy_turret",
+      "owner": 1,
+      "x": 704,
+      "y": 704
+    },
+    {
+      "tag": "citadel",
+      "type": "crucible_heavy_turret",
+      "owner": 1,
+      "x": 664,
+      "y": 800
+    },
+    {
+      "tag": "citadel",
+      "type": "crucible_aa_turret",
+      "owner": 1,
+      "x": 764,
+      "y": 756
+    },
+    {
+      "tag": "citadel",
+      "type": "crucible_aa_turret",
+      "owner": 1,
+      "x": 700,
+      "y": 780
+    }
+  ],
+  "triggers": [
+    {
+      "id": "intro",
+      "when": {
+        "type": "time",
+        "seconds": 1
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 0
+        }
+      ]
+    },
+    {
+      "id": "intro2",
+      "when": {
+        "type": "time",
+        "seconds": 30
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 1
+        }
+      ]
+    },
+    {
+      "id": "lode",
+      "when": {
+        "type": "count",
+        "player": 0,
+        "atLeast": 12,
+        "role": "metal_extractor"
+      },
+      "actions": [
+        {
+          "type": "objective",
+          "id": "lode",
+          "state": "complete"
+        }
+      ],
+      "repeat": true
+    },
+    {
+      "id": "reinf",
+      "when": {
+        "type": "time",
+        "seconds": 480
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 2
+        },
+        {
+          "type": "spawn",
+          "tag": "wing",
+          "units": [
+            {
+              "unit": "lattice_gunship",
+              "owner": 0,
+              "x": 60,
+              "y": 60,
+              "count": 4
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "push1",
+      "when": {
+        "type": "time",
+        "seconds": 600
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 3
+        },
+        {
+          "type": "spawn",
+          "tag": "push1",
+          "units": [
+            {
+              "unit": "crucible_anvil",
+              "owner": 1,
+              "x": 700,
+              "y": 640,
+              "count": 6
+            },
+            {
+              "unit": "crucible_artillery_vehicle",
+              "owner": 1,
+              "x": 700,
+              "y": 660,
+              "count": 2
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "push1",
+          "x": 150,
+          "y": 150
+        }
+      ]
+    },
+    {
+      "id": "push2",
+      "when": {
+        "type": "time",
+        "seconds": 1080
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 4
+        },
+        {
+          "type": "spawn",
+          "tag": "push2",
+          "units": [
+            {
+              "unit": "crucible_heavy_assault",
+              "owner": 1,
+              "x": 700,
+              "y": 640,
+              "count": 3
+            },
+            {
+              "unit": "crucible_anvil",
+              "owner": 1,
+              "x": 700,
+              "y": 660,
+              "count": 6
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "push2",
+          "x": 150,
+          "y": 150
+        }
+      ]
+    },
+    {
+      "id": "win",
+      "when": {
+        "type": "destroyed",
+        "tag": "citadel"
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 5
+        },
+        {
+          "type": "reveal"
+        }
+      ]
+    },
+    {
+      "id": "winEnd",
+      "when": {
+        "type": "fired",
+        "trigger": "win",
+        "after": 4
+      },
+      "actions": [
+        {
+          "type": "victory"
+        }
+      ]
+    },
+    {
+      "id": "citadelDone",
+      "when": {
+        "type": "destroyed",
+        "tag": "citadel"
+      },
+      "actions": [
+        {
+          "type": "objective",
+          "id": "citadel",
+          "state": "complete"
+        }
+      ]
+    }
+  ]
+}

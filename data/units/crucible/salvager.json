@@ -1,0 +1,20 @@
+{
+  "id": "crucible_salvager",
+  "name": "Scrapper",
+  "faction": "crucible",
+  "role": "salvager",
+  "tier": 1,
+  "metalCost": 90,
+  "energyCost": 500,
+  "buildTime": 900,
+  "health": 576,
+  "moveClass": "vehicle",
+  "speed": 5.52,
+  "radius": 2,
+  "sightRange": 24.0,
+  "buildPower": 40,
+  "buildRange": 12,
+  "reclaimMultiplier": 5.6,
+  "buildOptions": [],
+  "description": "Strips wrecks four times faster than a builder. Can't build."
+}

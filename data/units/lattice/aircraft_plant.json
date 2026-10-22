@@ -1,0 +1,22 @@
+{
+  "id": "lattice_aircraft_plant",
+  "name": "Skyport",
+  "faction": "lattice",
+  "role": "factory_air",
+  "tier": 1,
+  "metalCost": 800,
+  "energyCost": 880,
+  "buildTime": 7500,
+  "health": 1995,
+  "footprint": 3,
+  "buildPower": 100,
+  "sightRange": 23.32,
+  "buildOptions": [
+    "lattice_builder_air",
+    "lattice_fighter",
+    "lattice_bomber",
+    "lattice_gunship"
+  ],
+  "description": "Builds aircraft.",
+  "reclaimMultiplier": 1.0
+}

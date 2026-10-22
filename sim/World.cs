@@ -1,63 +1,169 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ContingencyZero.Sim.AI;
 using ContingencyZero.Sim.Combat;
 using ContingencyZero.Sim.Core;
 using ContingencyZero.Sim.Data;
 using ContingencyZero.Sim.Economy;
+using ContingencyZero.Sim.Map;
+using ContingencyZero.Sim.Match;
+using ContingencyZero.Sim.Missions;
 using ContingencyZero.Sim.Pathing;
 using ContingencyZero.Sim.State;
+using ContingencyZero.Sim.Vision;
 
 namespace ContingencyZero.Sim;
 
 /// <summary>
-/// The whole game state and the tick loop. Given the same catalog, seed, setup and commands, every
-/// machine computes the same world, tick for tick. Nothing outside the sim writes to it except
-/// through <see cref="Step"/>.
+/// The whole game state and the tick loop. Given the same catalog, map, setup, seed and commands,
+/// every machine computes the same world, tick for tick. Nothing outside the sim writes to it
+/// except through <see cref="Step"/>.
 /// </summary>
-public sealed class World
+public sealed partial class World
 {
     public const int TicksPerSecond = 15;
+    /// <summary>Base storage every player has before storage buildings.</summary>
+    public static readonly Fix64 BaseStorage = Fix64.FromInt(1000);
 
     public UnitCatalog Catalog { get; }
+    public MapData Map { get; }
+    public Terrain Terrain { get; }
+    public MatchOptions Options { get; }
     public DeterministicRng Rng { get; }
-    public int MapWidth { get; }
-    public int MapHeight { get; }
     public int Tick { get; private set; }
+    public int MapWidth => Map.Width;
+    public int MapHeight => Map.Height;
 
     public UnitStore Units { get; } = new();
     public PlayerState[] Players { get; }
-    public List<Wreck> Wrecks { get; } = new();
-    public List<BuildJob> Jobs { get; } = new();
+    public List<Feature> Features { get; } = new();
+    public List<Projectile> Projectiles { get; } = new();
+    /// <summary>What happened during the last tick. Output only.</summary>
+    public List<GameEvent> Events { get; } = new();
+
+    /// <summary>Current wind for wind turbines, energy per second.</summary>
+    public Fix64 Wind { get; internal set; }
+    public int? WinningTeam { get; private set; }
+    public bool IsOver => WinningTeam is not null || _drawn;
+    private bool _drawn;
 
     internal SpatialGrid Grid { get; }
+    public Pathfinder Pathfinder { get; }
+    public VisionSystem Vision { get; }
+    public MissionScript? Mission { get; }
 
-    /// <param name="playerTeams">Team number for each player, indexed by player id.</param>
-    public World(UnitCatalog catalog, ulong seed, int mapWidth, int mapHeight, IReadOnlyList<int> playerTeams,
-        int startMetal = 1000, int startEnergy = 1000)
+    // Per-world scratch lists so systems never share mutable state between worlds (or threads).
+    internal readonly List<int> ScratchNeighbours = new();
+    internal readonly List<int> ScratchHits = new();
+
+    private readonly List<AiController> _ais = new();
+    private readonly List<Command> _aiCommands = new();
+    private int _nextProjectileId;
+    /// <summary>Path searches allowed per tick; the rest wait their turn in <see cref="PathQueue"/>.</summary>
+    internal int PathBudget;
+    /// <summary>Units waiting for a path search, first come first served.</summary>
+    internal readonly Queue<int> PathQueue = new();
+    /// <summary>Units waiting for a path search (diagnostics).</summary>
+    public int PathQueueCount() => PathQueue.Count;
+
+    public World(UnitCatalog catalog, MapData map, ulong seed, IReadOnlyList<PlayerSetup> players,
+        MatchOptions? options = null, MissionScript? mission = null)
     {
-        if (mapWidth <= 0 || mapHeight <= 0) throw new ArgumentOutOfRangeException(nameof(mapWidth));
+        if (players.Count == 0) throw new ArgumentException("A match needs at least one player", nameof(players));
         Catalog = catalog;
+        Map = map;
+        Options = options ?? new MatchOptions();
         Rng = new DeterministicRng(seed);
-        MapWidth = mapWidth;
-        MapHeight = mapHeight;
-        Grid = new SpatialGrid(mapWidth, mapHeight);
-        Players = playerTeams.Select((team, id) => new PlayerState
+        Terrain = new Terrain(map);
+        Pathfinder = new Pathfinder(Terrain);
+        Grid = new SpatialGrid(map.Width, map.Height);
+        Vision = new VisionSystem(map.TilesX, map.TilesY) { RevealAll = Options.RevealMap };
+        Mission = mission;
+
+        Players = new PlayerState[players.Count];
+        for (int i = 0; i < players.Count; i++)
         {
-            Id = id,
-            Team = team,
-            Metal = Fix64.FromInt(startMetal),
-            Energy = Fix64.FromInt(startEnergy),
-            MetalStorage = EconomySystem.BaseStorage,
-            EnergyStorage = EconomySystem.BaseStorage,
-        }).ToArray();
+            PlayerSetup p = players[i];
+            if (p.Team < 0 || p.Team >= VisionSystem.MaxTeams)
+                throw new ArgumentOutOfRangeException(nameof(players), "Teams are numbered 0 to 7");
+            Players[i] = new PlayerState
+            {
+                Id = i,
+                Team = p.Team,
+                Faction = p.Faction,
+                Name = p.Name,
+                Metal = Fix64.FromInt(Options.StartMetal),
+                Energy = Fix64.FromInt(Options.StartEnergy),
+                MetalStorage = BaseStorage,
+                EnergyStorage = BaseStorage,
+                IncomeMultiplier = p.Ai == AiDifficulty.Brutal ? Fix64.Parse("1.5") : Fix64.One,
+            };
+        }
+
+        Wind = (map.WindMin + map.WindMax) / 2;
+
+        for (int i = 0; i < map.Features.Count; i++)
+        {
+            FeaturePlacement f = map.Features[i];
+            Features.Add(new Feature
+            {
+                Id = Features.Count,
+                Kind = f.Kind,
+                Position = f.Position,
+                Metal = f.Metal,
+                Energy = f.Energy,
+                Radius = f.Kind == FeatureKind.Tree ? Fix64.FromInt(2) : Fix64.FromInt(3),
+            });
+        }
+
+        if (Options.SpawnCommanders)
+        {
+            for (int i = 0; i < players.Count; i++)
+            {
+                PlayerSetup p = players[i];
+                if (p.StartIndex < 0 || p.StartIndex >= map.StartPositions.Count)
+                    throw new ArgumentOutOfRangeException(nameof(players), $"Start position {p.StartIndex} doesn't exist on {map.Name}");
+                SpawnUnit(catalog.CommanderOf(p.Faction), i, map.StartPositions[p.StartIndex]);
+            }
+        }
+
+        // Mission units first, so a computer player without a Commander finds its home among them.
+        Mission?.Attach(this);
+
+        for (int i = 0; i < players.Count; i++)
+            if (players[i].Ai != AiDifficulty.None)
+                _ais.Add(new AiController(this, i, players[i].Ai, seed));
+
+        Vision.Update(this);
     }
 
-    /// <summary>Places a finished unit. Used for scenario setup and by completed build jobs.</summary>
-    public int SpawnUnit(int typeIndex, int owner, FixVec2 position)
+    /// <summary>Places a unit. Structures snap to the tile grid and claim their footprint.</summary>
+    public int SpawnUnit(int typeIndex, int owner, FixVec2 position, bool complete = true)
     {
         if (owner < 0 || owner >= Players.Length) throw new ArgumentOutOfRangeException(nameof(owner));
-        return Units.Add(typeIndex, owner, ClampToMap(position), Catalog[typeIndex].MaxHealth);
+        UnitDef def = Catalog[typeIndex];
+        FixVec2 pos = ClampToMap(position);
+        int tx = -1, ty = -1;
+        if (def.IsStructure)
+        {
+            (tx, ty) = Terrain.FootprintOrigin(pos, def.Footprint);
+            tx = Math2.Clamp(tx, 0, Map.TilesX - def.Footprint);
+            ty = Math2.Clamp(ty, 0, Map.TilesY - def.Footprint);
+            pos = Terrain.FootprintCentre(tx, ty, def.Footprint);
+        }
+
+        Fix64 health = complete ? def.MaxHealth : Fix64.One;
+        int id = Units.Add(typeIndex, owner, pos, health, complete, Tick);
+        if (complete) Units.BuildProgress[id] = def.BuildTime;
+        if (def.IsStructure)
+        {
+            Units.TileX[id] = tx;
+            Units.TileY[id] = ty;
+            Terrain.SetOccupant(tx, ty, def.Footprint, id);
+        }
+        if (complete) OnCompleted(id);
+        return id;
     }
 
     public int SpawnUnit(string typeId, int owner, FixVec2 position) =>
@@ -66,120 +172,236 @@ public sealed class World
     /// <summary>
     /// Advances one tick. <paramref name="commands"/> are the commands scheduled for this tick, from
     /// every player; they are applied in (player, arrival) order so the order they reached this
-    /// machine in doesn't matter between players.
+    /// machine in doesn't matter between players. Computer players' commands from the previous tick
+    /// are applied first.
     /// </summary>
     public void Step(IReadOnlyList<Command> commands)
     {
+        Events.Clear();
+        if (IsOver)
+        {
+            Tick++;
+            return;
+        }
+
+        foreach (Command c in _aiCommands) ApplyCommand(c);
+        _aiCommands.Clear();
+
         var ordered = commands
             .Select((c, i) => (c, i))
             .OrderBy(x => x.c.Player)
             .ThenBy(x => x.i);
         foreach (var (command, _) in ordered)
-            Apply(command);
+            ApplyCommand(command);
 
+        PathBudget = 40;
+        FactorySystem.Tick(this);
         OrderSystem.Tick(this);
         EconomySystem.Tick(this);
+        Grid.Rebuild(Units);
         CombatSystem.Tick(this);
+        ProjectileSystem.Tick(this);
+        ResolveDeaths();
+
+        if (Tick % (30 * TicksPerSecond) == 0) ChangeWind();
+        if (Tick % VisionSystem.UpdateInterval == 0) Vision.Update(this);
+
+        Mission?.Update(this);
+        CheckVictory();
+
+        foreach (AiController ai in _ais)
+            ai.Update(_aiCommands);
+
         Tick++;
     }
 
     public void Step() => Step(Array.Empty<Command>());
 
-    /// <summary>Removes a unit, leaves a wreck, and checks the Commander win condition.</summary>
-    public void Kill(int id)
+    public IReadOnlyList<AiController> Ais => _ais;
+
+    private void ChangeWind()
+    {
+        Fix64 span = Map.WindMax - Map.WindMin;
+        Wind = Map.WindMin + span * Rng.NextFix();
+    }
+
+    internal int NextProjectileId() => _nextProjectileId++;
+
+    public FixVec2 ClampToMap(FixVec2 p) => new(
+        Fix64.Clamp(p.X, Fix64.Zero, Fix64.FromInt(Map.Width) - Fix64.One),
+        Fix64.Clamp(p.Y, Fix64.Zero, Fix64.FromInt(Map.Height) - Fix64.One));
+
+    public int TeamOf(int unitId) => Players[Units.Owner[unitId]].Team;
+
+    public bool AreEnemies(int playerA, int playerB) => Players[playerA].Team != Players[playerB].Team;
+
+    /// <summary>Whether a team can currently see a unit (or the unit is on its radar, when <paramref name="radarCounts"/>).</summary>
+    public bool CanSee(int team, int unitId, bool radarCounts = false)
+    {
+        if (Players[Units.Owner[unitId]].Team == team) return true;
+        FixVec2 p = Units.Position[unitId];
+        int tx = MapData.TileOf(p.X), ty = MapData.TileOf(p.Y);
+        if (Vision.IsVisible(team, tx, ty)) return true;
+        return radarCounts && Vision.IsOnRadar(team, tx, ty);
+    }
+
+    // ---- Completion, death and victory -------------------------------------------------------
+
+    /// <summary>Called once when a unit finishes construction (or spawns complete).</summary>
+    internal void OnCompleted(int id)
+    {
+        UnitDef def = Catalog[Units.TypeIndex[id]];
+        Units.Complete[id] = true;
+        Units.BuildProgress[id] = def.BuildTime;
+        if (Units.Health[id] > def.MaxHealth) Units.Health[id] = def.MaxHealth;
+        Units.Anchor[id] = Units.Position[id];
+
+        if (def.ExtractorMultiplier > Fix64.Zero)
+            Units.ExtractorYield[id] = MetalUnder(id) * def.ExtractorMultiplier / TicksPerSecond;
+    }
+
+    /// <summary>Total yield of metal spots inside a structure's footprint (per second).</summary>
+    internal Fix64 MetalUnder(int id)
+    {
+        UnitDef def = Catalog[Units.TypeIndex[id]];
+        return MetalUnderFootprint(Units.TileX[id], Units.TileY[id], def.Footprint);
+    }
+
+    public Fix64 MetalUnderFootprint(int tx, int ty, int footprint)
+    {
+        Fix64 total = Fix64.Zero;
+        foreach (MetalSpot s in Map.MetalSpots)
+        {
+            int sx = MapData.TileOf(s.Position.X), sy = MapData.TileOf(s.Position.Y);
+            if (sx >= tx && sx < tx + footprint && sy >= ty && sy < ty + footprint) total += s.Yield;
+        }
+        return total;
+    }
+
+    private readonly List<(FixVec2 Pos, Fix64 Damage, Fix64 Radius, int Source)> _explosions = new();
+
+    /// <summary>Removes every unit at zero health, leaves wrecks, sets off death explosions (which can chain).</summary>
+    internal void ResolveDeaths()
+    {
+        for (int round = 0; round < 4; round++)
+        {
+            bool any = false;
+            for (int id = 0; id < Units.Count; id++)
+            {
+                if (Units.Alive[id] && Units.Health[id] <= Fix64.Zero)
+                {
+                    Kill(id, leaveWreck: true, explode: true);
+                    any = true;
+                }
+            }
+            if (_explosions.Count > 0)
+            {
+                var blasts = _explosions.ToList();
+                _explosions.Clear();
+                foreach (var (pos, damage, radius, source) in blasts)
+                    CombatSystem.Splash(this, pos, damage, radius, source, hitsAir: false);
+                any = true;
+            }
+            if (!any) break;
+        }
+    }
+
+    /// <summary>Removes a unit right away.</summary>
+    public void Kill(int id, bool leaveWreck = true, bool explode = true)
     {
         if (!Units.IsValid(id)) return;
         UnitDef def = Catalog[Units.TypeIndex[id]];
+        int owner = Units.Owner[id];
+        FixVec2 pos = Units.Position[id];
+        bool wasComplete = Units.Complete[id];
+
         Units.Alive[id] = false;
         Units.Health[id] = Fix64.Zero;
-        Units.ClearOrder(id);
+        Units.ClearOrders(id);
+        Players[owner].UnitsLost++;
 
-        Fix64 metal = def.MetalCost * def.WreckFraction;
-        if (metal > Fix64.Zero)
+        if (def.IsStructure)
+            Terrain.ClearOccupant(id, Units.TileX[id], Units.TileY[id], def.Footprint);
+
+        // A factory takes its half-built unit with it.
+        int product = Units.FactoryCurrent[id];
+        if (product >= 0 && Units.IsValid(product) && !Units.Complete[product])
+            Kill(product, leaveWreck: false, explode: false);
+        Units.FactoryCurrent[id] = -1;
+
+        Events.Add(new GameEvent(GameEventType.UnitDestroyed, id, owner, Units.TypeIndex[id], 0, pos));
+
+        if (leaveWreck && wasComplete && def.WreckFraction > Fix64.Zero && !def.IsAir)
         {
-            Wrecks.Add(new Wreck
+            Fix64 metal = def.MetalCost * def.WreckFraction;
+            if (metal > Fix64.Zero)
             {
-                Id = Wrecks.Count,
-                Position = Units.Position[id],
-                SourceTypeIndex = Units.TypeIndex[id],
-                Metal = metal,
-            });
+                Features.Add(new Feature
+                {
+                    Id = Features.Count,
+                    Kind = FeatureKind.Wreck,
+                    Position = pos,
+                    SourceTypeIndex = Units.TypeIndex[id],
+                    Metal = metal,
+                    Radius = def.IsStructure ? Fix64.FromInt(def.Footprint * 3) : def.Radius + Fix64.One,
+                });
+            }
         }
 
-        if (def.IsCommander)
-            Players[Units.Owner[id]].Defeated = true;
+        if (explode && wasComplete && def.DeathExplosionDamage > Fix64.Zero)
+        {
+            _explosions.Add((pos, def.DeathExplosionDamage, def.DeathExplosionRadius, id));
+            Events.Add(new GameEvent(GameEventType.Explosion, id, owner, def.DeathExplosionRadius.ToIntFloor(), 0, pos));
+        }
+
+        if (def.IsCommander && Options.WinCondition == WinCondition.Commander && wasComplete)
+            DefeatPlayer(owner);
     }
 
-    /// <summary>The single team with players still standing, or null while the match is undecided.</summary>
-    public int? WinningTeam()
+    internal void DefeatPlayer(int player)
     {
+        PlayerState p = Players[player];
+        if (p.Defeated) return;
+        p.Defeated = true;
+        p.DefeatedTick = Tick;
+        Events.Add(new GameEvent(GameEventType.PlayerDefeated, Other: player));
+        for (int id = 0; id < Units.Count; id++)
+            if (Units.Alive[id] && Units.Owner[id] == player)
+                Kill(id, leaveWreck: true, explode: false);
+    }
+
+    private void CheckVictory()
+    {
+        if (Options.WinCondition == WinCondition.Annihilation && Tick % TicksPerSecond == 0)
+        {
+            var hasUnits = new bool[Players.Length];
+            for (int id = 0; id < Units.Count; id++)
+                if (Units.Alive[id]) hasUnits[Units.Owner[id]] = true;
+            for (int p = 0; p < Players.Length; p++)
+                if (!hasUnits[p] && !Players[p].Defeated) DefeatPlayer(p);
+        }
+
+        if (Mission is not null) return; // missions decide their own ending
         int? team = null;
+        bool several = false;
         foreach (PlayerState p in Players)
         {
             if (p.Defeated) continue;
             if (team is null) team = p.Team;
-            else if (team != p.Team) return null;
+            else if (team != p.Team) several = true;
         }
-        return team;
+        if (several) return;
+        if (Players.Length == 1 && team is not null) return; // sandbox: one player never "wins"
+        EndMatch(team);
     }
 
-    public FixVec2 ClampToMap(FixVec2 p) => new(
-        Fix64.Clamp(p.X, Fix64.Zero, Fix64.FromInt(MapWidth)),
-        Fix64.Clamp(p.Y, Fix64.Zero, Fix64.FromInt(MapHeight)));
-
-    private void Apply(Command c)
+    /// <summary>Ends the match. Null means nobody won (everyone was knocked out on the same tick).</summary>
+    public void EndMatch(int? winningTeam)
     {
-        if (c.Player < 0 || c.Player >= Players.Length || Players[c.Player].Defeated) return;
-        if (!Units.IsValid(c.UnitId) || Units.Owner[c.UnitId] != c.Player) return;
-
-        int id = c.UnitId;
-        UnitDef def = Catalog[Units.TypeIndex[id]];
-
-        switch (c.Type)
-        {
-            case CommandType.Stop:
-                Units.ClearOrder(id);
-                break;
-
-            case CommandType.Move:
-                if (!def.CanMove) return;
-                Units.Order[id] = OrderType.Move;
-                Units.OrderPosition[id] = ClampToMap(c.Position);
-                Units.OrderTarget[id] = -1;
-                break;
-
-            case CommandType.Attack:
-                if (!def.IsArmed || !Units.IsValid(c.TargetId)) return;
-                if (Players[Units.Owner[c.TargetId]].Team == Players[c.Player].Team) return;
-                Units.Order[id] = OrderType.Attack;
-                Units.OrderTarget[id] = c.TargetId;
-                break;
-
-            case CommandType.Build:
-            {
-                if (!def.CanBuild || c.TypeIndex < 0 || c.TypeIndex >= Catalog.Count) return;
-                if (Catalog[c.TypeIndex].Faction != def.Faction) return;
-                var job = new BuildJob
-                {
-                    Id = Jobs.Count,
-                    Owner = c.Player,
-                    TypeIndex = c.TypeIndex,
-                    Position = ClampToMap(c.Position),
-                };
-                Jobs.Add(job);
-                Units.Order[id] = OrderType.Build;
-                Units.OrderTarget[id] = job.Id;
-                Units.OrderPosition[id] = job.Position;
-                break;
-            }
-
-            case CommandType.Reclaim:
-                if (!def.CanBuild || c.TargetId < 0 || c.TargetId >= Wrecks.Count || Wrecks[c.TargetId].Gone) return;
-                Units.Order[id] = OrderType.Reclaim;
-                Units.OrderTarget[id] = c.TargetId;
-                Units.OrderPosition[id] = Wrecks[c.TargetId].Position;
-                break;
-        }
+        if (IsOver) return;
+        if (winningTeam is null) _drawn = true;
+        WinningTeam = winningTeam;
+        Events.Add(new GameEvent(GameEventType.GameOver, Value: winningTeam ?? -1));
     }
 
     /// <summary>
@@ -191,6 +413,7 @@ public sealed class World
         var h = new StateHasher();
         h.Add(Tick);
         h.Add(Rng.State);
+        h.Add(Wind);
 
         foreach (PlayerState p in Players)
         {
@@ -201,6 +424,7 @@ public sealed class World
             h.Add(p.EnergyStorage);
             h.Add(p.BuildRatio);
             h.Add(p.Defeated);
+            h.Add(p.ConvertersOn);
         }
 
         h.Add(Units.Count);
@@ -212,30 +436,45 @@ public sealed class World
             h.Add(Units.Owner[id]);
             h.Add(Units.Position[id]);
             h.Add(Units.Health[id]);
-            h.Add(Units.ReloadLeft[id]);
-            h.Add(Units.WeaponTarget[id]);
-            h.Add((int)Units.Order[id]);
-            h.Add(Units.OrderPosition[id]);
-            h.Add(Units.OrderTarget[id]);
+            h.Add(Units.BuildProgress[id]);
+            h.Add(Units.Reload0[id]);
+            h.Add(Units.Reload1[id]);
+            h.Add(Units.Target0[id]);
+            h.Add(Units.Target1[id]);
+            h.Add((int)Units.Fire[id]);
+            h.Add(Units.Orders[id].Count);
+            foreach (Order o in Units.Orders[id])
+            {
+                h.Add((int)o.Type);
+                h.Add(o.Position);
+                h.Add(o.Target);
+                h.Add(o.TypeIndex);
+            }
+            h.Add(Units.FactoryQueue[id].Count);
+            foreach (int q in Units.FactoryQueue[id]) h.Add(q);
+            h.Add(Units.FactoryCurrent[id]);
         }
 
-        h.Add(Wrecks.Count);
-        foreach (Wreck w in Wrecks)
+        h.Add(Features.Count);
+        foreach (Feature f in Features)
         {
-            h.Add(w.Position);
-            h.Add(w.Metal);
+            h.Add(f.Position);
+            h.Add(f.Metal);
+            h.Add(f.Energy);
         }
 
-        h.Add(Jobs.Count);
-        foreach (BuildJob j in Jobs)
+        h.Add(Projectiles.Count);
+        foreach (Projectile p in Projectiles)
         {
-            h.Add(j.TypeIndex);
-            h.Add(j.Owner);
-            h.Add(j.Position);
-            h.Add(j.Progress);
-            h.Add(j.Done);
+            h.Add(p.Position);
+            h.Add(p.Aim);
+            h.Add(p.TargetUnit);
         }
 
+        h.Add(PathQueue.Count);
+        foreach (int q in PathQueue) h.Add(q);
+        foreach (AiController ai in _ais) h.Add(ai.StateHash());
+        if (Mission is not null) h.Add(Mission.StateHash());
         return h.Value;
     }
 }

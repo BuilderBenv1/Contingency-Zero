@@ -1,0 +1,27 @@
+{
+  "id": "crucible_bomber",
+  "name": "Anvilfall",
+  "faction": "crucible",
+  "role": "bomber",
+  "tier": 1,
+  "metalCost": 160,
+  "energyCost": 2640,
+  "buildTime": 2400,
+  "health": 768,
+  "moveClass": "air",
+  "speed": 9.2,
+  "radius": 2.6,
+  "sightRange": 28.0,
+  "weapons": [
+    {
+      "kind": "bomb",
+      "range": 6.79,
+      "damage": 170,
+      "reloadSeconds": 3.0,
+      "accuracy": 0.9,
+      "splash": 6,
+      "projectileSpeed": 20
+    }
+  ],
+  "description": "Flies over its target and drops a heavy payload."
+}

@@ -1,0 +1,23 @@
+{
+  "id": "crucible_vehicle_plant",
+  "name": "Tread Works",
+  "faction": "crucible",
+  "role": "factory_vehicle",
+  "tier": 1,
+  "metalCost": 600,
+  "energyCost": 660,
+  "buildTime": 6000,
+  "health": 3720,
+  "footprint": 3,
+  "buildPower": 100,
+  "sightRange": 22.0,
+  "buildOptions": [
+    "crucible_builder_vehicle",
+    "crucible_anvil",
+    "crucible_flak_vehicle",
+    "crucible_artillery_vehicle",
+    "crucible_salvager"
+  ],
+  "description": "Builds tanks and vehicles.",
+  "reclaimMultiplier": 1.4
+}

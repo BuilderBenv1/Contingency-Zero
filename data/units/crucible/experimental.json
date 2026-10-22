@@ -1,0 +1,39 @@
+{
+  "id": "crucible_experimental",
+  "name": "Mantle Crawler",
+  "faction": "crucible",
+  "role": "experimental",
+  "tier": 3,
+  "metalCost": 7500,
+  "energyCost": 60500,
+  "buildTime": 90000,
+  "health": 38400,
+  "moveClass": "vehicle",
+  "speed": 1.75,
+  "radius": 8,
+  "sightRange": 44.0,
+  "weapons": [
+    {
+      "kind": "artillery",
+      "range": 62.08,
+      "minRange": 10,
+      "damage": 520,
+      "reloadSeconds": 3.4,
+      "accuracy": 0.8,
+      "splash": 9,
+      "projectileSpeed": 50
+    },
+    {
+      "kind": "laser",
+      "range": 14.55,
+      "damage": 90,
+      "reloadSeconds": 0.5,
+      "accuracy": 0.9
+    }
+  ],
+  "deathExplosionDamage": 4000,
+  "deathExplosionRadius": 36,
+  "wreckFraction": 0.5,
+  "description": "Mantle Crawler: a tracked smelter that eats wrecks to repair itself and fires molten slag.",
+  "selfReclaimRange": 26
+}

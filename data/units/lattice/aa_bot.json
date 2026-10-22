@@ -1,0 +1,28 @@
+{
+  "id": "lattice_aa_bot",
+  "name": "Halo",
+  "faction": "lattice",
+  "role": "aa_bot",
+  "tier": 1,
+  "metalCost": 80,
+  "energyCost": 520,
+  "buildTime": 950,
+  "health": 247,
+  "moveClass": "bot",
+  "speed": 5.4,
+  "radius": 1.4,
+  "sightRange": 29.68,
+  "weapons": [
+    {
+      "kind": "missile",
+      "range": 29.12,
+      "damage": 45,
+      "reloadSeconds": 1.3,
+      "accuracy": 0.95,
+      "projectileSpeed": 90,
+      "targetsAir": true,
+      "targetsGround": false
+    }
+  ],
+  "description": "Anti-air missiles. Can't hit the ground."
+}

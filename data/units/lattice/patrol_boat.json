@@ -1,0 +1,37 @@
+{
+  "id": "lattice_patrol_boat",
+  "name": "Skiff",
+  "faction": "lattice",
+  "role": "patrol_boat",
+  "tier": 1,
+  "metalCost": 110,
+  "energyCost": 600,
+  "buildTime": 1300,
+  "health": 589,
+  "moveClass": "ship",
+  "speed": 8.1,
+  "radius": 2.6,
+  "sightRange": 31.8,
+  "weapons": [
+    {
+      "kind": "cannon",
+      "range": 20.8,
+      "damage": 42,
+      "reloadSeconds": 1.0,
+      "accuracy": 0.85,
+      "splash": 1.5,
+      "projectileSpeed": 70
+    },
+    {
+      "kind": "missile",
+      "range": 22.88,
+      "damage": 30,
+      "reloadSeconds": 1.6,
+      "accuracy": 0.95,
+      "projectileSpeed": 90,
+      "targetsAir": true,
+      "targetsGround": false
+    }
+  ],
+  "description": "Fast boat with a light gun and anti-air."
+}

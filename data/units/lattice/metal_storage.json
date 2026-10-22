@@ -1,0 +1,15 @@
+{
+  "id": "lattice_metal_storage",
+  "name": "Metal Storage",
+  "faction": "lattice",
+  "role": "metal_storage",
+  "tier": 1,
+  "metalCost": 200,
+  "energyCost": 330,
+  "buildTime": 2000,
+  "health": 1520,
+  "footprint": 2,
+  "metalStorage": 3000,
+  "sightRange": 12.72,
+  "description": "Holds 3,000 more metal."
+}

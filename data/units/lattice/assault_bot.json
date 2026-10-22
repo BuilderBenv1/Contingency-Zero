@@ -1,0 +1,27 @@
+{
+  "id": "lattice_assault_bot",
+  "name": "Needle",
+  "faction": "lattice",
+  "role": "assault_bot",
+  "tier": 1,
+  "metalCost": 60,
+  "energyCost": 390,
+  "buildTime": 800,
+  "health": 256,
+  "moveClass": "bot",
+  "speed": 6.26,
+  "radius": 1.4,
+  "sightRange": 27.56,
+  "weapons": [
+    {
+      "kind": "laser",
+      "range": 14.56,
+      "damage": 17,
+      "reloadSeconds": 0.6,
+      "accuracy": 0.85,
+      "targetsAir": false,
+      "targetsGround": true
+    }
+  ],
+  "description": "Cheap laser infantry. Good in numbers."
+}
