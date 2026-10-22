@@ -7,6 +7,8 @@ name: Release
 on:
   push:
     tags: ['v*']
+    # Pushing to this branch runs the export without publishing (a dry run).
+    branches: [release-check]
   workflow_dispatch:
 
 permissions:
