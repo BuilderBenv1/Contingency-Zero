@@ -128,11 +128,13 @@ public sealed partial class World
             }
         }
 
+        // Mission units first, so a computer player without a Commander finds its home among them.
+        Mission?.Attach(this);
+
         for (int i = 0; i < players.Count; i++)
             if (players[i].Ai != AiDifficulty.None)
                 _ais.Add(new AiController(this, i, players[i].Ai, seed));
 
-        Mission?.Attach(this);
         Vision.Update(this);
     }
 

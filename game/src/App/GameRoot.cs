@@ -91,7 +91,7 @@ public partial class GameRoot : Node
         if (_backdropLoading) return;
         EndMatch();
         var maps = GameData.Maps().Where(m => m.BuiltIn).ToList();
-        MapData map = (maps.FirstOrDefault(m => m.Key == "crater_basin") ?? maps[0]).Load();
+        MapData map = (maps.FirstOrDefault(m => m.Key == "frostline") ?? maps[0]).Load();
         var players = new List<PlayerSetup>();
         for (int i = 0; i < Math.Min(4, map.StartPositions.Count); i++)
             players.Add(new PlayerSetup($"AI {i + 1}", i, i % 2 == 0 ? "lattice" : "crucible", i, AiDifficulty.Hard));
@@ -177,6 +177,9 @@ public partial class GameRoot : Node
 
     /// <summary>Set by the map editor's test play: what to open when that match is left, instead of the main menu.</summary>
     private Action? _afterMatch;
+
+    /// <summary>True while a map-editor test play is running (leaving it goes back to the editor).</summary>
+    public bool ReturnsToEditor => _afterMatch is not null;
 
     /// <summary>A skirmish started from the map editor. Leaving the match calls <paramref name="afterMatch"/> (back to the editor).</summary>
     public void StartTestPlay(MapData map, IReadOnlyList<PlayerSetup> players, MatchOptions options, Action afterMatch)

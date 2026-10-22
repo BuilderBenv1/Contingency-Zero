@@ -34,10 +34,60 @@ public partial class TerrainView : Node3D
         "arctic" => new TerrainPalette(new Color(0.55f, 0.6f, 0.66f), new Color(0.62f, 0.67f, 0.73f), new Color(0.7f, 0.74f, 0.8f),
             new Color(0.8f, 0.83f, 0.87f), new Color(0.48f, 0.52f, 0.58f), new Color(0.35f, 0.55f, 0.7f, 0.8f), new Color(0.12f, 0.25f, 0.4f), false,
             new Color(0.6f, 0.68f, 0.76f)),
-        _ => new TerrainPalette(new Color(0.76f, 0.7f, 0.5f), new Color(0.36f, 0.45f, 0.28f), new Color(0.47f, 0.5f, 0.35f),
-            new Color(0.6f, 0.6f, 0.5f), new Color(0.45f, 0.43f, 0.4f), new Color(0.15f, 0.4f, 0.55f, 0.78f), new Color(0.05f, 0.18f, 0.3f), false,
+        _ => new TerrainPalette(new Color(0.72f, 0.67f, 0.5f), new Color(0.36f, 0.45f, 0.28f), new Color(0.45f, 0.5f, 0.34f),
+            new Color(0.55f, 0.56f, 0.47f), new Color(0.45f, 0.43f, 0.4f), new Color(0.15f, 0.4f, 0.55f, 0.78f), new Color(0.05f, 0.18f, 0.3f), false,
             new Color(0.45f, 0.55f, 0.62f)),
     };
+
+    /// <summary>How heights map onto the palette's bands for one map.</summary>
+    public readonly record struct ColourBands(float Baseline, float Range, float Water, bool HasWater)
+    {
+        public static ColourBands For(float minHeight, float maxHeight, float water)
+        {
+            bool hasWater = minHeight < water;
+            // Bands run from the shoreline when there is water, otherwise from the lowest ground.
+            float baseline = hasWater ? water : minHeight;
+            // Gentle maps shouldn't stretch the whole palette over a few metres of relief.
+            return new ColourBands(baseline, Mathf.Max(30, maxHeight - baseline), water, hasWater);
+        }
+    }
+
+    /// <summary>
+    /// The ground colour at a vertex: a narrow beach above the waterline, then low/high/peak bands
+    /// by height, rock on steep slopes, darker underwater, plus a little per-vertex noise.
+    /// Shared with the map editor so a map looks the same in both.
+    /// </summary>
+    public static Color GroundColour(TerrainPalette pal, ColourBands b, float h, Vector3 normal, int x, int y)
+    {
+        float t = Mathf.Clamp((h - b.Baseline) / b.Range, 0, 1);
+        float above = h - b.Water;
+        Color c = b.HasWater && above < 2.5f ? pal.Shore.Lerp(pal.Low, Mathf.Clamp(above / 2.5f, 0, 1))
+            : t < 0.3f ? pal.Low
+            : t < 0.8f ? pal.Low.Lerp(pal.High, (t - 0.3f) / 0.5f)
+            : pal.High.Lerp(pal.Peak, (t - 0.8f) / 0.2f);
+        float steep = Mathf.Clamp((1 - normal.Y) * 6f, 0, 1);
+        c = c.Lerp(pal.Rock, steep);
+        if (h < b.Water) c = c.Darkened(0.35f);
+        float noise = Hash(x, y) * 0.12f - 0.06f + Hash(x / 3, y / 3) * 0.08f - 0.04f;
+        return new Color(c.R + noise, c.G + noise, c.B + noise * 0.7f);
+    }
+
+    /// <summary>
+    /// The battlefield's light for a theme, shared by matches and the map editor. The
+    /// Compatibility renderer lights in display space, so a linear tonemap keeps colours as authored.
+    /// </summary>
+    public static void ConfigureLighting(Godot.Environment env, DirectionalLight3D sun, string theme)
+    {
+        TerrainPalette palette = PaletteFor(theme);
+        env.BackgroundMode = Godot.Environment.BGMode.Color;
+        env.BackgroundColor = palette.Sky.Darkened(0.6f);
+        env.AmbientLightSource = Godot.Environment.AmbientSource.Color;
+        env.AmbientLightColor = palette.Sky.Lerp(Colors.White, 0.5f);
+        env.AmbientLightEnergy = 0.45f;
+        env.TonemapMode = Godot.Environment.ToneMapper.Linear;
+        sun.LightEnergy = theme == "lava" ? 0.75f : 0.85f;
+        sun.LightColor = theme == "lava" ? new Color(1f, 0.82f, 0.7f) : new Color(1f, 0.97f, 0.92f);
+    }
 
     public void Build(MapData map)
     {
@@ -134,11 +184,7 @@ public partial class TerrainView : Node3D
 
         float min = float.MaxValue, max = float.MinValue;
         foreach (float h in _heights) { min = Mathf.Min(min, h); max = Mathf.Max(max, h); }
-        bool hasWater = min < water;
-        // Colour bands run from the shoreline when there is water, otherwise from the lowest ground.
-        float baseline = hasWater ? water : min;
-        // Gentle maps shouldn't stretch the whole palette over a few metres of relief.
-        float range = Mathf.Max(20, max - baseline);
+        var bands = ColourBands.For(min, max, water);
 
         for (int y = 0; y < vy; y++)
         for (int x = 0; x < vx; x++)
@@ -153,16 +199,7 @@ public partial class TerrainView : Node3D
             var n = new Vector3(hl - hr, 2 * MapData.TileSize, hd - hu).Normalized();
             normals[i] = n;
 
-            float t = Mathf.Clamp((h - baseline) / range, 0, 1);
-            Color c = hasWater && t < 0.08f ? pal.Shore.Lerp(pal.Low, t / 0.08f)
-                : !hasWater && t < 0.08f ? pal.Low
-                : t < 0.6f ? pal.Low.Lerp(pal.High, (t - 0.08f) / 0.52f)
-                : pal.High.Lerp(pal.Peak, (t - 0.6f) / 0.4f);
-            float steep = Mathf.Clamp((1 - n.Y) * 6f, 0, 1);
-            c = c.Lerp(pal.Rock, steep);
-            if (h < water) c = c.Darkened(0.35f);
-            float noise = Hash(x, y) * 0.12f - 0.06f + Hash(x / 3, y / 3) * 0.08f - 0.04f;
-            colours[i] = new Color(c.R + noise, c.G + noise, c.B + noise * 0.7f);
+            colours[i] = GroundColour(pal, bands, h, n, x, y);
         }
 
         var indices = new int[map.TilesX * map.TilesY * 6];

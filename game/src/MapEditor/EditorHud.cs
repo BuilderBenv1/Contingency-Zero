@@ -638,11 +638,32 @@ public partial class EditorMinimap : Control
         ClipContents = true;
     }
 
-    public void Refresh(MapData map)
+    /// <summary>Re-renders the terrain picture (after the ground, water or theme changed). Spots and starts are drawn live.</summary>
+    public void Refresh(MapData map, bool now = false)
     {
         int w = 200, h = Math.Max(16, 200 * map.TilesY / map.TilesX);
         if (h > 200) { h = 200; w = Math.Max(16, 200 * map.TilesX / map.TilesY); }
-        Image img = UI.Minimap.RenderBase(map, w, h);
+        // The game's renderer bakes metal spots in; give it the ground only, so placing spots needs no redraw.
+        var ground = new MapData(map.TilesX, map.TilesY) { WaterLevel = map.WaterLevel, Theme = map.Theme };
+        Array.Copy(map.Heights, ground.Heights, map.Heights.Length);
+        int generation = ++_generation;
+        if (now)
+        {
+            Apply(UI.Minimap.RenderBase(ground, w, h));
+            return;
+        }
+        // Drawing it pixel by pixel takes ~10 ms, so do that on a worker thread and swap it in after.
+        System.Threading.Tasks.Task.Run(() => UI.Minimap.RenderBase(ground, w, h)).ContinueWith(t => Callable.From(() =>
+        {
+            if (IsInstanceValid(this) && generation == _generation && t.IsCompletedSuccessfully) Apply(t.Result);
+        }).CallDeferred());
+    }
+
+    private int _generation;
+
+    private void Apply(Image img)
+    {
+        int w = img.GetWidth(), h = img.GetHeight();
         if (_texture is null || _texture.GetWidth() != w || _texture.GetHeight() != h) _texture = ImageTexture.CreateFromImage(img);
         else _texture.Update(img);
         QueueRedraw();
@@ -665,6 +686,10 @@ public partial class EditorMinimap : Control
         DrawTextureRect(_texture, r, false);
         DrawRect(r, new Color(UiTheme.PanelEdge, 0.9f), false, 1);
         Vector2 ToScreen(Vector2 world) => r.Position + new Vector2(world.X / map.Width * r.Size.X, world.Y / map.Height * r.Size.Y);
+
+        var spot = new Color(0.65f, 0.9f, 1f);
+        foreach (MetalSpot s in map.MetalSpots)
+            DrawRect(new Rect2(ToScreen(MapEdits.ToVec(s.Position)) - new Vector2(1.5f, 1.5f), new Vector2(3, 3)), spot);
 
         Font font = ThemeDB.FallbackFont;
         for (int i = 0; i < map.StartPositions.Count; i++)

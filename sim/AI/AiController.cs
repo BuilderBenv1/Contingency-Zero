@@ -47,6 +47,8 @@ public sealed class AiController
     private int _waveStageTick = -1;
 
     public int Player => _player;
+    /// <summary>Where this player's base is (its Commander's start, or its first unit).</summary>
+    public FixVec2 Home => _home;
     public AiDifficulty Difficulty => _difficulty;
     public string LastPlan { get; private set; } = "";
 

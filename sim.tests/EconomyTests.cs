@@ -180,4 +180,18 @@ public class EconomyTests
         Assert.InRange(world.Players[0].Metal, Fix64.Parse("0.98"), Fix64.Parse("1.01"));
         Assert.True(world.Players[0].Energy < Fix64.FromInt(900));
     }
+
+    [Fact]
+    public void Metal_makers_leave_half_the_energy_storage_for_building()
+    {
+        World world = Flat(0, 900);
+        world.SpawnUnit("lattice_metal_maker", 0, At(60, 60));
+        for (int i = 0; i < 60 * World.TicksPerSecond; i++) world.Step();
+        PlayerState p = world.Players[0];
+        // Conversion stops at the reserve line instead of draining storage.
+        Assert.InRange(p.Energy, p.EnergyStorage / 2 - Fix64.One, p.EnergyStorage / 2 + Fix64.One);
+        Fix64 made = p.Metal;
+        for (int i = 0; i < 10 * World.TicksPerSecond; i++) world.Step();
+        Assert.True(p.Metal - made < Fix64.Parse("0.01"), "makers kept converting below the reserve");
+    }
 }

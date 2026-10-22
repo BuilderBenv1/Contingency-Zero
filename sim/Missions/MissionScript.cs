@@ -257,6 +257,8 @@ public sealed class MissionScript
                 foreach (Objective o in Objectives)
                 {
                     if (o.Id != id) continue;
+                    // A finished objective stays finished (revealing it again mustn't reopen it).
+                    if (o.State is ObjectiveState.Complete or ObjectiveState.Failed && state is "active" or "hidden") continue;
                     o.State = state switch
                     {
                         "complete" => ObjectiveState.Complete,

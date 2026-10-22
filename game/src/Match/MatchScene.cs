@@ -56,27 +56,16 @@ public partial class MatchScene : Node3D
         World world = session.World;
         _viewerTeam = session.LocalPlayer >= 0 && kind != MatchKind.Replay ? world.Players[session.LocalPlayer].Team : -1;
 
-        var palette = TerrainView.PaletteFor(world.Map.Theme);
-        var env = new Godot.Environment
-        {
-            BackgroundMode = Godot.Environment.BGMode.Color,
-            BackgroundColor = palette.Sky.Darkened(0.6f),
-            AmbientLightSource = Godot.Environment.AmbientSource.Color,
-            AmbientLightColor = palette.Sky.Lerp(Colors.White, 0.5f),
-            AmbientLightEnergy = 0.45f,
-            // The Compatibility renderer works in display space; a linear tonemap keeps the
-            // authored colours (filmic washes them out).
-            TonemapMode = Godot.Environment.ToneMapper.Linear,
-        };
-        AddChild(new WorldEnvironment { Environment = env });
-        AddChild(new DirectionalLight3D
+        var env = new Godot.Environment();
+        var sun = new DirectionalLight3D
         {
             RotationDegrees = new Vector3(-52, -38, 0),
-            LightEnergy = world.Map.Theme == "lava" ? 0.75f : 0.85f,
-            LightColor = world.Map.Theme == "lava" ? new Color(1f, 0.82f, 0.7f) : new Color(1f, 0.97f, 0.92f),
             ShadowEnabled = true,
             DirectionalShadowMaxDistance = 600,
-        });
+        };
+        TerrainView.ConfigureLighting(env, sun, world.Map.Theme);
+        AddChild(new WorldEnvironment { Environment = env });
+        AddChild(sun);
 
         Terrain = new TerrainView { Name = "Terrain" };
         AddChild(Terrain);
@@ -173,6 +162,7 @@ public partial class MatchScene : Node3D
 
     private Vector3 _shotTarget;
     private float _shotTimer;
+    private bool _firstShot = true;
 
     /// <summary>
     /// The menu backdrop's "camera operator": every so often picks somewhere interesting (a fight,
@@ -197,12 +187,18 @@ public partial class MatchScene : Node3D
             {
                 int pick = candidates[(int)(GD.Randi() % (uint)candidates.Count)];
                 _shotTarget = new Vector3(u.Position[pick].X.Raw / 65536f, 0, u.Position[pick].Y.Raw / 65536f);
-                if (Rig.Focus == Vector3.Zero || Rig.Focus.DistanceTo(_shotTarget) > 400) Rig.Focus = _shotTarget;
+                if (_firstShot || Rig.Focus.DistanceTo(_shotTarget) > 400) Rig.Focus = _shotTarget;
+                _firstShot = false;
             }
             else _shotTarget = Rig.Focus;
         }
         Vector3 drift = new Vector3(Mathf.Sin(Time.GetTicksMsec() / 9000f), 0, Mathf.Cos(Time.GetTicksMsec() / 11000f)) * 6f;
-        Rig.Focus = Rig.Focus.Lerp(_shotTarget + drift, 1 - Mathf.Exp(-0.35f * delta));
+        // Keep well inside the map so the frame isn't half empty border.
+        float margin = Mathf.Min(230f, Session.World.Map.Width / 3f);
+        Vector3 goal = _shotTarget + drift;
+        goal = new Vector3(Mathf.Clamp(goal.X, margin, Session.World.Map.Width - margin), 0,
+            Mathf.Clamp(goal.Z, margin, Session.World.Map.Height - margin));
+        Rig.Focus = Rig.Focus.Lerp(goal, 1 - Mathf.Exp(-0.35f * delta));
     }
 
     public override void _UnhandledInput(InputEvent e)

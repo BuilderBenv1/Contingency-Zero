@@ -48,8 +48,8 @@ Modes
 -----
 Skirmish     You against up to 7 computer players (Easy, Normal, Hard, Brutal).
 Campaign     Two short campaigns, one per faction.
-Multiplayer  Host or join over a LAN or by IP address (port 7777). Internet
-             play needs that port forwarded on the host's router.
+Multiplayer  Host or join over a LAN or by IP address (UDP port 7777).
+             Internet play needs that port forwarded on the host's router.
 Map Editor   Make your own maps; they appear in the Skirmish map list.
 Replays      Every match can be saved and watched again.
 

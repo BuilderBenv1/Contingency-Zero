@@ -292,8 +292,20 @@ public partial class EditorDevScript : Node
         Input.ParseInputEvent(new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = false, Position = screen, GlobalPosition = screen });
         await Frames(2);
         Check(map.Fingerprint() != beforeFp && wasUndoable && ed.Document.CanUndo, $"a real mouse drag at {screen} raised the ground");
-        ed.Undo();
-        Check(map.Fingerprint() == beforeFp, "and one Ctrl+Z took the whole stroke back");
+        await Key(Godot.Key.Z, ctrl: true);
+        Check(map.Fingerprint() == beforeFp, "and one real Ctrl+Z key press took the whole stroke back");
+        await Key(Godot.Key.Key4);
+        Check(ed.Tool == EditorTool.Flatten, "pressing 4 picks Flatten");
+        await Key(Godot.Key.Bracketright);
+        Check(ed.BrushRadius == 6, "] makes the brush bigger");
+    }
+
+    private async Task Key(Key key, bool ctrl = false)
+    {
+        Input.ParseInputEvent(new InputEventKey { Keycode = key, PhysicalKeycode = key, Pressed = true, CtrlPressed = ctrl });
+        await Frames(1);
+        Input.ParseInputEvent(new InputEventKey { Keycode = key, PhysicalKeycode = key, Pressed = false, CtrlPressed = ctrl });
+        await Frames(1);
     }
 
     // ---- perf ---------------------------------------------------------------------------------
@@ -358,7 +370,18 @@ public partial class EditorDevScript : Node
             Log($"{n}x{n} process memory {OS.GetStaticMemoryUsage() / 1048576} MB static, {System.GC.GetTotalMemory(false) / 1048576} MB managed");
             double v0 = ThreadCpuMs();
             List<MapCheck> checks = MapValidator.Run(map);
-            Log($"{n}x{n} validation (runs after each edit, not while dragging): cpu {ThreadCpuMs() - v0:0.0} ms");
+            Log($"{n}x{n} validation (worker thread, after each edit): cpu {ThreadCpuMs() - v0:0.0} ms");
+            double m0 = ThreadCpuMs();
+            ed.Hud.Minimap.Refresh(map, now: true);
+            Log($"{n}x{n} overview picture render (worker thread, after ground edits): cpu {ThreadCpuMs() - m0:0.0} ms");
+            var clicks = new List<double>();
+            for (int k = 0; k < 4; k++)
+            {
+                double k0 = ThreadCpuMs();
+                ed.DevClick(EditorTool.Metal, true, new Vector2(map.Width * (0.3f + k * 0.05f), map.Height * 0.6f));
+                clicks.Add(ThreadCpuMs() - k0);
+            }
+            Log($"{n}x{n} placing a metal spot (four-way): cpu {Stats(clicks)}");
             await Shot($"perf_{n}");
         }
     }

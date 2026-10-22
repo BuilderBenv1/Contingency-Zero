@@ -56,7 +56,7 @@ public partial class PauseMenu : ModalLayer
                 match.Session.Issue(new Command(0, match.Session.LocalPlayer, CommandType.Resign, -1));
                 Close();
             }));
-        Body.AddChild(UiTheme.Button("Quit to main menu", () => { Close(); match.Quit(); }));
+        Body.AddChild(UiTheme.Button(GameRoot.Instance.ReturnsToEditor ? "Back to the editor" : "Quit to main menu", () => { Close(); match.Quit(); }));
     }
 
     public void Close()
@@ -117,7 +117,7 @@ public partial class GameOverPanel : ModalLayer
         buttons.AddChild(UiTheme.Button("Keep watching", QueueFree, 160));
         if (match.Kind is MatchKind.Skirmish or MatchKind.Mission)
             buttons.AddChild(UiTheme.Button(match.Kind == MatchKind.Mission && !won ? "Retry mission" : "Play again", () => { QueueFree(); match.Restart(); }, 160));
-        buttons.AddChild(UiTheme.Button("Main menu", () => { QueueFree(); match.Quit(); }, 160));
+        buttons.AddChild(UiTheme.Button(GameRoot.Instance.ReturnsToEditor ? "Editor" : "Main menu", () => { QueueFree(); match.Quit(); }, 160));
         Body.AddChild(buttons);
     }
 }

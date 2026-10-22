@@ -159,6 +159,7 @@ public partial class StartDialog : EditorDialog
     private Action<MapEntry> _onOpen = null!;
     private LineEdit _name = null!;
     private int _sizeIndex = 1;
+    private readonly List<Button> _sizeButtons = new();
     private SpinBox _customW = null!, _customH = null!;
     private HBoxContainer _customRow = null!;
     private Label _sizeNote = null!;
@@ -217,6 +218,7 @@ public partial class StartDialog : EditorDialog
             b.ButtonPressed = i == _sizeIndex;
             b.Pressed += () => { Audio.Sfx.Play(Audio.SfxKind.Click); _sizeIndex = index; RefreshSize(); };
             sizes.AddChild(b);
+            _sizeButtons.Add(b);
         }
         box.AddChild(sizes);
         _customRow = new HBoxContainer();
@@ -405,6 +407,7 @@ public partial class StartDialog : EditorDialog
     internal void DevPick(int sizeIndex, int row)
     {
         _sizeIndex = sizeIndex;
+        _sizeButtons[sizeIndex].ButtonPressed = true;
         RefreshSize();
         if (row >= 0 && row < _rowToMap.Count && _rowToMap[row] >= 0) { _list.Select(row); Select(row); }
     }

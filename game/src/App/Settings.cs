@@ -20,7 +20,6 @@ public sealed class Settings
     public string LastMap { get; set; } = "proving_grounds";
     public string LastFaction { get; set; } = "lattice";
     public string LastHost { get; set; } = "127.0.0.1";
-    public int UiScalePercent { get; set; } = 100;
 
     public static Settings Current { get; private set; } = Load();
 
@@ -50,7 +49,11 @@ public sealed class Settings
     /// <summary>Applies window and audio settings.</summary>
     public void Apply()
     {
-        DisplayServer.WindowSetMode(Fullscreen ? DisplayServer.WindowMode.Fullscreen : DisplayServer.WindowMode.Windowed);
+        var mode = DisplayServer.WindowGetMode();
+        if (Fullscreen && mode != DisplayServer.WindowMode.Fullscreen)
+            DisplayServer.WindowSetMode(DisplayServer.WindowMode.Fullscreen);
+        else if (!Fullscreen && mode is DisplayServer.WindowMode.Fullscreen or DisplayServer.WindowMode.ExclusiveFullscreen)
+            DisplayServer.WindowSetMode(DisplayServer.WindowMode.Maximized);
         SetBus("Master", MasterVolume);
         SetBus("SFX", SfxVolume);
         SetBus("Music", MusicVolume);

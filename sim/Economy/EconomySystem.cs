@@ -191,13 +191,17 @@ internal static class EconomySystem
             Fix64 metal = Fix64.Max(Fix64.Zero, player.Metal + metalIncome[p] - player.MetalSpent);
             Fix64 energy = Fix64.Max(Fix64.Zero, player.Energy + energyIncome[p] - player.EnergySpent);
 
-            // Metal makers run while energy stays above 10% of storage.
-            if (convertEnergy[p] > Fix64.Zero && energy > energyStorage[p] / 10 && energy >= convertEnergy[p])
+            // Metal makers only use energy above half of storage, so they soak up surplus without
+            // starving construction; near the line they run part-time.
+            Fix64 reserve = energyStorage[p] / 2;
+            if (convertEnergy[p] > Fix64.Zero && energy > reserve)
             {
-                energy -= convertEnergy[p];
-                metal += convertMetal[p];
-                player.EnergySpent += convertEnergy[p];
-                metalIncome[p] += convertMetal[p];
+                Fix64 used = Fix64.Min(energy - reserve, convertEnergy[p]);
+                Fix64 made = convertMetal[p] * (used / convertEnergy[p]);
+                energy -= used;
+                metal += made;
+                player.EnergySpent += used;
+                metalIncome[p] += made;
             }
 
             player.MetalIncome = metalIncome[p];

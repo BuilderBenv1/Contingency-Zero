@@ -31,10 +31,11 @@
     "Striders from the north.",
     "Fast raid from the west.",
     "A Lattice gunship is scouting us. Bombers will follow. Build AA.",
-    "Artillery with the northern column. It outranges your turrets.",
+    "Artillery with the northern column, heading for the base. It outranges your turrets.",
     "Bombers heading for the Furnace!",
-    "Big push from the west.",
-    "Gunships with a ground column.",
+    "Big push from the west, straight for the Furnace.",
+    "Gunships over the base.",
+    "Ground column from the north.",
     "Two fronts at once.",
     "Everything they have. Hold!",
     "Six minutes left.",
@@ -58,7 +59,7 @@
     },
     {
       "id": "aa",
-      "text": "Build 2 AA Turrets",
+      "text": "Have 5 AA Turrets standing at once",
       "optional": true
     }
   ],
@@ -104,6 +105,13 @@
       "owner": 0,
       "x": 700,
       "y": 652
+    },
+    {
+      "tag": "",
+      "type": "crucible_aa_turret",
+      "owner": 0,
+      "x": 652,
+      "y": 700
     },
     {
       "tag": "",
@@ -257,7 +265,7 @@
       "when": {
         "type": "count",
         "player": 0,
-        "atLeast": 2,
+        "atLeast": 5,
         "unit": "crucible_aa_turret"
       },
       "actions": [
@@ -413,8 +421,8 @@
         {
           "type": "attack",
           "tag": "w3",
-          "x": 672,
-          "y": 672
+          "x": 620,
+          "y": 620
         }
       ]
     },
@@ -498,19 +506,12 @@
       "actions": [
         {
           "type": "message",
-          "message": 9
+          "message": 10
         },
         {
           "type": "spawn",
           "tag": "w6",
           "units": [
-            {
-              "unit": "lattice_gunship",
-              "owner": 1,
-              "x": 150,
-              "y": 150,
-              "count": 2
-            },
             {
               "unit": "lattice_strider",
               "owner": 1,
@@ -523,8 +524,31 @@
         {
           "type": "attack",
           "tag": "w6",
-          "x": 672,
-          "y": 672
+          "x": 620,
+          "y": 620
+        },
+        {
+          "type": "spawn",
+          "tag": "w6air",
+          "units": [
+            {
+              "unit": "lattice_gunship",
+              "owner": 1,
+              "x": 150,
+              "y": 150,
+              "count": 2
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "w6air",
+          "x": 620,
+          "y": 620
+        },
+        {
+          "type": "message",
+          "message": 9
         }
       ]
     },
@@ -537,7 +561,7 @@
       "actions": [
         {
           "type": "message",
-          "message": 10
+          "message": 11
         },
         {
           "type": "spawn",
@@ -569,8 +593,8 @@
         {
           "type": "attack",
           "tag": "w7",
-          "x": 672,
-          "y": 672
+          "x": 620,
+          "y": 620
         }
       ]
     },
@@ -583,40 +607,45 @@
       "actions": [
         {
           "type": "message",
-          "message": 11
+          "message": 12
         },
         {
           "type": "spawn",
           "tag": "w8",
           "units": [
             {
-              "unit": "lattice_bomber",
-              "owner": 1,
-              "x": 150,
-              "y": 150,
-              "count": 2
-            },
-            {
-              "unit": "lattice_gunship",
-              "owner": 1,
-              "x": 160,
-              "y": 150,
-              "count": 2
-            },
-            {
               "unit": "lattice_strider",
               "owner": 1,
               "x": 230,
               "y": 600,
-              "count": 4
+              "count": 5
             }
           ]
         },
         {
           "type": "attack",
           "tag": "w8",
-          "x": 672,
-          "y": 672
+          "x": 620,
+          "y": 620
+        },
+        {
+          "type": "spawn",
+          "tag": "w8air",
+          "units": [
+            {
+              "unit": "lattice_gunship",
+              "owner": 1,
+              "x": 160,
+              "y": 150,
+              "count": 2
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "w8air",
+          "x": 620,
+          "y": 620
         }
       ]
     },
@@ -629,7 +658,7 @@
       "actions": [
         {
           "type": "message",
-          "message": 12
+          "message": 13
         }
       ]
     },
@@ -642,7 +671,7 @@
       "actions": [
         {
           "type": "message",
-          "message": 13
+          "message": 14
         },
         {
           "type": "objective",
@@ -686,7 +715,7 @@
       "actions": [
         {
           "type": "message",
-          "message": 14
+          "message": 15
         },
         {
           "type": "spawn",
@@ -698,7 +727,19 @@
               "x": 600,
               "y": 230,
               "count": 5
-            },
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "w9",
+          "x": 672,
+          "y": 672
+        },
+        {
+          "type": "spawn",
+          "tag": "w9air",
+          "units": [
             {
               "unit": "lattice_gunship",
               "owner": 1,
@@ -710,9 +751,9 @@
         },
         {
           "type": "attack",
-          "tag": "w9",
-          "x": 672,
-          "y": 672
+          "tag": "w9air",
+          "x": 620,
+          "y": 620
         }
       ]
     },
@@ -764,7 +805,7 @@
       "actions": [
         {
           "type": "message",
-          "message": 15
+          "message": 16
         },
         {
           "type": "reveal"

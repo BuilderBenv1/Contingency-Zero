@@ -28,7 +28,13 @@ public partial class EditorTerrain : Node3D
 
     private TerrainView _view = null!;
     private Material? _groundMaterial;
-    private Material? _fallbackMaterial;
+    /// <summary>
+    /// True when the game view's ground mesh was found and replaced by our chunks. If TerrainView
+    /// ever changes shape so it can't be found, the editor falls back to rebuilding the whole view
+    /// a few times a second while painting.
+    /// </summary>
+    private bool _incremental = true;
+    private ulong _lastFallbackBuild;
     private readonly List<MeshInstance3D> _chunks = new();
     private int _chunksX, _chunksY;
     private int[] _fullIndices = Array.Empty<int>();
@@ -46,6 +52,9 @@ public partial class EditorTerrain : Node3D
     }
     private ChunkData?[] _data = Array.Empty<ChunkData?>();
     private readonly List<int> _pending = new();
+    /// <summary>Chunks waiting for a full recolour, a few per frame (after a stroke moves the colour bands).</summary>
+    private readonly Queue<int> _recolour = new();
+    private const int RecolourPerFrame = 12;
 
     // The colour bands are scaled from the lowest ground (or the shoreline) to the highest.
     private float _baseline, _range, _water;
@@ -56,6 +65,15 @@ public partial class EditorTerrain : Node3D
     {
         _view = new TerrainView { Name = "TerrainView" };
         AddChild(_view);
+    }
+
+    public override void _Process(double delta)
+    {
+        for (int n = 0; n < RecolourPerFrame && _recolour.Count > 0; n++)
+        {
+            int i = _recolour.Dequeue();
+            if (i < _chunksX * _chunksY) BuildChunk(i % _chunksX, i / _chunksX, partial: false);
+        }
     }
 
     /// <summary>Rebuilds everything: the game's terrain view, then every ground chunk.</summary>
@@ -75,7 +93,8 @@ public partial class EditorTerrain : Node3D
             ground.Visible = false;
             break;
         }
-        _groundMaterial ??= _fallbackMaterial ??= new StandardMaterial3D { VertexColorUseAsAlbedo = true, Roughness = 0.95f };
+        _incremental = _groundMaterial is not null;
+        if (!_incremental) GD.PushWarning("Map editor: couldn't find TerrainView's ground mesh; live preview falls back to full rebuilds.");
 
         ComputeScale(out _baseline, out _range, out _hasWater);
         _water = map.WaterLevel * HeightScale;
@@ -95,7 +114,9 @@ public partial class EditorTerrain : Node3D
             _chunks.RemoveAt(_chunks.Count - 1);
         }
         _data = new ChunkData?[needed];
-        RebuildAllChunks();
+        _recolour.Clear();
+        foreach (MeshInstance3D chunk in _chunks) chunk.Visible = _incremental;
+        if (_incremental) RebuildAllChunks();
         LastBuildMs = (Time.GetTicksUsec() - t0) / 1000.0;
     }
 
@@ -110,6 +131,15 @@ public partial class EditorTerrain : Node3D
     public void UpdateRegions(List<(int X0, int Y0, int X1, int Y1)> rects)
     {
         ulong t0 = Time.GetTicksUsec();
+        if (!_incremental)
+        {
+            if (t0 - _lastFallbackBuild > 250_000)
+            {
+                _lastFallbackBuild = t0;
+                Build(Map);
+            }
+            return;
+        }
         foreach (var (x0, y0, x1, y1) in rects)
             MarkDirty(x0 - 1, y0 - 1, x1 + 1, y1 + 1); // normals and the passability tint reach one corner further
         LastUpdateChunks = _pending.Count;
@@ -139,6 +169,7 @@ public partial class EditorTerrain : Node3D
 
     public void RebuildAllChunks()
     {
+        if (!_incremental) { Build(Map); return; }
         for (int cy = 0; cy < _chunksY; cy++)
         for (int cx = 0; cx < _chunksX; cx++)
             BuildChunk(cx, cy, partial: false);
@@ -158,9 +189,14 @@ public partial class EditorTerrain : Node3D
         }
         if (MathF.Abs(baseline - _baseline) > 0.01f || MathF.Abs(range - _range) > 0.01f)
         {
+            // The bands moved a little: recolour everything, spread over the next few frames so letting go doesn't stutter.
             _baseline = baseline;
             _range = range;
-            RebuildAllChunks();
+            if (_incremental)
+            {
+                _recolour.Clear();
+                for (int i = 0; i < _chunksX * _chunksY; i++) _recolour.Enqueue(i);
+            }
         }
         RefreshMetalDiscs();
         return false;
@@ -189,9 +225,10 @@ public partial class EditorTerrain : Node3D
         int min = int.MaxValue, max = int.MinValue;
         foreach (int h in Map.Heights) { if (h < min) min = h; if (h > max) max = h; }
         float water = Map.WaterLevel * HeightScale;
-        hasWater = min * HeightScale < water;
-        baseline = hasWater ? water : min * HeightScale;
-        range = MathF.Max(1, max * HeightScale - baseline);
+        var bands = TerrainView.ColourBands.For(min * HeightScale, max * HeightScale, water);
+        hasWater = bands.HasWater;
+        baseline = bands.Baseline;
+        range = bands.Range;
     }
 
     // ---- Heights and picking ------------------------------------------------------------------
@@ -339,20 +376,8 @@ public partial class EditorTerrain : Node3D
     }
 
     /// <summary>The game's ground colouring (mirrors TerrainView.BuildGround), in linear light.</summary>
-    private Color GroundColour(int x, int y, float h, Vector3 n)
-    {
-        TerrainPalette pal = _pal;
-        float t = Mathf.Clamp((h - _baseline) / _range, 0, 1);
-        Color c = _hasWater && t < 0.08f ? pal.Shore.Lerp(pal.Low, t / 0.08f)
-            : !_hasWater && t < 0.08f ? pal.Low
-            : t < 0.6f ? pal.Low.Lerp(pal.High, (t - 0.08f) / 0.52f)
-            : pal.High.Lerp(pal.Peak, (t - 0.6f) / 0.4f);
-        float steep = Mathf.Clamp((1 - n.Y) * 6f, 0, 1);
-        c = c.Lerp(pal.Rock, steep);
-        if (h < _water) c = c.Darkened(0.35f);
-        float noise = Hash(x, y) * 0.12f - 0.06f + Hash(x / 3, y / 3) * 0.08f - 0.04f;
-        return new Color(c.R + noise, c.G + noise, c.B + noise * 0.7f).SrgbToLinear();
-    }
+    private Color GroundColour(int x, int y, float h, Vector3 n) =>
+        TerrainView.GroundColour(_pal, new TerrainView.ColourBands(_baseline, _range, _water, _hasWater), h, n, x, y);
 
     // Colours for the passability view, by the worst tile touching the corner.
     public static readonly Color BuildColour = new(0.4f, 0.66f, 0.38f);

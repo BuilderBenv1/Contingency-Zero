@@ -139,17 +139,8 @@ public partial class MapEditorScene : Node3D
 
     private void ApplyEnvironment(string theme)
     {
-        // Same light as a match (MatchScene.Start), so the map looks here as it will in play.
-        TerrainPalette palette = TerrainView.PaletteFor(theme);
-        Godot.Environment env = _env.Environment;
-        env.BackgroundMode = Godot.Environment.BGMode.Color;
-        env.BackgroundColor = palette.Sky.Darkened(0.6f);
-        env.AmbientLightSource = Godot.Environment.AmbientSource.Color;
-        env.AmbientLightColor = palette.Sky.Lerp(Colors.White, 0.5f);
-        env.AmbientLightEnergy = 0.55f;
-        env.TonemapMode = Godot.Environment.ToneMapper.Filmic;
-        _sun.LightEnergy = theme == "lava" ? 0.8f : 1.05f;
-        _sun.LightColor = theme == "lava" ? new Color(1f, 0.82f, 0.7f) : new Color(1f, 0.97f, 0.92f);
+        // Same light as a match, so the map looks here as it will in play.
+        TerrainView.ConfigureLighting(_env.Environment, _sun, theme);
     }
 
     /// <summary>Starts editing a document: builds everything and frames the map.</summary>
@@ -507,7 +498,6 @@ public partial class MapEditorScene : Node3D
     {
         _validateIn = -1;
         if (Document is not { } doc) return;
-        _hud.Minimap.Refresh(doc.Map);
         int generation = ++_validateGeneration;
         if (now)
         {
@@ -717,7 +707,7 @@ public partial class MapEditorScene : Node3D
                     // The discs belong to the game's terrain view; rebuild it only if they can't be updated in place.
                     if (!_terrain.RefreshMetalDiscs()) _terrain.Build(map);
                     _features.Rebuild(map, _terrain);
-                    AfterEdit(terrainChanged: true);
+                    AfterEdit(terrainChanged: false);
                     Audio.Sfx.Play(primary ? Audio.SfxKind.BuildStart : Audio.SfxKind.Reclaim);
                 }
                 else
