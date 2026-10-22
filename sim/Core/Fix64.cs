@@ -6,7 +6,7 @@ namespace ContingencyZero.Sim.Core;
 /// Signed 48.16 fixed-point number. The only number type allowed for fractional values in the sim.
 /// All arithmetic is integer arithmetic, so results are identical on every CPU and OS.
 /// </summary>
-public readonly struct Fix64 : IEquatable<Fix64>, IComparable<Fix64>
+public readonly struct Fix64 : IEquatable<Fix64>, IComparable<Fix64>, IComparable
 {
     public const int FractionalBits = 16;
     public const long OneRaw = 1L << FractionalBits;
@@ -113,6 +113,9 @@ public readonly struct Fix64 : IEquatable<Fix64>, IComparable<Fix64>
     public override bool Equals(object? obj) => obj is Fix64 f && f.Raw == Raw;
     public override int GetHashCode() => Raw.GetHashCode();
     public int CompareTo(Fix64 other) => Raw.CompareTo(other.Raw);
+    public int CompareTo(object? obj) => obj is Fix64 f
+        ? Raw.CompareTo(f.Raw)
+        : throw new ArgumentException("Can only compare Fix64 with Fix64", nameof(obj));
 
     /// <summary>Debug display only. Never parse this back into sim state.</summary>
     public override string ToString()
