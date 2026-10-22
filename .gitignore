@@ -9,3 +9,4 @@ obj/
 .vscode/
 TestResults/
 mono_crash.*
+build/

@@ -34,7 +34,8 @@ public partial class EditorHud : CanvasLayer
     public const float BottomHeight = 44;
 
     private MapEditorScene _ed = null!;
-    private Control _root = null!;
+    private Control _root = null!;   // the panels (hidden while no map is open)
+    private Control _top = null!;    // toasts, always shown
     private readonly Dictionary<EditorTool, Button> _tools = new();
     private Label _title = null!, _origin = null!;
     private Button _undo = null!, _redo = null!, _save = null!, _pass = null!;
@@ -70,9 +71,12 @@ public partial class EditorHud : CanvasLayer
     {
         _ed = editor;
         Layer = 5;
-        _root = new Control { Theme = UiTheme.Theme, MouseFilter = Control.MouseFilterEnum.Ignore };
+        _top = new Control { Theme = UiTheme.Theme, MouseFilter = Control.MouseFilterEnum.Ignore };
+        _top.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        AddChild(_top);
+        _root = new Control { MouseFilter = Control.MouseFilterEnum.Ignore };
         _root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        AddChild(_root);
+        _top.AddChild(_root);
 
         BuildTopBar();
         BuildLeft();
@@ -399,7 +403,7 @@ public partial class EditorHud : CanvasLayer
         _toastPanel.GrowHorizontal = Control.GrowDirection.Both;
         _toastPanel.OffsetTop = TopBarHeight + 14;
         _toastPanel.Visible = false;
-        _root.AddChild(_toastPanel);
+        _top.AddChild(_toastPanel);
     }
 
     private void BuildLegend()

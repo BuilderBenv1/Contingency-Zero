@@ -300,6 +300,10 @@ public partial class MatchScene : Node3D
 
     public void Quit()
     {
+        // Keep a replay of matches left early too (if anything happened and it wasn't saved at game over).
+        if (Kind is MatchKind.Skirmish or MatchKind.Mission or MatchKind.Multiplayer && !_endHandled
+            && Session.World.Tick > 30 * World.TicksPerSecond)
+            SaveReplay();
         Session.Ticked -= OnTicked;
         if (Session.Channel is IDisposable d) d.Dispose();
         Exited?.Invoke();

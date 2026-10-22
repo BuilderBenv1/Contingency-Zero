@@ -285,6 +285,7 @@ public partial class StartDialog : EditorDialog
         _height.TooltipText = "How high the flat ground starts. The water line starts 10 below it, so you can dig lakes straight away.";
         _height.ValueChanged += _ => RefreshHeight();
         box.AddChild(_height);
+        box.AddChild(UiTheme.Label("The water line starts 10 below the ground: dig down to make lakes.", 14, UiTheme.Dim));
         RefreshHeight();
 
         box.AddChild(new Control { SizeFlagsVertical = Control.SizeFlags.ExpandFill });
@@ -391,6 +392,21 @@ public partial class StartDialog : EditorDialog
         _delete.Disabled = true;
         _preview.Texture = null;
         _info.Text = "Pick a map to see it here.";
+        // Start with a map picked, so there's something to look at: your first map, or the first built-in.
+        int first = _rowToMap.FindIndex(m => m >= 0);
+        if (first >= 0)
+        {
+            _list.Select(first);
+            Select(first);
+        }
+    }
+
+    /// <summary>For the dev script: picks a size button (4 is custom) and a list row.</summary>
+    internal void DevPick(int sizeIndex, int row)
+    {
+        _sizeIndex = sizeIndex;
+        RefreshSize();
+        if (row >= 0 && row < _rowToMap.Count && _rowToMap[row] >= 0) { _list.Select(row); Select(row); }
     }
 
     private MapEntry? Selected()

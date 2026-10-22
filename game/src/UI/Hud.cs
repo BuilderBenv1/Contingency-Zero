@@ -102,7 +102,8 @@ public partial class Hud : CanvasLayer
         _root.AddChild(_modeHint);
 
         _waiting = UiTheme.Label("Waiting for other players...", 22, UiTheme.Amber, HorizontalAlignment.Center);
-        _waiting.SetAnchorsPreset(Control.LayoutPreset.Center);
+        _waiting.AnchorLeft = 0; _waiting.AnchorRight = 1; _waiting.AnchorTop = 0.5f; _waiting.AnchorBottom = 0.5f;
+        _waiting.OffsetTop = -16; _waiting.OffsetBottom = 16;
         _waiting.Visible = false;
         _root.AddChild(_waiting);
 

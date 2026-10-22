@@ -2,7 +2,7 @@
   "campaign": "crucible",
   "order": 1,
   "title": "Cold Furnace",
-  "briefing": "Contingency Zero has lit the Forgemaster on Cairn, and the furnaces are cold. Metal first: extractors on every deposit you can reach, then power, then a Vehicle Plant to start turning ore into armour. A Lattice listening camp sits on the far side of the proving grounds, and its fast raiders will probe you. Put a turret in their path.",
+  "briefing": "Contingency Zero has lit the Forgemaster on Cairn, and the furnaces are cold. Metal first: extractors on every deposit you can reach, then power, then a factory to start turning ore into armour. A Lattice listening camp sits on the far side of the proving grounds, and its fast raiders will probe you. Put a turret in their path.",
   "map": "proving_grounds",
   "players": [
     {
@@ -27,8 +27,8 @@
   "messages": [
     "Forgemaster awake. The furnaces want metal: Metal Extractors on the glowing deposits.",
     "Then power. Solar Collectors burn steady; Wind Turbines are cheap and moody.",
-    "Ore flowing. Raise a Vehicle Plant.",
-    "Vehicle Plant hot. Anvils are slow, but they do not break.",
+    "Ore flowing. Raise a factory. A Vehicle Plant makes Anvils.",
+    "Factory hot. Anvils are slow, but they do not break.",
     "Turret up. Let them come to it.",
     "Listening camp scrapped. Their eyes are out.",
     "Lattice scouts, fast and fragile. Swat them.",
@@ -50,7 +50,7 @@
     },
     {
       "id": "plant",
-      "text": "Build a Vehicle Plant"
+      "text": "Build a factory: a Vehicle Plant or a Bot Lab"
     },
     {
       "id": "turret",
@@ -212,10 +212,21 @@
     {
       "id": "plantMsg",
       "when": {
-        "type": "count",
-        "player": 0,
-        "atLeast": 1,
-        "unit": "crucible_vehicle_plant"
+        "type": "any",
+        "of": [
+          {
+            "type": "count",
+            "player": 0,
+            "atLeast": 1,
+            "unit": "crucible_vehicle_plant"
+          },
+          {
+            "type": "count",
+            "player": 0,
+            "atLeast": 1,
+            "unit": "crucible_bot_lab"
+          }
+        ]
       },
       "actions": [
         {
@@ -227,10 +238,21 @@
     {
       "id": "plant",
       "when": {
-        "type": "count",
-        "player": 0,
-        "atLeast": 1,
-        "unit": "crucible_vehicle_plant"
+        "type": "any",
+        "of": [
+          {
+            "type": "count",
+            "player": 0,
+            "atLeast": 1,
+            "unit": "crucible_vehicle_plant"
+          },
+          {
+            "type": "count",
+            "player": 0,
+            "atLeast": 1,
+            "unit": "crucible_bot_lab"
+          }
+        ]
       },
       "actions": [
         {

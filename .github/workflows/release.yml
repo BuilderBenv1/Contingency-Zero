@@ -108,3 +108,13 @@ jobs:
           gh release create "$GITHUB_REF_NAME" dist/* \
             --title "Contingency Zero $GITHUB_REF_NAME" \
             --notes-file docs/RELEASE_NOTES.md
+
+      - name: Publish dry-run draft (release-check branch only)
+        if: github.ref == 'refs/heads/release-check'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete release-check-draft --yes || true
+          gh release create release-check-draft dist/* --draft --target "$GITHUB_SHA" \
+            --title "Release check (draft, not a real release)" \
+            --notes "Automated dry-run build from the release-check branch."

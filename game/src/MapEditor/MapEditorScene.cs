@@ -155,7 +155,7 @@ public partial class MapEditorScene : Node3D
     /// <summary>Starts editing a document: builds everything and frames the map.</summary>
     public void Open(EditorDocument doc, bool frame = true)
     {
-        EndDrag(commit: false);
+        FinishPendingEdits();
         Document = doc;
         _brush = new TerrainBrush(doc.Map);
         MapData m = doc.Map;
@@ -207,6 +207,7 @@ public partial class MapEditorScene : Node3D
     /// <summary>Runs <paramref name="then"/> once unsaved changes are saved or knowingly thrown away.</summary>
     private void GuardUnsaved(string action, Action then)
     {
+        FinishPendingEdits();
         if (Document is not { Dirty: true } doc) { then(); return; }
         ShowModal(ConfirmDialog.Create("UNSAVED CHANGES", $"Save your changes to \"{doc.Map.Name}\" before you {action}?",
             new (string, Action, bool)[]
@@ -278,6 +279,7 @@ public partial class MapEditorScene : Node3D
     /// <summary>Saves to the current file, or asks for a name first. <paramref name="then"/> runs after a successful save.</summary>
     public void Save(Action? then = null)
     {
+        FinishPendingEdits();
         if (Document is not { } doc) return;
         if (doc.FileName is null) { SaveAs(then); return; }
         WriteMap(doc.FileName);
@@ -286,6 +288,7 @@ public partial class MapEditorScene : Node3D
 
     public void SaveAs(Action? then = null)
     {
+        FinishPendingEdits();
         if (Document is not { } doc) return;
         ShowModal(SaveDialog.Create(doc.Map, doc.FileName, (name, description, file) =>
         {
@@ -329,6 +332,7 @@ public partial class MapEditorScene : Node3D
     /// <summary>Starts a 1v1 against a Normal AI on the map as it is now. Leaving the match comes back here.</summary>
     public void TestPlay()
     {
+        FinishPendingEdits();
         if (Document is not { } doc) return;
         if (doc.Map.StartPositions.Count < MapEdits.MinStarts)
         {
@@ -349,7 +353,7 @@ public partial class MapEditorScene : Node3D
     private void StartTestPlay()
     {
         if (Document is not { } doc) return;
-        EndDrag(commit: true);
+        FinishPendingEdits();
         MapData map = doc.CloneMap();
         string mine = Settings.Current.LastFaction == "crucible" ? "crucible" : "lattice";
         string theirs = mine == "lattice" ? "crucible" : "lattice";
@@ -388,6 +392,7 @@ public partial class MapEditorScene : Node3D
 
     public void SetTheme(string theme)
     {
+        FinishPendingEdits();
         if (Document is not { } doc || doc.Map.Theme == theme) return;
         doc.Begin();
         doc.Map.Theme = theme;
@@ -427,6 +432,16 @@ public partial class MapEditorScene : Node3D
         _hud.SyncMap();
     }
 
+    /// <summary>Closes any edit still open (a drag, or a slider moved moments ago) so it becomes its own undo step.</summary>
+    private void FinishPendingEdits()
+    {
+        EndDrag(commit: true);
+        if (Document is { InChange: true }) CommitSliderEdit();
+        _sliderCommitIn = -1;
+        _waterRebuildIn = -1;
+        _waterDirty = false;
+    }
+
     /// <summary>A slider was let go: close its undo step now.</summary>
     public void EndSliderEdit()
     {
@@ -452,7 +467,7 @@ public partial class MapEditorScene : Node3D
     public void Undo()
     {
         if (Document is not { } doc) return;
-        EndDrag(commit: true);
+        FinishPendingEdits();
         if (doc.Undo()) { RebuildAll(); _hud.Toast("Undone", UiTheme.Dim, 1.2); }
         else _hud.Toast("Nothing to undo", UiTheme.Dim, 1.2);
     }
@@ -460,7 +475,7 @@ public partial class MapEditorScene : Node3D
     public void Redo()
     {
         if (Document is not { } doc) return;
-        EndDrag(commit: true);
+        FinishPendingEdits();
         if (doc.Redo()) { RebuildAll(); _hud.Toast("Redone", UiTheme.Dim, 1.2); }
         else _hud.Toast("Nothing to redo", UiTheme.Dim, 1.2);
     }
@@ -534,10 +549,11 @@ public partial class MapEditorScene : Node3D
         if (Document is null || ModalOpen) return;
         switch (e)
         {
-            case InputEventMouseButton { ButtonIndex: MouseButton.WheelUp or MouseButton.WheelDown, Pressed: true } wheel
+            // Shift+wheel arrives as a sideways wheel on some systems (macOS), so take both.
+            case InputEventMouseButton { ButtonIndex: MouseButton.WheelUp or MouseButton.WheelDown or MouseButton.WheelLeft or MouseButton.WheelRight, Pressed: true } wheel
                 when wheel.CtrlPressed || wheel.ShiftPressed:
             {
-                int dir = wheel.ButtonIndex == MouseButton.WheelUp ? 1 : -1;
+                int dir = wheel.ButtonIndex is MouseButton.WheelUp or MouseButton.WheelRight ? 1 : -1;
                 if (wheel.CtrlPressed) ChangeRadius(dir);
                 else ChangeStrength(dir);
                 GetViewport().SetInputAsHandled();
@@ -882,6 +898,7 @@ public partial class MapEditorScene : Node3D
     internal void DevNewMap(StartDialog.NewMapSpec spec) { DevCloseModal(); CreateNew(spec); }
     internal void DevOpen(MapEntry entry) { DevCloseModal(); OpenEntry(entry); }
     internal void DevShowStart() => ShowStart(canCancel: Document is not null);
+    internal Node? DevModal => ModalOpen ? _modal : null;
     internal void DevShowSave() => SaveAs();
     internal void DevValidateNow() => Validate(now: true);
     internal Vector3 DevCameraFocus { get => _rig.Focus; set => _rig.JumpTo(value); }

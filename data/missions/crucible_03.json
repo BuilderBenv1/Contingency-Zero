@@ -100,6 +100,13 @@
     },
     {
       "tag": "",
+      "type": "crucible_aa_turret",
+      "owner": 0,
+      "x": 700,
+      "y": 652
+    },
+    {
+      "tag": "",
       "type": "crucible_light_turret",
       "owner": 0,
       "x": 604,

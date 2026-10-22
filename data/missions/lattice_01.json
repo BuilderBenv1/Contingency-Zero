@@ -2,7 +2,7 @@
   "campaign": "lattice",
   "order": 1,
   "title": "First Light",
-  "briefing": "Contingency Zero has woken you on Cairn, a dead colony world with metal in its bones. You are not alone: a Crucible vanguard has dug in on the far side of the proving grounds. Build Metal Extractors and power, raise a Bot Lab, and break the raids they send to test you.",
+  "briefing": "Contingency Zero has woken you on Cairn, a dead colony world with metal in its bones. You are not alone: a Crucible vanguard has dug in on the far side of the proving grounds. Build Metal Extractors and power, raise a Bot Lab or Vehicle Plant, and break the raids they send to test you.",
   "map": "proving_grounds",
   "players": [
     {
@@ -27,8 +27,8 @@
   "messages": [
     "Oversight online. The network starts with metal: build Metal Extractors on the glowing deposits.",
     "Every structure costs energy too. Solar Collectors are steady; Wind Turbines are cheap but fickle.",
-    "Extractors humming. Now raise a Bot Lab.",
-    "Bot Lab online. Queue Assault Bots and set a rally point south of the base.",
+    "Extractors humming. Now raise a factory. A Bot Lab is quick to start.",
+    "Factory online. Queue a few units and set a rally point south of the base.",
     "Forward camp erased. They will remember that.",
     "Contact south! Crucible scouts probing the perimeter.",
     "Second raid inbound. Mortars with it: don't let them sit and shell you.",
@@ -49,7 +49,7 @@
     },
     {
       "id": "lab",
-      "text": "Build a Bot Lab"
+      "text": "Build a factory: a Bot Lab or a Vehicle Plant"
     },
     {
       "id": "raids",
@@ -206,10 +206,21 @@
     {
       "id": "labMsg",
       "when": {
-        "type": "count",
-        "player": 0,
-        "atLeast": 1,
-        "unit": "lattice_bot_lab"
+        "type": "any",
+        "of": [
+          {
+            "type": "count",
+            "player": 0,
+            "atLeast": 1,
+            "unit": "lattice_bot_lab"
+          },
+          {
+            "type": "count",
+            "player": 0,
+            "atLeast": 1,
+            "unit": "lattice_vehicle_plant"
+          }
+        ]
       },
       "actions": [
         {
@@ -221,10 +232,21 @@
     {
       "id": "lab",
       "when": {
-        "type": "count",
-        "player": 0,
-        "atLeast": 1,
-        "unit": "lattice_bot_lab"
+        "type": "any",
+        "of": [
+          {
+            "type": "count",
+            "player": 0,
+            "atLeast": 1,
+            "unit": "lattice_bot_lab"
+          },
+          {
+            "type": "count",
+            "player": 0,
+            "atLeast": 1,
+            "unit": "lattice_vehicle_plant"
+          }
+        ]
       },
       "actions": [
         {

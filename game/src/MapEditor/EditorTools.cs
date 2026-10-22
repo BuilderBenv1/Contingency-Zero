@@ -95,9 +95,9 @@ public static class ToolInfo
     {
         EditorTool.Raise => "Left drag: raise  ·  Right drag: lower",
         EditorTool.Lower => "Left drag: lower  ·  Right drag: raise",
-        EditorTool.Smooth => "Left drag: smooth",
+        EditorTool.Smooth => "Left or right drag: smooth",
         EditorTool.Flatten => "Left drag: flatten to the height where you start  ·  Right drag: smooth",
-        EditorTool.Plateau => "Left drag: set ground to the plateau height  ·  Ctrl+click: pick the height under the cursor",
+        EditorTool.Plateau => "Left drag: set ground to the plateau height  ·  Ctrl+click: pick that height  ·  Right drag: smooth",
         EditorTool.Roughen => "Left drag: roughen  ·  Right drag: smooth",
         EditorTool.Metal => "Left click: place a metal spot  ·  Right click: remove one",
         EditorTool.Trees => "Left drag: plant trees  ·  Right drag: clear trees  ·  Shift+right drag: clear everything",

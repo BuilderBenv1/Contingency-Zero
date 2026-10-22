@@ -355,12 +355,12 @@ public partial class EditorTerrain : Node3D
     }
 
     // Colours for the passability view, by the worst tile touching the corner.
-    public static readonly Color BuildColour = new(0.35f, 0.75f, 0.35f);
-    public static readonly Color VehicleColour = new(0.8f, 0.78f, 0.3f);
-    public static readonly Color BotColour = new(0.95f, 0.5f, 0.2f);
-    public static readonly Color BlockedColour = new(0.85f, 0.18f, 0.16f);
-    public static readonly Color ShallowColour = new(0.3f, 0.6f, 0.75f);
-    public static readonly Color DeepColour = new(0.12f, 0.25f, 0.6f);
+    public static readonly Color BuildColour = new(0.4f, 0.66f, 0.38f);
+    public static readonly Color VehicleColour = new(0.8f, 0.74f, 0.34f);
+    public static readonly Color BotColour = new(0.9f, 0.52f, 0.24f);
+    public static readonly Color BlockedColour = new(0.8f, 0.2f, 0.18f);
+    public static readonly Color ShallowColour = new(0.32f, 0.58f, 0.72f);
+    public static readonly Color DeepColour = new(0.14f, 0.26f, 0.56f);
 
     private Color PassabilityColour(int vx, int vy, Color ground)
     {
@@ -381,7 +381,7 @@ public partial class EditorTerrain : Node3D
             _ => DeepColour,
         };
         // A strong tint over the real ground, so its shading and texture still read.
-        return ground.Lerp(c.SrgbToLinear() * 0.8f, 0.72f);
+        return ground.Lerp(c.SrgbToLinear() * 0.62f, 0.7f);
     }
 
     /// <summary>0 buildable, 1 vehicles, 2 bots only, 3 nothing on land, 4 shallow water (wadeable), 5 deep water.</summary>

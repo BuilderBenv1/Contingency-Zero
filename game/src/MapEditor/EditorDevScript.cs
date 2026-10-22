@@ -384,7 +384,11 @@ public partial class EditorDevScript : Node
             await Shot($"tool_{t.ToString().ToLowerInvariant()}");
         }
         ed.DevShowStart();
-        await Shot("open_dialog_over_map");
+        (ed.DevModal as StartDialog)?.DevPick(4, 5);
+        await Shot("open_dialog_custom_size");
+        ed.DevCloseModal();
+        ed.ShowHelp();
+        await Shot("help");
         ed.DevCloseModal();
     }
 }
