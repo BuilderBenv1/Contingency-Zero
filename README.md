@@ -69,7 +69,7 @@ dotnet build game/ContingencyZero.Game.csproj    # the Godot C# project compiles
 
 To run it from source, open `game/project.godot` in **Godot 4.3+ (.NET edition)** and press Play.
 
-Releases are built by GitHub Actions (`.github/workflows/release.yml`). Pushing a tag like `v1.0.1` exports the Windows and Linux builds and publishes a release.
+Releases are built by GitHub Actions (`.github/workflows/release.yml`). To make one, bump `VERSION`, then push `main` to the `release-check` branch: this builds Windows and Linux zips into a draft release, and you press **Publish** on GitHub. Pushing a `v*` tag works too.
 
 ## Rules for the sim
 

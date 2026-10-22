@@ -33,6 +33,6 @@ dotnet build game/ContingencyZero.Game.csproj   # check the Godot C# project com
 
 Open `game/project.godot` in Godot 4.3+ (.NET edition) to run the game.
 
-Releases: push a `v*` tag and `.github/workflows/release.yml` exports Windows and Linux builds and publishes a GitHub Release. Pushing to the `release-check` branch does a dry run (a draft release).
+Releases: `.github/workflows/release.yml` exports Windows and Linux builds. Push `main` to the `release-check` branch to build a **draft** release named from the `VERSION` file; publishing the draft on GitHub creates the tag. Pushing a `v*` tag also builds and attaches the files.
 
 Headless checks: `game/src/App/DevAutomation.cs` takes dev flags after `--` (e.g. `--dev-skirmish=<map> --dev-self-ai=1 --dev-fastforward=300 --dev-shots=<dir>`) to start matches and save screenshots under a virtual display.

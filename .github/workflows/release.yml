@@ -1,8 +1,10 @@
 name: Release
 
 # Builds the playable game for Windows and Linux with Godot's exporter.
-# Push a tag like v1.0.0 to publish a GitHub Release with the zips attached;
-# run it by hand (Actions > Release > Run workflow) to just get the zips as build artifacts.
+# - Push to the release-check branch: builds and prepares a *draft* release named after the
+#   VERSION file (e.g. v1.0.0). Publishing that draft on GitHub creates the tag.
+# - Push a tag like v1.0.0 (or publish a draft): builds and attaches the zips to that release.
+# - Run it by hand (Actions > Release > Run workflow) to just get the zips as build artifacts.
 
 on:
   push:
@@ -84,8 +86,7 @@ jobs:
       - name: Package
         run: |
           set -euo pipefail
-          version="${GITHUB_REF_NAME}"
-          [[ "$GITHUB_REF_TYPE" == "tag" ]] || version="dev-${GITHUB_SHA::7}"
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then version="$GITHUB_REF_NAME"; else version="v$(tr -d '[:space:]' < VERSION)"; fi
           echo "VERSION=$version" >> "$GITHUB_ENV"
           cp docs/HOW_TO_PLAY.txt build/windows/
           cp docs/HOW_TO_PLAY.txt build/linux/
@@ -100,21 +101,31 @@ jobs:
           name: ContingencyZero-${{ env.VERSION }}
           path: dist/*
 
-      - name: Publish GitHub Release
+      - name: Publish GitHub Release (tags)
         if: github.ref_type == 'tag'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" dist/* \
-            --title "Contingency Zero $GITHUB_REF_NAME" \
-            --notes-file docs/RELEASE_NOTES.md
+          # Publishing a prepared draft creates the tag; then just refresh its files.
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" dist/* --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" dist/* \
+              --title "Contingency Zero $GITHUB_REF_NAME" \
+              --notes-file docs/RELEASE_NOTES.md
+          fi
 
-      - name: Publish dry-run draft (release-check branch only)
+      - name: Prepare draft release (release-check branch)
         if: github.ref == 'refs/heads/release-check'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
+          # Replace any earlier draft for this version (drafts have no tag yet), and the old dry-run draft.
           gh release delete release-check-draft --yes || true
-          gh release create release-check-draft dist/* --draft --target "$GITHUB_SHA" \
-            --title "Release check (draft, not a real release)" \
-            --notes "Automated dry-run build from the release-check branch."
+          for id in $(gh api "repos/$GITHUB_REPOSITORY/releases" --jq ".[] | select(.draft and .tag_name == \"$VERSION\") | .id"); do
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/releases/$id"
+          done
+          gh release create "$VERSION" dist/* --draft --target "$GITHUB_SHA" \
+            --title "Contingency Zero $VERSION" \
+            --notes-file docs/RELEASE_NOTES.md
