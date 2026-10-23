@@ -23,5 +23,6 @@
       "targetsGround": true
     }
   ],
-  "description": "Cheap laser infantry. Good in numbers."
+  "description": "Cheap laser infantry. Good in numbers.",
+  "salvageWrecks": 3
 }

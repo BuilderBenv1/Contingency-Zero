@@ -1,0 +1,736 @@
+{
+  "campaign": "coop",
+  "order": 3,
+  "title": "The Citadel",
+  "briefing": "The Crucible has raised a citadel in the heart of Crater Basin, a ring of heavy turrets around a fusion core and an experimental gantry, and the Iron Legion guards it from the north-east. Neither of you can crack it alone. Build up in the southern corners, break the Legion or ignore it, and hit the citadel together before the Colossus walks out of its gantry.",
+  "map": "crater_basin",
+  "players": [
+    {
+      "name": "Southwest Group",
+      "team": 0,
+      "faction": "lattice",
+      "start": 2,
+      "ai": "None"
+    },
+    {
+      "name": "Southeast Group",
+      "team": 0,
+      "faction": "crucible",
+      "start": 3,
+      "ai": "None"
+    },
+    {
+      "name": "The Citadel",
+      "team": 1,
+      "faction": "crucible",
+      "start": 0,
+      "ai": "None"
+    },
+    {
+      "name": "Iron Legion",
+      "team": 1,
+      "faction": "lattice",
+      "start": 1,
+      "ai": "Hard"
+    }
+  ],
+  "humanPlayer": 0,
+  "humanPlayers": [
+    0,
+    1
+  ],
+  "startMetal": 1500,
+  "startEnergy": 1500,
+  "spawnCommanders": false,
+  "messages": [
+    "Oversight online. The citadel's plasma battery covers the whole middle of the basin. Stay out of its reach until you are ready to go in together.",
+    "The Iron Legion in the north-east will raid you. Their Commander is their weak point.",
+    "The gantry is powering up. Two minutes until the Colossus walks.",
+    "The Colossus is out. It's going for the southern bases.",
+    "The Colossus is down!",
+    "Citadel sortie heading south-west!",
+    "Citadel sortie heading south-east!",
+    "The turret ring is broken. Hit the core!",
+    "Iron Legion Commander destroyed. Their base is going dark.",
+    "Fusion core breached! The citadel is falling.",
+    "The citadel is dust. Crater Basin is open. Outstanding work, both of you."
+  ],
+  "objectives": [
+    {
+      "id": "ring",
+      "text": "Break the citadel's heavy turret ring",
+      "optional": true
+    },
+    {
+      "id": "core",
+      "text": "Destroy the citadel core: fusion reactor and experimental gantry"
+    },
+    {
+      "id": "legion",
+      "text": "Defeat the Iron Legion",
+      "optional": true
+    },
+    {
+      "id": "colossus",
+      "text": "Destroy the Colossus",
+      "hidden": true
+    }
+  ],
+  "spawns": [
+    {
+      "tag": "cmdrA",
+      "type": "lattice_commander",
+      "owner": 0,
+      "x": 116,
+      "y": 780
+    },
+    {
+      "tag": "cmdrB",
+      "type": "crucible_commander",
+      "owner": 1,
+      "x": 780,
+      "y": 780
+    },
+    {
+      "tag": "legion",
+      "type": "lattice_commander",
+      "owner": 3,
+      "x": 780,
+      "y": 116
+    },
+    {
+      "tag": "core",
+      "type": "crucible_fusion_reactor",
+      "owner": 2,
+      "x": 420,
+      "y": 484
+    },
+    {
+      "tag": "core",
+      "type": "crucible_experimental_gantry",
+      "owner": 2,
+      "x": 488,
+      "y": 488
+    },
+    {
+      "tag": "ring",
+      "type": "crucible_heavy_turret",
+      "owner": 2,
+      "x": 376,
+      "y": 408
+    },
+    {
+      "tag": "ring",
+      "type": "crucible_heavy_turret",
+      "owner": 2,
+      "x": 520,
+      "y": 408
+    },
+    {
+      "tag": "ring",
+      "type": "crucible_heavy_turret",
+      "owner": 2,
+      "x": 368,
+      "y": 504
+    },
+    {
+      "tag": "ring",
+      "type": "crucible_heavy_turret",
+      "owner": 2,
+      "x": 528,
+      "y": 504
+    },
+    {
+      "tag": "ring",
+      "type": "crucible_heavy_turret",
+      "owner": 2,
+      "x": 448,
+      "y": 368
+    },
+    {
+      "tag": "ring",
+      "type": "crucible_heavy_turret",
+      "owner": 2,
+      "x": 448,
+      "y": 552
+    },
+    {
+      "tag": "walls",
+      "type": "crucible_light_turret",
+      "owner": 2,
+      "x": 412,
+      "y": 380
+    },
+    {
+      "tag": "walls",
+      "type": "crucible_light_turret",
+      "owner": 2,
+      "x": 492,
+      "y": 380
+    },
+    {
+      "tag": "walls",
+      "type": "crucible_light_turret",
+      "owner": 2,
+      "x": 348,
+      "y": 460
+    },
+    {
+      "tag": "walls",
+      "type": "crucible_light_turret",
+      "owner": 2,
+      "x": 548,
+      "y": 460
+    },
+    {
+      "tag": "walls",
+      "type": "crucible_light_turret",
+      "owner": 2,
+      "x": 412,
+      "y": 564
+    },
+    {
+      "tag": "walls",
+      "type": "crucible_light_turret",
+      "owner": 2,
+      "x": 492,
+      "y": 564
+    },
+    {
+      "tag": "walls",
+      "type": "crucible_aa_turret",
+      "owner": 2,
+      "x": 428,
+      "y": 420
+    },
+    {
+      "tag": "walls",
+      "type": "crucible_aa_turret",
+      "owner": 2,
+      "x": 508,
+      "y": 532
+    },
+    {
+      "tag": "battery",
+      "type": "crucible_plasma_battery",
+      "owner": 2,
+      "x": 456,
+      "y": 432
+    },
+    {
+      "tag": "walls",
+      "type": "crucible_radar_tower",
+      "owner": 2,
+      "x": 332,
+      "y": 404
+    },
+    {
+      "tag": "walls",
+      "type": "crucible_radar_tower",
+      "owner": 2,
+      "x": 572,
+      "y": 404
+    }
+  ],
+  "triggers": [
+    {
+      "id": "intro",
+      "when": {
+        "type": "time",
+        "seconds": 1
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 0
+        }
+      ]
+    },
+    {
+      "id": "intro2",
+      "when": {
+        "type": "time",
+        "seconds": 45
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 1
+        }
+      ]
+    },
+    {
+      "id": "warn",
+      "when": {
+        "type": "time",
+        "seconds": 1260
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 2
+        }
+      ]
+    },
+    {
+      "id": "colossusOut",
+      "when": {
+        "type": "all",
+        "of": [
+          {
+            "type": "time",
+            "seconds": 1380
+          },
+          {
+            "type": "not",
+            "of": {
+              "type": "destroyed",
+              "tag": "core"
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 3
+        },
+        {
+          "type": "objective",
+          "id": "colossus",
+          "state": "active"
+        },
+        {
+          "type": "spawn",
+          "tag": "colossus",
+          "units": [
+            {
+              "unit": "crucible_experimental",
+              "owner": 2,
+              "x": 478,
+              "y": 530,
+              "count": 1
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "colossus",
+          "x": 140,
+          "y": 760,
+          "order": "fight"
+        }
+      ]
+    },
+    {
+      "id": "colossusDone",
+      "when": {
+        "type": "destroyed",
+        "tag": "colossus"
+      },
+      "actions": [
+        {
+          "type": "objective",
+          "id": "colossus",
+          "state": "complete"
+        },
+        {
+          "type": "message",
+          "message": 4
+        }
+      ]
+    },
+    {
+      "id": "sortie0",
+      "when": {
+        "type": "all",
+        "of": [
+          {
+            "type": "time",
+            "seconds": 420
+          },
+          {
+            "type": "not",
+            "of": {
+              "type": "destroyed",
+              "tag": "core"
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 5
+        },
+        {
+          "type": "spawn",
+          "tag": "sortie0",
+          "units": [
+            {
+              "unit": "crucible_anvil",
+              "owner": 2,
+              "x": 418,
+              "y": 600,
+              "count": 4
+            },
+            {
+              "unit": "crucible_assault_bot",
+              "owner": 2,
+              "x": 448,
+              "y": 600,
+              "count": 5
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "sortie0",
+          "x": 140,
+          "y": 760
+        }
+      ]
+    },
+    {
+      "id": "sortie1",
+      "when": {
+        "type": "all",
+        "of": [
+          {
+            "type": "time",
+            "seconds": 600
+          },
+          {
+            "type": "not",
+            "of": {
+              "type": "destroyed",
+              "tag": "core"
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 6
+        },
+        {
+          "type": "spawn",
+          "tag": "sortie1",
+          "units": [
+            {
+              "unit": "crucible_anvil",
+              "owner": 2,
+              "x": 418,
+              "y": 600,
+              "count": 5
+            },
+            {
+              "unit": "crucible_mortar_bot",
+              "owner": 2,
+              "x": 448,
+              "y": 600,
+              "count": 2
+            },
+            {
+              "unit": "crucible_assault_bot",
+              "owner": 2,
+              "x": 478,
+              "y": 600,
+              "count": 4
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "sortie1",
+          "x": 756,
+          "y": 760
+        }
+      ]
+    },
+    {
+      "id": "sortie2",
+      "when": {
+        "type": "all",
+        "of": [
+          {
+            "type": "time",
+            "seconds": 780
+          },
+          {
+            "type": "not",
+            "of": {
+              "type": "destroyed",
+              "tag": "core"
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 5
+        },
+        {
+          "type": "spawn",
+          "tag": "sortie2",
+          "units": [
+            {
+              "unit": "crucible_anvil",
+              "owner": 2,
+              "x": 418,
+              "y": 600,
+              "count": 6
+            },
+            {
+              "unit": "crucible_artillery_vehicle",
+              "owner": 2,
+              "x": 448,
+              "y": 600,
+              "count": 2
+            },
+            {
+              "unit": "crucible_assault_bot",
+              "owner": 2,
+              "x": 478,
+              "y": 600,
+              "count": 4
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "sortie2",
+          "x": 140,
+          "y": 760
+        }
+      ]
+    },
+    {
+      "id": "sortie3",
+      "when": {
+        "type": "all",
+        "of": [
+          {
+            "type": "time",
+            "seconds": 960
+          },
+          {
+            "type": "not",
+            "of": {
+              "type": "destroyed",
+              "tag": "core"
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 6
+        },
+        {
+          "type": "spawn",
+          "tag": "sortie3",
+          "units": [
+            {
+              "unit": "crucible_heavy_assault",
+              "owner": 2,
+              "x": 418,
+              "y": 600,
+              "count": 2
+            },
+            {
+              "unit": "crucible_anvil",
+              "owner": 2,
+              "x": 448,
+              "y": 600,
+              "count": 5
+            },
+            {
+              "unit": "crucible_mortar_bot",
+              "owner": 2,
+              "x": 478,
+              "y": 600,
+              "count": 2
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "sortie3",
+          "x": 756,
+          "y": 760
+        }
+      ]
+    },
+    {
+      "id": "sortie4",
+      "when": {
+        "type": "all",
+        "of": [
+          {
+            "type": "time",
+            "seconds": 1140
+          },
+          {
+            "type": "not",
+            "of": {
+              "type": "destroyed",
+              "tag": "core"
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 5
+        },
+        {
+          "type": "spawn",
+          "tag": "sortie4",
+          "units": [
+            {
+              "unit": "crucible_heavy_assault",
+              "owner": 2,
+              "x": 418,
+              "y": 600,
+              "count": 2
+            },
+            {
+              "unit": "crucible_anvil",
+              "owner": 2,
+              "x": 448,
+              "y": 600,
+              "count": 6
+            },
+            {
+              "unit": "crucible_gunship",
+              "owner": 2,
+              "x": 478,
+              "y": 600,
+              "count": 3
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "sortie4",
+          "x": 140,
+          "y": 760
+        }
+      ]
+    },
+    {
+      "id": "ringDone",
+      "when": {
+        "type": "destroyed",
+        "tag": "ring"
+      },
+      "actions": [
+        {
+          "type": "objective",
+          "id": "ring",
+          "state": "complete"
+        },
+        {
+          "type": "message",
+          "message": 7
+        }
+      ]
+    },
+    {
+      "id": "legionDone",
+      "when": {
+        "type": "defeated",
+        "player": 3
+      },
+      "actions": [
+        {
+          "type": "objective",
+          "id": "legion",
+          "state": "complete"
+        },
+        {
+          "type": "message",
+          "message": 8
+        }
+      ]
+    },
+    {
+      "id": "coreDone",
+      "when": {
+        "type": "destroyed",
+        "tag": "core"
+      },
+      "actions": [
+        {
+          "type": "objective",
+          "id": "core",
+          "state": "complete"
+        },
+        {
+          "type": "message",
+          "message": 9
+        }
+      ]
+    },
+    {
+      "id": "win",
+      "when": {
+        "type": "all",
+        "of": [
+          {
+            "type": "fired",
+            "trigger": "coreDone",
+            "after": 0
+          },
+          {
+            "type": "not",
+            "of": {
+              "type": "all",
+              "of": [
+                {
+                  "type": "fired",
+                  "trigger": "colossusOut",
+                  "after": 0
+                },
+                {
+                  "type": "not",
+                  "of": {
+                    "type": "destroyed",
+                    "tag": "colossus"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 10
+        },
+        {
+          "type": "reveal"
+        }
+      ]
+    },
+    {
+      "id": "winEnd",
+      "when": {
+        "type": "fired",
+        "trigger": "win",
+        "after": 4
+      },
+      "actions": [
+        {
+          "type": "victory"
+        }
+      ]
+    }
+  ]
+}

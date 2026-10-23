@@ -44,6 +44,17 @@ Game       + / - game speed (single player), Pause pauses, Esc menu.
 
 The in-game Controls screen (main menu or Esc menu) has the full list.
 
+Controller (Steam Deck, Xbox, PlayStation pads)
+-----------------------------------------------
+Left stick moves a cursor, right stick pans, LT / RT zoom. A selects (hold A
+and move for a box), X orders at the cursor, Y opens the order wheel, B
+cancels or deselects. With a builder or factory selected the d-pad walks its
+build menu; A picks, then A places. LB taps through control groups (hold it to
+add or queue), RB selects your army, then builders. View finds your Commander
+(hold it to steer on the minimap). Menu pauses. In menus the d-pad moves,
+A presses and B goes back. On a Steam Deck use the Gamepad controller layout;
+Settings has a Steam Deck preset (bigger interface, button prompts always on).
+
 Modes
 -----
 Skirmish     You against up to 7 computer players (Easy, Normal, Hard, Brutal).

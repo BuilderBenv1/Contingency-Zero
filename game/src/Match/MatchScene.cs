@@ -120,11 +120,13 @@ public partial class MatchScene : Node3D
             Hud.Init(session, Input, Selection, Rig, Terrain);
             Hud.MenuRequested += TogglePause;
             if (session.LocalPlayer < 0) AddChild(new CastingOverlay(this) { Name = "Casting" }); // replays and spectators: broadcast panel (key C)
+            // Watching a local AI-vs-AI skirmish: the spectator bar (speed, vision, casting). Replays add their own.
+            if (session.LocalPlayer < 0 && kind != MatchKind.Replay && !session.IsMultiplayer) AddChild(new ReplayControls(this) { Name = "SpectatorControls" });
             if (world.Mission is { } m)
             {
                 Hud.Post(m.Title, UiTheme.Amber, 8);
             }
-            else if ((kind == MatchKind.Skirmish || kind == MatchKind.Multiplayer) && !SuppressHints)
+            else if ((kind == MatchKind.Skirmish || kind == MatchKind.Multiplayer) && !SuppressHints && session.LocalPlayer >= 0)
             {
                 Hud.Post("Build metal extractors on the glowing spots, then energy, then a factory.", UiTheme.Accent, 12);
                 Hud.Post("Destroy the enemy Commander to win. Keep yours alive.", UiTheme.Accent, 12);

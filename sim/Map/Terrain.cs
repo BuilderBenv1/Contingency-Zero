@@ -51,9 +51,10 @@ public sealed class Terrain
         RefreshPassability(0, 0, map.TilesX - 1, map.TilesY - 1);
     }
 
-    /// <summary>Recomputes static passability for the tiles in a rectangle (inclusive).</summary>
-    public void RefreshPassability(int tx0, int ty0, int tx1, int ty1)
+    /// <summary>Recomputes static passability for the tiles in a rectangle (inclusive). Returns true if any tile changed for a land mover.</summary>
+    public bool RefreshPassability(int tx0, int ty0, int tx1, int ty1)
     {
+        bool changed = false;
         MapData map = Map;
         if (tx0 < 0) tx0 = 0;
         if (ty0 < 0) ty0 = 0;
@@ -65,14 +66,24 @@ public sealed class Terrain
             int i = ty * map.TilesX + tx;
             int slope = map.TileSlope(tx, ty);
             int depth = map.TileDepth(tx, ty);
-            _passable[(int)MoveClass.Bot][i] = slope <= BotMaxSlope && depth <= MaxWadeDepth;
-            _passable[(int)MoveClass.Vehicle][i] = slope <= VehicleMaxSlope && depth <= MaxWadeDepth;
+            bool bot = slope <= BotMaxSlope && depth <= MaxWadeDepth;
+            bool vehicle = slope <= VehicleMaxSlope && depth <= MaxWadeDepth;
+            bool amphibious = slope <= AmphibiousMaxSlope;
+            if (_passable[(int)MoveClass.Bot][i] != bot || _passable[(int)MoveClass.Vehicle][i] != vehicle
+                || _passable[(int)MoveClass.Amphibious][i] != amphibious)
+                changed = true;
+            _passable[(int)MoveClass.Bot][i] = bot;
+            _passable[(int)MoveClass.Vehicle][i] = vehicle;
             _passable[(int)MoveClass.Hover][i] = slope <= HoverMaxSlope;
-            _passable[(int)MoveClass.Amphibious][i] = slope <= AmphibiousMaxSlope;
+            _passable[(int)MoveClass.Amphibious][i] = amphibious;
             _passable[(int)MoveClass.Ship][i] = depth >= MinShipDepth;
             _passable[(int)MoveClass.Air][i] = true;
         }
+        return changed;
     }
+
+    /// <summary>Whether the last <see cref="Deform"/> changed where any land unit can go.</summary>
+    public bool LastDeformChangedPassability { get; private set; }
 
     /// <summary>
     /// Blasts a crater: lowers the ground in a bowl of the given radius (world units) and depth
@@ -128,10 +139,11 @@ public sealed class Terrain
             map.SetCornerHeight(vx, vy, h);
             any = true;
         }
+        LastDeformChangedPassability = false;
         if (!any) return null;
         var rect = (Tx0: vx0 - 1 < 0 ? 0 : vx0 - 1, Ty0: vy0 - 1 < 0 ? 0 : vy0 - 1,
                     Tx1: vx1 >= map.TilesX ? map.TilesX - 1 : vx1, Ty1: vy1 >= map.TilesY ? map.TilesY - 1 : vy1);
-        RefreshPassability(rect.Tx0, rect.Ty0, rect.Tx1, rect.Ty1);
+        LastDeformChangedPassability = RefreshPassability(rect.Tx0, rect.Ty0, rect.Tx1, rect.Ty1);
         return rect;
     }
 

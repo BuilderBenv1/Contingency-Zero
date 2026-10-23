@@ -68,6 +68,15 @@ public partial class CastingOverlay : CanvasLayer
 
     public void Toggle() => Shown = !Shown;
 
+    /// <summary>Moves the panel's top edge (the replay / spectator bar calls this to sit it underneath).</summary>
+    public void SetTop(float top)
+    {
+        _top = top;
+        if (_built) _panel.OffsetTop = top;
+    }
+
+    private float _top = -1;
+
     public override void _Ready()
     {
         Layer = 14; // under the replay bar (15) and modal panels, over the HUD (default 1)
@@ -85,7 +94,7 @@ public partial class CastingOverlay : CanvasLayer
         _panel.AddThemeStyleboxOverride("panel", UiTheme.Box(new Color(0.04f, 0.05f, 0.07f, 0.9f), UiTheme.PanelEdge, 1, 0, compact ? 6 : 8));
         _panel.AnchorLeft = 0; _panel.AnchorRight = 1;
         _panel.OffsetLeft = 12; _panel.OffsetRight = -12;
-        _panel.OffsetTop = _match.Kind == MatchKind.Replay ? ReplayControls.PanelBottom + 6 : TopWithoutReplayBar;
+        _panel.OffsetTop = _top >= 0 ? _top : _match.Kind == MatchKind.Replay ? ReplayControls.PanelBottom + 6 : TopWithoutReplayBar;
         _panel.AddChild(row);
         _root.AddChild(_panel);
 
@@ -205,6 +214,7 @@ public partial class CastingOverlay : CanvasLayer
             _income.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
             AddChild(_income);
             _army = UiTheme.Label("", compact ? 12 : 14, UiTheme.Dim);
+            TooltipText = "Army: metal value of armed mobile units. Killed / lost: units destroyed by and of this player.";
             _army.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
             AddChild(_army);
             _spark = new Sparkline(_colour) { CustomMinimumSize = new Vector2(compact ? 90 : 140, compact ? 22 : 30), MouseFilter = MouseFilterEnum.Ignore };
@@ -221,7 +231,7 @@ public partial class CastingOverlay : CanvasLayer
             float m = p.MetalIncome.Raw / 65536f * World.TicksPerSecond, e = p.EnergyIncome.Raw / 65536f * World.TicksPerSecond;
             string income = $"M +{m:0}/s   E +{e:0}/s";
             if (_income.Text != income) _income.Text = income;
-            string armyText = $"Army {army:0}  ·  {units} units  ·  {p.Kills} kills";
+            string armyText = $"Army {army:0}  ·  {units} units  ·  {p.Kills} killed / {p.UnitsLost} lost";
             if (_army.Text != armyText) _army.Text = armyText;
             _spark.Samples = armyHistory;
             _spark.Current = army;

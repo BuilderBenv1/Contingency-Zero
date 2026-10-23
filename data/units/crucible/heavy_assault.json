@@ -32,5 +32,6 @@
       "targetsGround": true
     }
   ],
-  "description": "Siege tank. Soaks damage and hits hard."
+  "description": "Siege tank. Soaks damage and hits hard.",
+  "salvageWrecks": 4
 }

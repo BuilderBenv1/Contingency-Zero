@@ -43,6 +43,8 @@ public enum ReplayBookmarkKind : byte
     Wave = 4,
     PlayerDefeated = 5,
     GameOver = 6,
+    /// <summary>Many units died in a short window.</summary>
+    BigBattle = 7,
 }
 
 /// <summary>

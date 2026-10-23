@@ -66,7 +66,7 @@ public partial class EffectsView : Node3D
             TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
             UseCustomData = true,
             Mesh = new PlaneMesh { Size = new Vector2(1, 1) },
-            InstanceCount = 512,
+            InstanceCount = MaxBurns,
             VisibleInstanceCount = 0,
         };
         AddChild(new MultiMeshInstance3D
@@ -159,17 +159,6 @@ public partial class EffectsView : Node3D
                     break;
                 }
 
-                case GameEventType.TerrainChanged:
-                {
-                    // A crater: rebuild that patch of ground and re-seat anything lying on it.
-                    int tx0 = e.Position.X.ToIntFloor() / MapData.TileSize, ty0 = e.Position.Y.ToIntFloor() / MapData.TileSize;
-                    int tx1 = e.Position2.X.ToIntFloor() / MapData.TileSize, ty1 = e.Position2.Y.ToIntFloor() / MapData.TileSize;
-                    _terrain.RefreshRegion(tx0, ty0, tx1, ty1);
-                    ReseatBurns(Ground(e.Position), Ground(e.Position2));
-                    TerrainChanged?.Invoke();
-                    break;
-                }
-
                 case GameEventType.Impact:
                 {
                     if (!Seen(e.Position)) break;
@@ -179,7 +168,7 @@ public partial class EffectsView : Node3D
                     if (kind == WeaponKind.Missile) size = 1.5f;
                     Explode(p, size, kind == WeaponKind.Artillery || kind == WeaponKind.Bomb || kind == WeaponKind.DGun);
                     if (kind == WeaponKind.Bomb) _terrain.Scorch(p, size * 2.2f, 0.5f);
-                    else if (kind == WeaponKind.DGun) _terrain.Scorch(p, 14f, 1.1f);
+                    else if (kind == WeaponKind.DGun) { _terrain.Scorch(p, 14f, 1.1f); Scorch(p, 13f, 1f, glass: true); }
                     else if (kind == WeaponKind.Artillery && size >= 5) _terrain.Scorch(p, size * 1.6f, 0.18f);
                     Sfx.PlayAt(size > 4 ? SfxKind.ExplosionSmall : SfxKind.ImpactSmall, p, listener, zoom, size > 4 ? -2 : -8);
                     break;
@@ -323,15 +312,22 @@ public partial class EffectsView : Node3D
         public required float Yaw { get; init; }
         public required float Alpha { get; init; }
     }
-    private readonly Burn[] _burns = new Burn[512];
+    /// <summary>Burn marks stay for the whole match; past this many the oldest is reused.</summary>
+    public const int MaxBurns = 4096;
+    private readonly Burn[] _burns = new Burn[MaxBurns];
+    private readonly Dictionary<int, Vector3> _glassTrail = new();
 
-    /// <summary>A lasting burn mark on the ground (the oldest is reused once all 512 are placed).</summary>
-    private void Scorch(Vector3 p, float size, float alpha = 1f)
+    /// <summary>
+    /// A lasting burn mark on the ground. <paramref name="glass"/> makes the dark, glossy, fused
+    /// scar the Breach Cannon leaves, which glows hot for a few seconds.
+    /// </summary>
+    private void Scorch(Vector3 p, float size, float alpha = 1f, bool glass = false)
     {
         int i = _scorchNext++ % _scorch.InstanceCount;
         _burns[i] = new Burn { P = p, Size = size, Yaw = _rng.Randf() * Mathf.Tau, Alpha = alpha };
         PlaceBurn(i);
-        _scorch.SetInstanceCustomData(i, new Color(0, _rng.Randf(), alpha, 0));
+        // Custom data: r = glassed, g = shape seed, b = strength, a = when it was made (shader seconds).
+        _scorch.SetInstanceCustomData(i, new Color(glass ? 1 : 0, _rng.Randf(), alpha, glass ? (float)(Time.GetTicksMsec() / 1000.0 % 3600.0) : 0));
         _scorch.VisibleInstanceCount = Math.Min(_scorchNext, _scorch.InstanceCount);
     }
 
@@ -342,6 +338,16 @@ public partial class EffectsView : Node3D
         Basis basis = new Basis(Vector3.Up, b.Yaw).Scaled(new Vector3(b.Size, 1, b.Size));
         if (n.Y < 0.999f) basis = new Basis(Vector3.Up.Cross(n).Normalized(), Mathf.Acos(n.Y)) * basis;
         _scorch.SetInstanceTransform(i, new Transform3D(basis, new Vector3(b.P.X, _terrain.SurfaceAt(b.P.X, b.P.Z) + 0.12f, b.P.Z)));
+    }
+
+    /// <summary>Craters since last frame: rebuild that ground and drop burn marks back onto it.</summary>
+    private void SyncTerrain()
+    {
+        var changes = _terrain.SyncWith(_world);
+        if (changes is null) return;
+        foreach (var (tx0, ty0, tx1, ty1) in changes)
+            ReseatBurns(new Vector3(tx0 * MapData.TileSize, 0, ty0 * MapData.TileSize), new Vector3((tx1 + 1) * MapData.TileSize, 0, (ty1 + 1) * MapData.TileSize));
+        TerrainChanged?.Invoke();
     }
 
     /// <summary>The ground was reshaped: drop burn marks back onto the new surface.</summary>
@@ -359,6 +365,7 @@ public partial class EffectsView : Node3D
     public override void _Process(double delta)
     {
         if (_world is null) return;
+        SyncTerrain();
         float dt = (float)delta;
         float alpha = GetMeta("alpha", 1f).AsSingle();
         Basis cam = _camera.GlobalTransform.Basis;
@@ -409,6 +416,13 @@ public partial class EffectsView : Node3D
                 }
                 case WeaponKind.DGun:
                 {
+                    // The bolt fuses the ground it skims over into a glassy streak.
+                    if (!_glassTrail.TryGetValue(p.Id, out Vector3 last) || last.DistanceTo(at) > 2.4f)
+                    {
+                        if (_glassTrail.Count > 32) _glassTrail.Clear();
+                        _glassTrail[p.Id] = at;
+                        Scorch(at, 4.2f, 0.9f, glass: true);
+                    }
                     BeginGlow();
                     Quad(_glowMesh, at, right, up, 3.5f, new Color(1f, 0.85f, 0.4f)); glowVerts += 6;
                     Quad(_glowMesh, at, right, up, 7f, new Color(1f, 0.4f, 0.05f, 0.7f)); glowVerts += 6;
@@ -547,12 +561,24 @@ float h2(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx +
 void fragment() {
     vec2 d = UV * 2.0 - 1.0;
     float r = dot(d, d);
-    // A ragged burn: a dark core, an uneven edge, and streaks thrown outward.
     float ang = atan(d.y, d.x);
-    float edge = 0.75 + 0.25 * h2(vec2(floor(ang * 5.0 + inst.g * 50.0), inst.g));
-    float core = 1.0 - smoothstep(0.1, edge, r);
-    float streak = step(0.93, h2(vec2(floor(ang * 14.0 + inst.g * 90.0), 1.0))) * (1.0 - smoothstep(0.3, 1.6, r)) * 0.5;
-    ALBEDO = vec3(0.05, 0.045, 0.04);
-    ALPHA = clamp(core * 0.7 + streak, 0.0, 0.8) * inst.b;
+    if (inst.r > 0.5) {
+        // Glassed: a fused black-green sheen with bright glints, a hot orange rim that cools off.
+        float edge = 0.8 + 0.2 * h2(vec2(floor(ang * 7.0 + inst.g * 40.0), inst.g));
+        float body = 1.0 - smoothstep(edge - 0.2, edge, r);
+        float glint = pow(max(0.0, sin(d.x * 9.0 + d.y * 5.0 + inst.g * 20.0)), 24.0) * (1.0 - r);
+        float age = mod(TIME - inst.a + 3600.0, 3600.0);
+        float heat = exp(-age / 5.0) * smoothstep(0.2, edge, r) * body;
+        vec3 glass = mix(vec3(0.02, 0.035, 0.03), vec3(0.09, 0.13, 0.12), 0.5 + 0.5 * sin(r * 14.0 + inst.g * 6.0));
+        ALBEDO = glass + vec3(0.55, 0.7, 0.65) * glint + vec3(1.0, 0.4, 0.08) * heat * 1.6;
+        ALPHA = clamp(body * 0.92, 0.0, 0.95) * inst.b;
+    } else {
+        // A ragged burn: a dark core, an uneven edge, and streaks thrown outward.
+        float edge = 0.75 + 0.25 * h2(vec2(floor(ang * 5.0 + inst.g * 50.0), inst.g));
+        float core = 1.0 - smoothstep(0.1, edge, r);
+        float streak = step(0.93, h2(vec2(floor(ang * 14.0 + inst.g * 90.0), 1.0))) * (1.0 - smoothstep(0.3, 1.6, r)) * 0.5;
+        ALBEDO = vec3(0.05, 0.045, 0.04);
+        ALPHA = clamp(core * 0.7 + streak, 0.0, 0.8) * inst.b;
+    }
 }";
 }

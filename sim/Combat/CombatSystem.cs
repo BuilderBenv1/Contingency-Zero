@@ -116,7 +116,7 @@ public static class CombatSystem
 
         // Orders come first.
         Order order = units.CurrentOrder(id);
-        if (order.Type == OrderType.Attack && units.IsValid(order.Target)
+        if ((order.Type is OrderType.Attack or OrderType.AttackArea) && units.IsValid(order.Target)
             && WeaponCanHit(world, w, order.Target) && InRange(pos, units.Position[order.Target], w)
             && world.CanSee(team, order.Target, radarCounts: true))
             return order.Target;

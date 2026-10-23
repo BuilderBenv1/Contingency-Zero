@@ -31,5 +31,6 @@
     "crucible_advanced_assembly"
   ],
   "description": "Naval constructor.",
-  "reclaimMultiplier": 1.4
+  "reclaimMultiplier": 1.4,
+  "salvageWrecks": 3
 }

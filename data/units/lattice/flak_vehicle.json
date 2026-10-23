@@ -24,5 +24,6 @@
       "targetsGround": false
     }
   ],
-  "description": "Shreds aircraft. Useless against ground."
+  "description": "Shreds aircraft. Useless against ground.",
+  "salvageWrecks": 3
 }

@@ -33,5 +33,6 @@
       "targetsGround": false
     }
   ],
-  "description": "Fast boat with a light gun and anti-air."
+  "description": "Fast boat with a light gun and anti-air.",
+  "salvageWrecks": 3
 }

@@ -92,4 +92,64 @@ public class TerrainTests
         Assert.True(FixVec2.Distance(world.Units.Position[tank], At(200, 128)) <= Fix64.FromInt(4), "the tank should still arrive");
         Assert.True(lowest > Fix64.FromInt(40 - 16), $"the tank should skirt the crater, but went down to {lowest}");
     }
+
+    [Fact]
+    public void Craters_are_the_same_on_every_run()
+    {
+        static (ulong Hash, int Changed) Run()
+        {
+            World world = Flat(5000, 5000);
+            for (int i = 0; i < 5; i++)
+            {
+                world.SpawnUnit("lattice_commander", 0, At(60 + i * 30, 100));
+                world.SpawnUnit("crucible_anvil", 1, At(60 + i * 30, 140));
+            }
+            for (int id = 0; id < world.Units.Count; id++) world.Units.Health[id] = Fix64.One; // everything dies at once
+            world.Units.Health[0] = Fix64.Zero;
+            for (int t = 0; t < 60; t++) world.Step();
+            return (world.ComputeHash(), world.Map.Heights.Count(h => h != 40));
+        }
+        var a = Run();
+        var b = Run();
+        Assert.True(a.Changed > 0, "the chain of blasts should have cratered the ground");
+        Assert.Equal(a, b);
+    }
+
+    [Fact]
+    public void Repeated_shallow_hits_that_block_vehicles_make_them_repath()
+    {
+        World world = Flat(5000, 5000);
+        int tank = world.SpawnUnit("lattice_strider", 0, At(40, 128));
+        world.Step(new[] { new Command(0, 0, CommandType.Move, tank, At(220, 128)) });
+        world.Step();
+        Assert.True(world.Units.Path[tank] is not null);
+        bool cleared = false;
+        for (int i = 0; i < 12 && !cleared; i++)
+        {
+            world.DeformTerrain(At(128, 128), Fix64.FromInt(16), 8); // each one too shallow to matter alone
+            cleared = world.Units.Path[tank] is null;
+            if (!cleared) Assert.False(world.Terrain.LastDeformChangedPassability);
+        }
+        Assert.True(cleared, "once the pocks add up to a vehicle-blocking slope, the tank should plan again");
+    }
+
+    [Fact]
+    public void The_renderer_can_catch_up_on_every_crater_since_it_last_looked()
+    {
+        World world = Flat();
+        var changes = new List<(int, int, int, int)>();
+        Assert.True(world.TerrainChangesSince(0, changes));
+        Assert.Empty(changes);
+        world.DeformTerrain(At(64, 64), Fix64.FromInt(16), 20);
+        world.DeformTerrain(At(200, 200), Fix64.FromInt(16), 20);
+        Assert.Equal(2, world.TerrainRevision);
+        Assert.True(world.TerrainChangesSince(0, changes));
+        Assert.Equal(2, changes.Count);
+        Assert.True(changes[0].Item1 < 64 / MapData.TileSize && changes[1].Item3 > 200 / MapData.TileSize);
+        Assert.True(world.TerrainChangesSince(1, changes));
+        Assert.Single(changes);
+        for (int i = 0; i < 300; i++) world.DeformTerrain(At(20 + i % 200, 20 + i / 2), Fix64.FromInt(10), 2);
+        Assert.True(world.TerrainRevision > 260);
+        Assert.False(world.TerrainChangesSince(1, changes)); // too far behind: redraw everything
+    }
 }

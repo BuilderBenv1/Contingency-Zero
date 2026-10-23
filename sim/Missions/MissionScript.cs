@@ -20,6 +20,7 @@ namespace ContingencyZero.Sim.Missions;
    "humanPlayer": 0,                                      the human's slot (single player)
    "humanPlayers": [0, 1],                                co-op: every human slot, all on one team; overrides humanPlayer
    "mode": "survival",                                    optional label for the client (SurvivalMode writes it)
+   "difficulty": "Normal",                                optional label for the client (survival scores)
    "startMetal": 1000, "startEnergy": 1000, "spawnCommanders": true,                              game only
    "messages": [ "..." ],                                 may contain the placeholders below
    "objectives": [ { "id", "text", "optional"?: bool, "hidden"?: bool } ],   text may contain placeholders
@@ -59,6 +60,8 @@ namespace ContingencyZero.Sim.Missions;
                is skipped before its `after` seconds. `order` (fight | patrol | move) is given to the new units.
    attack    { tag | player, x, y, order = patrol }          sends tagged (or all the player's mobile, non-Commander)
                                                              units there; order is patrol | fight | move
+   hunt      { player }                                      the player's idle mobile units fight their way to the
+                                                             nearest unit of another team (survival waves)
    give      { player, metal, energy }
    bounty    { metal, energy, metalPerWave?, energyPerWave? }   give to every human player; the per-wave parts
                                                              are multiplied by the wave counter
@@ -89,6 +92,8 @@ public sealed class MissionScript
     public string Briefing { get; private set; } = "";
     /// <summary>Optional label such as "survival", for the client.</summary>
     public string Mode { get; private set; } = "";
+    /// <summary>Optional difficulty label (survival), for the client's scores. Not used by the rules.</summary>
+    public string Difficulty { get; private set; } = "";
     /// <summary>The (first) human player's index in the match.</summary>
     public int HumanPlayer => HumanPlayers[0];
     /// <summary>Every human slot. One entry in single player; two in co-op. All on one team.</summary>
@@ -124,6 +129,8 @@ public sealed class MissionScript
         public int NextDue;
         public int FiredTick = -1;
         public int TimesFired;
+        /// <summary>Has a "wave" action: what {countdown} counts down to.</summary>
+        public bool AdvancesWave { get; init; }
     }
 
     private JsonDocument? _doc;
@@ -136,6 +143,7 @@ public sealed class MissionScript
         m.Title = Str(r, "title");
         m.Briefing = Str(r, "briefing");
         m.Mode = Str(r, "mode");
+        m.Difficulty = Str(r, "difficulty");
         if (r.TryGetProperty("humanPlayers", out var hps) && hps.ValueKind == JsonValueKind.Array)
             foreach (var h in hps.EnumerateArray()) m._humans.Add(h.GetInt32());
         if (m._humans.Count == 0) m._humans.Add(Int(r, "humanPlayer", 0));
@@ -186,6 +194,7 @@ public sealed class MissionScript
                     EveryTicks = every,
                     AfterTicks = after,
                     NextDue = after,
+                    AdvancesWave = actions.Exists(a => Str(a, "type") == "wave"),
                 });
             }
 
@@ -221,15 +230,22 @@ public sealed class MissionScript
     public IReadOnlyList<int> UnitsTagged(string tag) =>
         _tagged.TryGetValue(tag, out var list) ? list : Array.Empty<int>();
 
-    /// <summary>Tick the next periodic trigger is due, or -1 when there is none. Survival's "next wave".</summary>
+    /// <summary>
+    /// Tick the next periodic trigger is due, or -1 when there is none: survival's "next wave". Periodic
+    /// triggers that advance the wave counter come first; others count only when there are none.
+    /// </summary>
     public int NextPeriodicTick
     {
         get
         {
-            int best = -1;
+            int best = -1, any = -1;
             foreach (Trigger t in _triggers)
-                if (t.EveryTicks > 0 && (best < 0 || t.NextDue < best)) best = t.NextDue;
-            return best;
+            {
+                if (t.EveryTicks <= 0) continue;
+                if (any < 0 || t.NextDue < any) any = t.NextDue;
+                if (t.AdvancesWave && (best < 0 || t.NextDue < best)) best = t.NextDue;
+            }
+            return best >= 0 ? best : any;
         }
     }
 
@@ -480,6 +496,10 @@ public sealed class MissionScript
                 break;
             }
 
+            case "hunt":
+                Hunt(world, Int(a, "player"));
+                break;
+
             case "reveal":
                 world.Vision.RevealAll = true;
                 break;
@@ -546,6 +566,36 @@ public sealed class MissionScript
             if (!def.CanMove) continue;
             world.Units.ClearOrders(id);
             world.Units.Orders[id].Add(new Order(type, target) { Origin = target });
+        }
+    }
+
+    /// <summary>
+    /// Every idle mobile unit of the player is sent (fighting) to the nearest living unit of another
+    /// team. Units still on their way somewhere keep going. Iterates ids in order, so it's deterministic.
+    /// </summary>
+    private static void Hunt(World world, int player)
+    {
+        int team = world.Players[player].Team;
+        var targets = new List<FixVec2>();
+        for (int id = 0; id < world.Units.Count; id++)
+            if (world.Units.Alive[id] && world.Players[world.Units.Owner[id]].Team != team && !world.Players[world.Units.Owner[id]].Defeated)
+                targets.Add(world.Units.Position[id]);
+        if (targets.Count == 0) return;
+        for (int id = 0; id < world.Units.Count; id++)
+        {
+            if (!world.Units.Alive[id] || world.Units.Owner[id] != player || !world.Units.Complete[id]) continue;
+            if (world.Units.Orders[id].Count > 0) continue;
+            var def = world.Catalog[world.Units.TypeIndex[id]];
+            if (!def.CanMove || def.IsCommander) continue;
+            FixVec2 at = world.Units.Position[id];
+            FixVec2 best = targets[0];
+            Fix64 bestD = FixVec2.DistanceSquared(at, best);
+            for (int i = 1; i < targets.Count; i++)
+            {
+                Fix64 d = FixVec2.DistanceSquared(at, targets[i]);
+                if (d < bestD) { bestD = d; best = targets[i]; }
+            }
+            world.Units.Orders[id].Add(new Order(OrderType.Fight, best) { Origin = best });
         }
     }
 

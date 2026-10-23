@@ -285,8 +285,12 @@ public partial class NetMatchOverlay : CanvasLayer
         if (_statusTimer <= 0)
         {
             _statusTimer = 0.5;
-            int humans = _match.Session.Scenario.Players.Count(p => p.Ai == Sim.Match.AiDifficulty.None);
-            int ais = _match.Session.Scenario.Players.Count - humans;
+            // Missions (co-op, survival) have script-driven players with no AI that aren't people: count the human seats.
+            var setups = _match.Session.Scenario.Players;
+            int humans = _match.Session.World.Mission is { } mission
+                ? mission.HumanPlayers.Count(h => h < setups.Count && setups[h].Ai == Sim.Match.AiDifficulty.None)
+                : setups.Count(p => p.Ai == Sim.Match.AiDifficulty.None);
+            int ais = _match.Session.Scenario.Players.Count(p => p.Ai != Sim.Match.AiDifficulty.None);
             string ping = _channel is LockstepHost host
                 ? string.Join("  ", Enumerable.Range(0, _channel.ParticipantCount)
                     .Where(p => p != host.LocalPlayer && host.IsConnected(p) && host.RoundTrip(p) > 0)

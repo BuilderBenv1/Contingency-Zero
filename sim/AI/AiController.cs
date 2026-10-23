@@ -349,7 +349,8 @@ public sealed class AiController
             if (d < bestD) { bestD = d; best = f.Id; }
         }
         if (best < 0) return false;
-        Issue(CommandType.Reclaim, unit, target: best);
+        // Clear the whole patch round it (wrecks lie in heaps, structures leave rubble) in one order.
+        Issue(CommandType.ReclaimArea, unit, _w.Features[best].Position, arg: 30);
         return true;
     }
 

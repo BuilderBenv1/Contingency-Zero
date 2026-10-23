@@ -106,4 +106,22 @@ public class ReplayBookmarkTests
         var ex = Assert.Throws<InvalidDataException>(() => MatchReplay.Read(new MemoryStream(bytes)));
         Assert.True(ex.Message.Contains("99"), ex.Message);
     }
+
+    [Fact]
+    public void Every_bookmark_kind_round_trips_and_the_final_hash_is_unchanged()
+    {
+        MatchReplay replay = TestData.Battle(UnitsPerSide, Seed, Ticks);
+        ulong before = replay.FinalHash;
+        var kinds = System.Enum.GetValues<ReplayBookmarkKind>();
+        for (int i = 0; i < kinds.Length; i++)
+            replay.Bookmarks.Add(new ReplayBookmark(10 * i, kinds[i], kinds[i].ToString(), i % 3 - 1));
+        using var stream = new MemoryStream();
+        replay.Write(stream);
+        stream.Position = 0;
+        MatchReplay loaded = MatchReplay.Read(stream);
+        Assert.Equal(kinds, loaded.Bookmarks.Select(b => b.Kind).ToArray());
+        Assert.Equal(ReplayBookmarkKind.BigBattle, loaded.Bookmarks.Single(b => b.Text == "BigBattle").Kind);
+        Assert.Equal(before, loaded.FinalHash);
+        Assert.Equal(replay.Play(TestData.Catalog).ComputeHash(), loaded.Play(TestData.Catalog).ComputeHash());
+    }
 }

@@ -30,6 +30,26 @@ public partial class Hud : CanvasLayer
     private Label _clock = null!;
     private Label _speed = null!;
     private Label _wind = null!;
+    private Label _whose = null!;
+
+    /// <summary>
+    /// Whose economy the resource bar shows when nobody is at the controls (replays, spectating);
+    /// set by the vision picker. -1 means the first player still in the game.
+    /// </summary>
+    public int WatchedPlayer { get; set; } = -1;
+
+    /// <summary>The player whose resources the bar shows.</summary>
+    private int EconomyPlayer
+    {
+        get
+        {
+            int me = _session.LocalPlayer;
+            if (me >= 0) return me;
+            if (WatchedPlayer >= 0 && WatchedPlayer < World.Players.Length) return WatchedPlayer;
+            for (int i = 0; i < World.Players.Length; i++) if (!World.Players[i].Defeated) return i;
+            return 0;
+        }
+    }
     private Minimap _minimap = null!;
     private SelectionPanel _selectionPanel = null!;
     private CommandCard _commandCard = null!;
@@ -113,6 +133,8 @@ public partial class Hud : CanvasLayer
         _objectivesPanel.CustomMinimumSize = new Vector2(360, 0);
         _objectivesPanel.Visible = World.Mission is not null;
         _root.AddChild(_objectivesPanel);
+        // Survival: wave counter, next-wave timer and score (game/src/Missions/Survival.cs).
+        if (Missions.SurvivalGame.IsSurvival(World)) _root.AddChild(new Missions.SurvivalBanner(session));
 
         input.ModeChanged += UpdateModeHint;
         input.Notice += msg => Post(msg, UiTheme.Amber);
@@ -129,6 +151,10 @@ public partial class Hud : CanvasLayer
         panel.AddChild(bar);
         _root.AddChild(panel);
 
+        _whose = UiTheme.Label("", 14, UiTheme.Dim);
+        _whose.VerticalAlignment = VerticalAlignment.Center;
+        _whose.Visible = false;
+        bar.AddChild(_whose);
         _metal = new ResourceMeter("METAL", UiTheme.Metal);
         _energy = new ResourceMeter("ENERGY", UiTheme.Energy);
         bar.AddChild(_metal);
@@ -238,7 +264,7 @@ public partial class Hud : CanvasLayer
         _commandCard.OnTick();
         RefreshObjectives();
 
-        PlayerState p = World.Players[Math.Max(0, me)];
+        PlayerState p = World.Players[EconomyPlayer];
         _metal.Sample(p.MetalIncome, p.MetalSpent, p.MetalWasted, p.BuildRatio, Fix64.Zero);
         _energy.Sample(p.EnergyIncome, p.EnergySpent, p.EnergyWasted, p.BuildRatio, p.ConverterEnergy);
     }
@@ -268,8 +294,13 @@ public partial class Hud : CanvasLayer
     public override void _Process(double delta)
     {
         if (_session is null) return;
-        int me = _session.LocalPlayer;
-        PlayerState p = World.Players[Math.Max(0, me)];
+        PlayerState p = World.Players[EconomyPlayer];
+        if (_session.LocalPlayer < 0)
+        {
+            _whose.Visible = true;
+            if (_whose.Text != p.Name + ":") _whose.Text = p.Name + ":";
+            _whose.AddThemeColorOverride("font_color", UiTheme.TeamColour(p.Id));
+        }
         _metal.Show(p.Metal, p.MetalStorage, p.MetalIncome, p.MetalSpent, p.BuildRatio < Fix64.Parse("0.98") && p.Metal < p.MetalStorage / 20);
         _energy.Show(p.Energy, p.EnergyStorage, p.EnergyIncome, p.EnergySpent, p.BuildRatio < Fix64.Parse("0.98") && p.Energy < p.EnergyStorage / 20);
         _wind.Text = $"Wind {World.Wind.Raw / 65536f:0}";
@@ -333,10 +364,14 @@ public partial class ResourceMeter : HBoxContainer
     /// <summary>The last forecast shown (for tests and dev checks).</summary>
     public string ForecastText => _forecast.Text;
 
+    private readonly string _name;
+    private ulong _tooltipAt;
+
     public ResourceMeter(string name, Color colour)
     {
         _colour = colour;
-        MouseFilter = MouseFilterEnum.Ignore;
+        _name = name.Length > 0 ? char.ToUpperInvariant(name[0]) + name[1..].ToLowerInvariant() : name;
+        MouseFilter = MouseFilterEnum.Pass; // for the detail tooltip
         AddThemeConstantOverride("separation", 8);
         var title = UiTheme.Label(name, 13, colour);
         title.VerticalAlignment = VerticalAlignment.Center;
@@ -400,21 +435,29 @@ public partial class ResourceMeter : HBoxContainer
         _flow.AddThemeColorOverride("font_color", inc >= spend ? UiTheme.Good : UiTheme.Bad);
         _stall.Visible = stalling && (Time.GetTicksMsec() / 400) % 2 == 0;
 
-        var (text, colour) = Forecast(s, cap, Average(_income), Average(_spent), Average(_wasted), Average(_ratio), Average(_converter), stalling);
+        float aInc = Average(_income), aSpent = Average(_spent), aWaste = Average(_wasted), aRatio = Average(_ratio), aConv = Average(_converter);
+        var (text, colour) = Forecast(s, cap, aInc, aSpent, aWaste, aRatio, aConv, stalling);
         if (_forecast.Text != text) _forecast.Text = text;
         _forecast.AddThemeColorOverride("font_color", colour);
+        // The tooltip text is rebuilt about twice a second; Godot reads it when the mouse rests here.
+        ulong now = Time.GetTicksMsec();
+        if (now - _tooltipAt > 500)
+        {
+            _tooltipAt = now;
+            TooltipText = Detail(_name, s, cap, aInc, aSpent, aWaste, aRatio, aConv);
+        }
     }
 
     /// <summary>
     /// What the (smoothed, per second) numbers add up to. Red while stalling, amber when a stall is
-    /// under 30 seconds away or the store is overflowing, dim otherwise.
+    /// under 30 seconds away, the store is about to overflow or is overflowing, dim otherwise.
     /// </summary>
     public static (string Text, Color Colour) Forecast(float stored, float storage, float income, float spent, float wasted,
         float buildRatio, float converter, bool stalling)
     {
         float net = income - spent;
         if (stalling || (buildRatio < 0.98f && stored < storage * 0.05f))
-            return ($"Stalling: builds at {Mathf.Clamp(buildRatio * 100, 0, 99):0}%", UiTheme.Bad);
+            return ($"Stalling: building at {Mathf.Clamp(buildRatio * 100, 0, 99):0}% speed", UiTheme.Bad);
         if (net < -0.05f)
         {
             float t = stored / -net;
@@ -426,11 +469,28 @@ public partial class ResourceMeter : HBoxContainer
         if (net > 0.05f && stored < storage - 1)
         {
             float t = (storage - stored) / net;
+            if (t < 20) return ($"Full in {Duration(t)}, then wasting", UiTheme.Amber);
             if (t < 120) return ($"Full in {Duration(t)}", UiTheme.Dim);
         }
-        if (converter > 0.05f && spent > 0.05f && converter / spent >= 0.2f)
-            return ($"{Mathf.Clamp(converter / spent * 100, 0, 100):0}% to converters", UiTheme.Dim);
+        if (converter > 0.05f && income > 0.05f && converter / income >= 0.2f)
+            return ($"Converters using {Mathf.Clamp(converter / income * 100, 0, 100):0}% of energy", UiTheme.Dim);
         return ("Steady", UiTheme.Dim);
+    }
+
+    /// <summary>The tooltip: the averaged numbers behind the forecast.</summary>
+    public static string Detail(string resource, float stored, float storage, float income, float spent, float wasted, float buildRatio, float converter)
+    {
+        float net = income - spent;
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine($"{resource} (averaged over the last 2 seconds)");
+        sb.AppendLine($"Stored {stored:0} of {storage:0} ({stored / Math.Max(1, storage) * 100:0}%)");
+        sb.AppendLine($"Income +{income:0.#}/s   Spending -{spent:0.#}/s   Net {(net >= 0 ? "+" : "")}{net:0.#}/s");
+        if (net < -0.05f) sb.AppendLine($"Runs out in {Duration(stored / -net)} at this rate");
+        else if (net > 0.05f && stored < storage - 1) sb.AppendLine($"Fills up in {Duration((storage - stored) / net)} at this rate");
+        if (wasted > 0.05f) sb.AppendLine($"Wasting {wasted:0.#}/s: storage is full (build more, or add storage)");
+        sb.AppendLine(buildRatio < 0.98f ? $"Construction running at {Mathf.Clamp(buildRatio * 100, 0, 100):0}% speed (not enough to fund every build)" : "Construction at full speed");
+        if (converter > 0.05f) sb.Append($"Metal makers drawing {converter:0.#} energy/s ({(income > 0.05f ? converter / income * 100 : 0):0}% of income)");
+        return sb.ToString().TrimEnd();
     }
 
     private static string Duration(float seconds)

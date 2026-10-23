@@ -23,5 +23,6 @@
       "projectileSpeed": 70
     }
   ],
-  "description": "Main battle unit. The backbone of any army."
+  "description": "Main battle unit. The backbone of any army.",
+  "salvageWrecks": 3
 }

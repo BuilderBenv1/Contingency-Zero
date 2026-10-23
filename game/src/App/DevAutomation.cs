@@ -251,6 +251,18 @@ public partial class DevAutomation : Node
 
         // ---- Map editor checks: --dev-editor-script=<name> (see MapEditor/EditorDevScript.cs; pass a long --dev-seconds) ----
         if (_args.TryGetValue("--dev-editor-script", out var editorScript)) AddChild(new MapEditor.EditorDevScript(editorScript, _shots) { Name = "EditorDev" });
+
+        // ---- Templates, economy readouts, replay timeline, spectating, share codes: --dev-conv-script=template|replay|spectate|share (see UI/ConveniencesDevScript.cs) ----
+        if (_args.TryGetValue("--dev-conv-script", out var convScript)) AddChild(new UI.ConveniencesDevScript(convScript, _shots) { Name = "ConvDev" });
+
+        // ---- Controller checks: --dev-gamepad-script=match|menu (see Input/GamepadDevScript.cs; pass a long --dev-seconds) ----
+        if (_args.TryGetValue("--dev-gamepad-script", out var padScript)) AddChild(new Controls.GamepadDevScript(padScript, _shots) { Name = "GamepadDev" });
+
+        // ---- Craters, rubble, salvage, area orders, rally stops: --dev-sim-script=orders|salvage with --dev-showcase (see View/SimFeaturesDevScript.cs) ----
+        if (_args.TryGetValue("--dev-sim-script", out var simScript)) AddChild(new View.SimFeaturesDevScript(simScript, _shots) { Name = "SimFeaturesDev" });
+
+        // ---- Co-op and survival: --dev-missions-script=survival|campaign-coop|skirmish|coop-solo (see Missions/MissionsDevScript.cs) ----
+        if (_args.TryGetValue("--dev-missions-script", out var missionsScript)) AddChild(new Missions.MissionsDevScript(missionsScript, _args) { Name = "MissionsDev" });
     }
 
     public override void _Process(double delta)

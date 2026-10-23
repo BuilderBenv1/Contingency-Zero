@@ -349,6 +349,9 @@ public partial class StartDialog : EditorDialog
         _delete = Btn("Delete", AskDelete, 120);
         _delete.TooltipText = "Delete this map from your maps (built-in maps can't be deleted)";
         _open = Btn("Open", OpenSelected, 160, true);
+        Button paste = Btn("Paste map code", PasteMapCode, 170);
+        paste.TooltipText = "Add a map someone sent you as a share code (" + UI.ShareCodes.MapPrefix + "...) to your maps";
+        row.AddChild(paste);
         row.AddChild(_delete);
         row.AddChild(_open);
         box.AddChild(row);
@@ -460,6 +463,25 @@ public partial class StartDialog : EditorDialog
         if (Selected() is not { } entry || _open.Disabled) return;
         QueueFree();
         _onOpen(entry);
+    }
+
+    /// <summary>Takes a pasted map code, saves it into your maps and selects it.</summary>
+    private void PasteMapCode()
+    {
+        string? file = null;
+        var d = UI.ShareCodeDialog.Paste("PASTE MAP CODE", "map", UI.ShareCodes.MapPrefix, text =>
+        {
+            MapData map = UI.ShareCodes.DecodeMap(text);
+            file = UI.ShareCodes.SaveMap(map);
+            return $"Added \"{map.Name}\" to your maps ({file})";
+        }, () =>
+        {
+            FillList();
+            int row = _rowToMap.FindIndex(m => m >= 0 && _maps[m].Key == "user:" + file);
+            if (row >= 0) { _list.Select(row); Select(row); }
+        });
+        d.Layer = Layer + 1;
+        GetParent().AddChild(d);
     }
 
     private void AskDelete()

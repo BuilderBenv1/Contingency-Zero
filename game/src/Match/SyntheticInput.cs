@@ -11,6 +11,11 @@ namespace ContingencyZero.Game.Match;
 /// </summary>
 public static class SyntheticInput
 {
+    /// <summary>Device id stamped on made-up mouse events, so real mouse use can be told apart from the gamepad cursor.</summary>
+    public const int DeviceId = 0x5A17;
+
+    public static bool IsSynthetic(InputEvent e) => e.Device == DeviceId;
+
     private static Vector2 ToWindow(Viewport vp, Vector2 logical) => vp.GetFinalTransform() * logical;
 
     public static void MouseMove(Viewport vp, Vector2 logical, Vector2 relative = default)
@@ -22,6 +27,7 @@ public static class SyntheticInput
             GlobalPosition = p,
             Relative = relative,
             ButtonMask = Input.GetMouseButtonMask(),
+            Device = DeviceId,
         });
     }
 
@@ -40,12 +46,13 @@ public static class SyntheticInput
             ButtonMask = mask,
             ShiftPressed = shift,
             CtrlPressed = ctrl,
+            Device = DeviceId,
         });
     }
 
     public static void Key(Key key, bool pressed, bool shift = false, bool ctrl = false, string unicode = "")
     {
-        var ev = new InputEventKey { Keycode = key, PhysicalKeycode = key, Pressed = pressed, ShiftPressed = shift, CtrlPressed = ctrl };
+        var ev = new InputEventKey { Keycode = key, PhysicalKeycode = key, Pressed = pressed, ShiftPressed = shift, CtrlPressed = ctrl, Device = DeviceId };
         if (unicode.Length > 0) ev.Unicode = unicode[0];
         Input.ParseInputEvent(ev);
     }

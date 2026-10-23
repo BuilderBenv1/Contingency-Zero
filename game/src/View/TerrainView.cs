@@ -98,7 +98,9 @@ public partial class TerrainView : Node3D
 
         int vx = map.TilesX + 1, vy = map.TilesY + 1;
         _heights = new float[vx * vy];
+        _simRevision = 0;
         for (int i = 0; i < _heights.Length; i++) _heights[i] = map.Heights[i] * HeightScale;
+        _original = (float[])_heights.Clone();
 
         TerrainPalette pal = PaletteFor(map.Theme);
         _pal = pal;
@@ -184,9 +186,17 @@ public partial class TerrainView : Node3D
     private Vector3[] _normals = Array.Empty<Vector3>();
     private Color[] _colours = Array.Empty<Color>();
     private float[] _scorch = Array.Empty<float>();
+    /// <summary>The ground as the match began, so craters can be coloured by how deep they were dug.</summary>
+    private float[] _original = Array.Empty<float>();
     private ColourBands _bands;
     private TerrainPalette _pal = PaletteFor("temperate");
     private readonly HashSet<int> _dirtyChunks = new();
+    private readonly List<int> _rebuildNow = new();
+    /// <summary>Most ground chunks rebuilt in one frame; a big bombing run spreads over a few frames.</summary>
+    public const int MaxChunkRebuildsPerFrame = 6;
+
+    /// <summary>Goes up every time the ground's shape changes, so things standing on it know to re-seat.</summary>
+    public int Revision { get; private set; }
 
     /// <summary>The ground material (shared by the map editor's own chunks).</summary>
     public Material? GroundMaterial => _material;
@@ -251,6 +261,17 @@ public partial class TerrainView : Node3D
             var n = new Vector3(hl - hr, 2 * MapData.TileSize, hd - hu).Normalized();
             _normals[i] = n;
             Color c = GroundColour(_pal, _bands, h, n, x, y);
+            float dug = _original.Length > i ? _original[i] - h : 0;
+            if (dug > 0.2f)
+            {
+                // Blasted earth: churned, dark brown soil in the bowl, deeper is darker.
+                c = c.Lerp(new Color(0.2f, 0.15f, 0.11f), Mathf.Clamp(dug / 5f, 0.15f, 0.75f));
+            }
+            else if (dug < -0.2f)
+            {
+                // Thrown-up rim: loose, lighter dirt.
+                c = c.Lerp(new Color(0.45f, 0.38f, 0.29f), Mathf.Clamp(-dug / 2f, 0.1f, 0.45f));
+            }
             float sc = _scorch.Length > i ? _scorch[i] : 0;
             if (sc > 0)
             {
@@ -329,6 +350,28 @@ public partial class TerrainView : Node3D
             _heights[y * vx + x] = Map.Heights[y * vx + x] * HeightScale;
         RecomputeCorners(x0, y0, x1, y1);
         MarkChunks(x0, y0, x1, y1);
+        Revision++;
+    }
+
+    private int _simRevision;
+    private readonly List<(int Tx0, int Ty0, int Tx1, int Ty1)> _changes = new();
+
+    /// <summary>
+    /// Catches up with craters the sim has made since the last call (it keeps a log, so ticks that
+    /// were never drawn, such as a replay seek or a fast-forward, still reach the mesh). Returns the
+    /// changed tile rectangles, or null if nothing changed. Cheap when nothing did.
+    /// </summary>
+    public IReadOnlyList<(int Tx0, int Ty0, int Tx1, int Ty1)>? SyncWith(ContingencyZero.Sim.World world)
+    {
+        if (_heights.Length == 0 || world.TerrainRevision == _simRevision) return null;
+        if (!world.TerrainChangesSince(_simRevision, _changes))
+        {
+            _changes.Clear();
+            _changes.Add((0, 0, Map.TilesX - 1, Map.TilesY - 1));
+        }
+        _simRevision = world.TerrainRevision;
+        foreach (var (tx0, ty0, tx1, ty1) in _changes) RefreshRegion(tx0, ty0, tx1, ty1);
+        return _changes;
     }
 
     /// <summary>Burns the ground: darkens corners within <paramref name="radius"/> of a point, for good.</summary>
@@ -369,8 +412,18 @@ public partial class TerrainView : Node3D
     public override void _Process(double delta)
     {
         if (_dirtyChunks.Count == 0) return;
-        foreach (int i in _dirtyChunks) BuildChunk(i % _chunksX, i / _chunksX);
-        _dirtyChunks.Clear();
+        // Many hits in one frame share a rebuild per chunk; past the cap the rest wait a frame.
+        _rebuildNow.Clear();
+        foreach (int i in _dirtyChunks)
+        {
+            _rebuildNow.Add(i);
+            if (_rebuildNow.Count >= MaxChunkRebuildsPerFrame) break;
+        }
+        foreach (int i in _rebuildNow)
+        {
+            _dirtyChunks.Remove(i);
+            BuildChunk(i % _chunksX, i / _chunksX);
+        }
     }
 
     /// <summary>Copies a team's fog grids into the ground shader. Pass -1 to clear the fog (spectating).</summary>

@@ -170,6 +170,10 @@ internal static class OrderSystem
                 break;
             }
 
+            case OrderType.AttackArea:
+                ExecuteAttackArea(world, id, def, order);
+                break;
+
             case OrderType.Patrol:
                 if (MoveTo(world, id, def, order.Position, Fix64.FromInt(3)))
                 {
@@ -265,6 +269,70 @@ internal static class OrderSystem
             if (FixVec2.DistanceSquared(f.Position, centre) > r2) continue;
             Fix64 d = FixVec2.DistanceSquared(f.Position, from);
             if (d < bestD) { bestD = d; best = f.Id; }
+        }
+        return best;
+    }
+
+    /// <summary>
+    /// Area attack: fight the nearest visible enemy inside the circle until none are left. On the
+    /// way in it fights whatever it meets, like attack-move; once inside with nothing left, it's done.
+    /// </summary>
+    private static void ExecuteAttackArea(World world, int id, UnitDef def, Order order)
+    {
+        UnitStore units = world.Units;
+        Fix64 radius = Fix64.FromInt(order.TypeIndex);
+        int team = world.TeamOf(id);
+        int target = order.Target;
+        bool keep = units.IsValid(target) && world.CanSee(team, target, radarCounts: true)
+                    && FixVec2.DistanceSquared(units.Position[target], order.Position) <= (radius + Fix64.FromInt(8)) * (radius + Fix64.FromInt(8));
+        if (!keep)
+        {
+            // Look again straight away when a target is lost; while walking in, every few ticks.
+            target = -1;
+            if (order.Target >= 0 || (world.Tick + id) % 8 == 0)
+                target = NearestEnemyIn(world, id, def, order.Position, radius);
+            if (order.Target != target)
+            {
+                order.Target = target;
+                units.Orders[id][0] = order;
+            }
+        }
+
+        if (target >= 0)
+        {
+            Fix64 range = CombatSystem.BestRangeAgainst(world, def, target);
+            Fix64 stop = HasBomb(def) ? Fix64.One : range * Fix64.Parse("0.9");
+            if (FixVec2.DistanceSquared(units.Position[id], units.Position[target]) > stop * stop || HasBomb(def))
+                MoveTo(world, id, def, units.Position[target], stop);
+            else
+                units.ClearPath(id);
+            return;
+        }
+
+        if (units.Fire[id] != FireState.HoldFire && Engage(world, id, def, Fix64.Zero)) return;
+        Fix64 inner = radius / 2;
+        if (FixVec2.DistanceSquared(units.Position[id], order.Position) <= inner * inner
+            || MoveTo(world, id, def, order.Position, inner))
+        {
+            if (NearestEnemyIn(world, id, def, order.Position, radius) < 0) units.PopOrder(id);
+        }
+    }
+
+    /// <summary>The closest visible enemy to the unit inside the circle that it can hurt, or -1. Ties go to the lower id.</summary>
+    private static int NearestEnemyIn(World world, int id, UnitDef def, FixVec2 centre, Fix64 radius)
+    {
+        UnitStore units = world.Units;
+        int team = world.TeamOf(id);
+        Fix64 r2 = radius * radius;
+        int best = -1;
+        Fix64 bestD = Fix64.MaxValue;
+        for (int e = 0; e < units.Count; e++)
+        {
+            if (!units.Alive[e] || world.Players[units.Owner[e]].Team == team) continue;
+            if (FixVec2.DistanceSquared(units.Position[e], centre) > r2) continue;
+            if (!world.CanSee(team, e, radarCounts: true) || !CombatSystem.CanEverHit(world, def, e)) continue;
+            Fix64 d = FixVec2.DistanceSquared(units.Position[e], units.Position[id]);
+            if (d < bestD) { bestD = d; best = e; }
         }
         return best;
     }

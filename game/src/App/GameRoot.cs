@@ -36,6 +36,7 @@ public partial class GameRoot : Node
         AddChild(music);
         MusicHost.Register(music);
         AddChild(new IconFactory { Name = "Icons" });
+        AddChild(new Controls.MenuNavigator { Name = "MenuNavigator" }); // controller navigation for every menu
         Settings.Current.Apply();
 
         _dev = DevAutomation.FromCommandLine(this);

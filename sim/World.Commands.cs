@@ -120,16 +120,26 @@ public sealed partial class World
                 Units.FactoryRepeat[id] = c.Arg != 0;
                 return;
             case CommandType.SetRally:
-                if (c.Arg == 1)
+                if ((c.Arg == 1 || c.Queue) && Units.HasRally[id])
                 {
-                    Units.Rally2[id] = ClampToMap(c.Position);
-                    Units.HasRally2[id] = true;
+                    // Add a stop to the rotation; once full, the newest replaces the last.
+                    var extra = Units.RallyExtra[id];
+                    if (extra.Count >= UnitStore.MaxRallyPoints - 1) extra.RemoveAt(extra.Count - 1);
+                    extra.Add(ClampToMap(c.Position));
                 }
                 else
                 {
                     Units.Rally[id] = ClampToMap(c.Position);
                     Units.HasRally[id] = true;
+                    Units.RallyExtra[id].Clear();
+                    Units.RallyCount[id] = 0;
                 }
+                return;
+            case CommandType.ClearRally:
+                Units.HasRally[id] = false;
+                Units.Rally[id] = Units.Position[id];
+                Units.RallyExtra[id].Clear();
+                Units.RallyCount[id] = 0;
                 return;
             case CommandType.FactoryRallyEvery:
                 if (def.IsFactory) Units.RallyEvery[id] = Math2.Clamp(c.Arg, 0, 10);
@@ -185,6 +195,11 @@ public sealed partial class World
             case CommandType.ReclaimArea:
                 if (!def.CanReclaim || !def.CanMove) return;
                 order = new Order(OrderType.ReclaimArea, ClampToMap(c.Position), target: -1, typeIndex: Math2.Clamp(c.Arg, 4, 200));
+                break;
+
+            case CommandType.AttackArea:
+                if (!def.IsArmed || !def.CanMove) return;
+                order = new Order(OrderType.AttackArea, ClampToMap(c.Position), target: -1, typeIndex: Math2.Clamp(c.Arg, 4, 200));
                 break;
 
             case CommandType.RepairArea:

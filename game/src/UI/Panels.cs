@@ -54,6 +54,30 @@ public static class SettingsPanel
         Check("Fullscreen", s.Fullscreen, v => s.Fullscreen = v);
         Check("Scroll at screen edges", s.EdgeScroll, v => s.EdgeScroll = v);
         Check("Always show health bars", s.AlwaysShowHealthBars, v => s.AlwaysShowHealthBars = v);
+        var hints = Check("Always show controller prompts", s.GamepadHints, v => s.GamepadHints = v);
+
+        // Interface size: 100% is the 1600x900 design; about 115% suits a Steam Deck's 7-inch screen.
+        var uiRow = new HBoxContainer();
+        var ul = UiTheme.Label("Interface size", 16);
+        ul.CustomMinimumSize = new Vector2(170, 0);
+        uiRow.AddChild(ul);
+        var uiSlider = new HSlider { MinValue = Settings.MinUiScale, MaxValue = Settings.MaxUiScale, Step = 5, Value = s.UiScalePercent, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(160, 24) };
+        var uiValue = UiTheme.Label($"{s.UiScalePercent}%", 15, UiTheme.Dim);
+        uiValue.CustomMinimumSize = new Vector2(52, 0);
+        // Apply on release (or a d-pad step) so the panel doesn't resize under a dragging mouse.
+        uiSlider.ValueChanged += v => uiValue.Text = $"{(int)v}%";
+        uiSlider.DragEnded += _ => { s.UiScalePercent = (int)uiSlider.Value; s.ApplyUiScale(); };
+        uiSlider.GuiInput += e => { if (e is InputEventJoypadButton or InputEventJoypadMotion or InputEventKey) Callable.From(() => { s.UiScalePercent = (int)uiSlider.Value; s.ApplyUiScale(); }).CallDeferred(); };
+        uiRow.AddChild(uiSlider);
+        uiRow.AddChild(uiValue);
+        body.AddChild(uiRow);
+        body.AddChild(UiTheme.Button("Steam Deck preset (bigger interface, controller prompts)", () =>
+        {
+            s.ApplySteamDeckPreset();
+            uiSlider.SetValueNoSignal(s.UiScalePercent);
+            uiValue.Text = $"{s.UiScalePercent}%";
+            hints.SetPressedNoSignal(true);
+        }, 0, 15));
 
         var nameRow = new HBoxContainer();
         var nl = UiTheme.Label("Player name", 16);
@@ -100,6 +124,25 @@ The Commander's Breach Cannon (D) destroys almost anything it touches, for 500 e
 
 [b]Game speed[/b]   + / - change speed in single player · Pause key pauses · Esc opens the menu";
 
+    public const string ControllerText =
+@"[b]Cursor and camera[/b]   Left stick moves the cursor (hold it over for speed; it slows over units and settles onto one) · Right stick pans · LT / RT zoom out / in · R3 turns the view
+
+[b]Selecting[/b]   A selects what is under the cursor · Hold A and move for a box · L3 selects every unit of that type on screen · B deselects
+LB taps through your control groups · RB selects your army, press again for all builders, again for the next idle builder
+View selects your Commander · Hold View to steer on the minimap (A jumps the camera, B returns)
+
+[b]Orders[/b]   X gives the sensible order at the cursor: move, attack, help build, repair, reclaim or set a rally point
+Y opens the order wheel: Move, Attack-move, Patrol, Guard, Reclaim, Stop, D-Gun, fire state, Make group, Same type. Point the left stick, then A (or let go of Y)
+After picking an order, A at the cursor carries it out (hold A and move for an area reclaim or repair). B cancels
+Hold LB while pressing A or X to add to the selection or queue the order
+
+[b]Building[/b]   With a builder or factory selected, the d-pad walks its build menu and A picks. Move the cursor and press A to place (hold A and move for a row, hold LB to keep placing). Y turns a template. B cancels
+Factories: A on a unit queues one more
+
+[b]Menus[/b]   Menu (Start) pauses · D-pad or left stick moves between buttons · A presses · B goes back
+
+[b]Steam Deck[/b]   Use the Gamepad controller layout in Steam. Settings has a Steam Deck preset with a bigger interface and the button prompts always on.";
+
     public static CanvasLayer Create()
     {
         var layer = new CanvasLayer { Layer = 31 };
@@ -120,6 +163,25 @@ The Commander's Breach Cannon (D) destroys almost anything it touches, for 500 e
         text.AddThemeFontSizeOverride("normal_font_size", 15);
         text.AddThemeFontSizeOverride("bold_font_size", 15);
         text.AddThemeColorOverride("default_color", UiTheme.Ink);
+
+        // Two pages: keyboard and mouse, and controller (opens on the controller page if a pad was used last).
+        var tabs = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
+        tabs.AddThemeConstantOverride("separation", 8);
+        var group = new ButtonGroup();
+        Button Tab(string name, string page)
+        {
+            var b = UiTheme.Button(name, () => text.Text = page, 220, 15);
+            b.ToggleMode = true;
+            b.ButtonGroup = group;
+            tabs.AddChild(b);
+            return b;
+        }
+        var keys = Tab("Keyboard and mouse", Text);
+        var pad = Tab("Controller", ControllerText);
+        bool padFirst = Controls.MenuNavigator.GamepadLast;
+        (padFirst ? pad : keys).ButtonPressed = true;
+        text.Text = padFirst ? ControllerText : Text;
+        body.AddChild(tabs);
         body.AddChild(text);
         body.AddChild(UiTheme.Button("Close", layer.QueueFree));
         return layer;

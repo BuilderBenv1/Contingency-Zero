@@ -27,9 +27,9 @@ public static class Craters
         switch (kind)
         {
             // Ground corners sit on an 8-unit lattice, so anything much smaller than a tile
-            // doesn't register; small hits are left to the renderer's scorch marks.
+            // doesn't register; mortars and cannons are left to the renderer's scorch marks.
             case WeaponKind.Artillery:
-                if (s >= 7) world.DeformTerrain(centre, Fix64.FromInt(s + 6), (s + 6) * 7 / 10); // heavy guns: shallow pockmarks vehicles can cross
+                if (s >= 5) world.DeformTerrain(centre, Fix64.FromInt(s + 6), (s + 6) * 7 / 10); // field guns and up: shallow pockmarks vehicles can cross
                 break;
             case WeaponKind.Bomb:
                 world.DeformTerrain(centre, Fix64.FromInt(s + 8), (s + 8) * 12 / 10);          // a dimple that bombing runs dig into a hole

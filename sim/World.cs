@@ -312,6 +312,26 @@ public sealed partial class World
         }
     }
 
+    private const int TerrainLogSize = 256;
+    private readonly (int Tx0, int Ty0, int Tx1, int Ty1)[] _terrainLog = new (int, int, int, int)[TerrainLogSize];
+
+    /// <summary>How many times the ground has been reshaped this match. Output only (the heights themselves are hashed).</summary>
+    public int TerrainRevision { get; private set; }
+
+    /// <summary>
+    /// The tile rectangles (inclusive) reshaped since <paramref name="revision"/>, oldest first, for
+    /// the renderer to catch up on (even across ticks it never drew, such as a replay seek). Returns
+    /// false if that's too far back to list, in which case redraw everything.
+    /// </summary>
+    public bool TerrainChangesSince(int revision, List<(int Tx0, int Ty0, int Tx1, int Ty1)> into)
+    {
+        into.Clear();
+        if (revision >= TerrainRevision) return true;
+        if (TerrainRevision - revision > TerrainLogSize || revision < 0) return false;
+        for (int r = revision; r < TerrainRevision; r++) into.Add(_terrainLog[r % TerrainLogSize]);
+        return true;
+    }
+
     /// <summary>
     /// Blasts a crater into the ground and tells everyone: the renderer (an event) and any unit
     /// whose path ran through the area (it will search again).
@@ -321,21 +341,48 @@ public sealed partial class World
         var rect = Terrain.Deform(centre, radius, depthSteps);
         if (rect is null) return;
         var (tx0, ty0, tx1, ty1) = rect.Value;
+        _terrainLog[TerrainRevision % TerrainLogSize] = rect.Value;
+        TerrainRevision++;
         Events.Add(new GameEvent(GameEventType.TerrainChanged,
             Position: FixVec2.FromInts(tx0 * MapData.TileSize, ty0 * MapData.TileSize),
             Position2: FixVec2.FromInts((tx1 + 1) * MapData.TileSize, (ty1 + 1) * MapData.TileSize)));
 
-        // Ground units near a crater deep enough to matter drop their paths; the next step plans
-        // round the new shape. Shallow pockmarks don't change what's passable.
-        if (depthSteps < Terrain.VehicleMaxSlope) return;
-        Fix64 reach = radius * 2 + Fix64.FromInt(24);
+        // Ground units near a crater that changed where anything can drive drop their paths; the
+        // next step plans round the new shape. Shallow pockmarks usually change nothing.
+        if (!Terrain.LastDeformChangedPassability) return;
+        Fix64 reach = radius * 3 / 2 + Fix64.FromInt(8);
         Fix64 reach2 = reach * reach;
         for (int id = 0; id < Units.Count; id++)
         {
             if (!Units.Alive[id] || Units.Path[id] is null) continue;
             if (Catalog[Units.TypeIndex[id]].IsAir) continue;
-            if (FixVec2.DistanceSquared(Units.Position[id], centre) <= reach2) Units.ClearPath(id);
+            if (FixVec2.DistanceSquared(Units.Position[id], centre) <= reach2 || PathCrosses(id, centre, reach2))
+                Units.ClearPath(id);
         }
+    }
+
+    /// <summary>Whether the rest of a unit's path passes within sqrt(<paramref name="reach2"/>) of a point.</summary>
+    private bool PathCrosses(int id, FixVec2 centre, Fix64 reach2)
+    {
+        var path = Units.Path[id]!;
+        FixVec2 a = Units.Position[id];
+        for (int i = Units.PathIndex[id]; i < path.Count; i++)
+        {
+            FixVec2 b = path[i];
+            // Closest point on segment a-b to the centre.
+            FixVec2 ab = b - a;
+            Fix64 len2 = ab.LengthSquared();
+            FixVec2 closest = a;
+            if (len2 > Fix64.Zero)
+            {
+                FixVec2 ac = centre - a;
+                Fix64 t = Fix64.Clamp((ac.X * ab.X + ac.Y * ab.Y) / len2, Fix64.Zero, Fix64.One);
+                closest = a + ab * t;
+            }
+            if (FixVec2.DistanceSquared(closest, centre) <= reach2) return true;
+            a = b;
+        }
+        return false;
     }
 
     /// <summary>Removes a unit right away.</summary>
@@ -414,8 +461,11 @@ public sealed partial class World
             DefeatPlayer(owner);
     }
 
-    /// <summary>Enemy wrecks of one type a player must reclaim before their factories can build it.</summary>
+    /// <summary>Default number of enemy wrecks of one type to reclaim before a player's factories can build it (unit data can change it per type).</summary>
     public const int SalvageWrecksNeeded = 3;
+
+    /// <summary>Enemy wrecks of this type a player must reclaim to salvage it (from the unit's data).</summary>
+    public int SalvageNeeded(int typeIndex) => Catalog[typeIndex].SalvageWrecks;
 
     /// <summary>A wreck was fully reclaimed by <paramref name="player"/>: count it toward salvaging that design.</summary>
     internal void OnFeatureReclaimed(int player, Feature f)
@@ -424,7 +474,7 @@ public sealed partial class World
         UnitDef source = Catalog[f.SourceTypeIndex];
         if (!IsSalvageable(player, source)) return;
         int[] progress = Players[player].SalvageProgress;
-        if (progress[f.SourceTypeIndex] >= SalvageWrecksNeeded) return;
+        if (progress[f.SourceTypeIndex] >= SalvageNeeded(f.SourceTypeIndex)) return;
         progress[f.SourceTypeIndex]++;
         Events.Add(new GameEvent(GameEventType.Salvage, Other: player, Value: f.SourceTypeIndex, Kind: (byte)progress[f.SourceTypeIndex]));
     }
@@ -435,7 +485,7 @@ public sealed partial class World
 
     /// <summary>True once the player has reclaimed enough wrecks of this type to build it.</summary>
     public bool HasSalvaged(int player, int typeIndex) =>
-        typeIndex >= 0 && typeIndex < Catalog.Count && Players[player].SalvageProgress[typeIndex] >= SalvageWrecksNeeded;
+        typeIndex >= 0 && typeIndex < Catalog.Count && Players[player].SalvageProgress[typeIndex] >= SalvageNeeded(typeIndex);
 
     /// <summary>
     /// Salvaged designs this factory can build: the player has salvaged them and the factory already
@@ -448,7 +498,7 @@ public sealed partial class World
         int[] progress = Players[player].SalvageProgress;
         for (int t = 0; t < Catalog.Count; t++)
         {
-            if (progress[t] < SalvageWrecksNeeded) continue;
+            if (progress[t] < SalvageNeeded(t)) continue;
             if (!FactoryTakesRole(factory, Catalog[t].Role)) continue;
             list.Add(t);
         }
@@ -560,6 +610,10 @@ public sealed partial class World
             h.Add(Units.FactoryCurrent[id]);
             h.Add(Units.RallyEvery[id]);
             h.Add(Units.RallyCount[id]);
+            h.Add(Units.HasRally[id]);
+            if (Units.HasRally[id]) h.Add(Units.Rally[id]);
+            h.Add(Units.RallyExtra[id].Count);
+            foreach (FixVec2 r in Units.RallyExtra[id]) h.Add(r);
         }
 
         foreach (int height in Map.Heights) h.Add(height);

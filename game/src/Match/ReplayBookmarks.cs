@@ -21,7 +21,12 @@ public sealed class ReplayBookmarks
     /// <summary>How often the wave check runs.</summary>
     private const int WaveInterval = World.TicksPerSecond;
     /// <summary>Enemy mobile units near a base that count as a wave.</summary>
-    private const int WaveSize = 6;
+    private const int WaveSize = 8;
+    /// <summary>Big battle: at least this many completed units destroyed within <see cref="BattleWindow"/> seconds.</summary>
+    private const int BattleDeaths = 12;
+    private const int BattleWindow = 10;
+    /// <summary>At most one big-battle bookmark this often.</summary>
+    private const int BattleCooldown = 30 * World.TicksPerSecond;
     /// <summary>Samples kept per player for the wave check: 10 seconds at one per second.</summary>
     private const int WaveHistory = 10;
     /// <summary>Cell size for the structure grid; "near" means within this many map units, give or take.</summary>
@@ -38,6 +43,10 @@ public sealed class ReplayBookmarks
     private int[][] _nearby = Array.Empty<int[]>();          // ring buffer per player
     private int _nearbyIndex;
     private bool _gameOver;
+    private readonly int[] _deathsPerSecond = new int[BattleWindow];
+    private int _deathSecond = -1;
+    private int _lastBattle = -BattleCooldown;
+    private bool _battleArmed = true;
     private readonly HashSet<(int, int)> _cells = new();
     private readonly List<int> _defeatedThisTick = new();
 
@@ -64,6 +73,7 @@ public sealed class ReplayBookmarks
                 case GameEventType.UnitDestroyed when e.Unit >= 0 && e.Value >= 0 && e.Value < catalog.Count:
                 {
                     UnitDef def = catalog[e.Value];
+                    if (units.Complete[e.Unit]) CountDeath(world.Tick);
                     int owner = e.Other;
                     if (owner < 0 || owner >= _players) break;
                     string who = world.Players[owner].Name;
@@ -122,13 +132,50 @@ public sealed class ReplayBookmarks
         }
 
         if (world.Tick % WaveInterval == 0) CheckWaves(world, tick);
+        CheckBattle(world, tick);
+    }
+
+    private void CountDeath(int worldTick)
+    {
+        AdvanceDeathClock(worldTick);
+        _deathsPerSecond[_deathSecond % BattleWindow]++;
+    }
+
+    /// <summary>Moves the per-second death ring buffer up to the current second, clearing skipped seconds.</summary>
+    private void AdvanceDeathClock(int worldTick)
+    {
+        int second = worldTick / World.TicksPerSecond;
+        if (_deathSecond < 0) { _deathSecond = second; return; }
+        for (int s = _deathSecond + 1; s <= second && s - _deathSecond <= BattleWindow; s++) _deathsPerSecond[s % BattleWindow] = 0;
+        if (second - _deathSecond > BattleWindow) Array.Clear(_deathsPerSecond);
+        _deathSecond = Math.Max(_deathSecond, second);
+    }
+
+    /// <summary>
+    /// A big battle: many deaths in the last ten seconds. Fires once per fight: it re-arms when the
+    /// killing has died down to under half the threshold, and not more than every 30 seconds.
+    /// </summary>
+    private void CheckBattle(World world, int tick)
+    {
+        AdvanceDeathClock(world.Tick);
+        int recent = 0;
+        foreach (int d in _deathsPerSecond) recent += d;
+        if (!_battleArmed)
+        {
+            if (recent < BattleDeaths / 2) _battleArmed = true;
+            return;
+        }
+        if (recent < BattleDeaths || tick - _lastBattle < BattleCooldown) return;
+        _battleArmed = false;
+        _lastBattle = tick;
+        Add(Math.Max(0, tick - BattleWindow * World.TicksPerSecond / 2), ReplayBookmarkKind.BigBattle, $"Big battle: {recent} units down in {BattleWindow}s", -1);
     }
 
     /// <summary>Copies the bookmarks into a replay about to be saved.</summary>
     public void AttachTo(MatchReplay replay)
     {
         replay.Bookmarks.Clear();
-        replay.Bookmarks.AddRange(Items);
+        replay.Bookmarks.AddRange(System.Linq.Enumerable.OrderBy(Items, b => b.Tick)); // stable: same-tick marks keep their order
     }
 
     /// <summary>What a replay's "game over" bookmark says, for share text and the end screen.</summary>
@@ -157,6 +204,10 @@ public sealed class ReplayBookmarks
         }
         _nearbyIndex = 0;
         _gameOver = world.IsOver;
+        Array.Clear(_deathsPerSecond);
+        _deathSecond = -1;
+        _lastBattle = -BattleCooldown;
+        _battleArmed = true;
     }
 
     private void Add(int tick, ReplayBookmarkKind kind, string text, int player) =>

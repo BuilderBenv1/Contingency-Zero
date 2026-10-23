@@ -28,6 +28,8 @@ public enum OrderType : byte
     ReclaimArea = 10,
     /// <summary>Repair/help build everything friendly within TypeIndex units of Position; Target is the unit being worked on.</summary>
     RepairArea = 11,
+    /// <summary>Fight every enemy within TypeIndex units of Position, nearest first; Target is the current one.</summary>
+    AttackArea = 12,
 }
 
 public enum FireState : byte
@@ -63,6 +65,8 @@ public struct Order
 public sealed class UnitStore
 {
     public const int MaxWeapons = 2;
+    /// <summary>Most rally points a factory can hold (primary plus extras).</summary>
+    public const int MaxRallyPoints = 4;
     private const int InitialCapacity = 256;
 
     public int Count { get; private set; }
@@ -109,9 +113,9 @@ public sealed class UnitStore
     public int[] FactoryCurrent = new int[InitialCapacity];
     public FixVec2[] Rally = new FixVec2[InitialCapacity];
     public bool[] HasRally = new bool[InitialCapacity];
-    /// <summary>Secondary (ferry) rally point: every <see cref="RallyEvery"/>-th unit goes here instead.</summary>
-    public FixVec2[] Rally2 = new FixVec2[InitialCapacity];
-    public bool[] HasRally2 = new bool[InitialCapacity];
+    /// <summary>Extra (ferry) rally points after the primary one, at most <see cref="MaxRallyPoints"/> - 1.</summary>
+    public List<FixVec2>[] RallyExtra = new List<FixVec2>[InitialCapacity];
+    /// <summary>0: finished units take the rally points in turn. N &gt; 0: every Nth unit goes to the next extra point, the rest to the primary.</summary>
     public int[] RallyEvery = new int[InitialCapacity];
     public int[] RallyCount = new int[InitialCapacity];
 
@@ -155,14 +159,21 @@ public sealed class UnitStore
         FactoryCurrent[id] = -1;
         Rally[id] = position;
         HasRally[id] = false;
-        Rally2[id] = position;
-        HasRally2[id] = false;
+        RallyExtra[id] = new List<FixVec2>();
         RallyEvery[id] = 0;
         RallyCount[id] = 0;
         TileX[id] = -1;
         TileY[id] = -1;
         ExtractorYield[id] = Fix64.Zero;
         return id;
+    }
+
+    /// <summary>Every rally point of a factory in order: the primary first, then the extras.</summary>
+    public IEnumerable<FixVec2> RallyPoints(int id)
+    {
+        if (!HasRally[id]) yield break;
+        yield return Rally[id];
+        foreach (FixVec2 p in RallyExtra[id]) yield return p;
     }
 
     public bool IsValid(int id) => id >= 0 && id < Count && Alive[id];
@@ -224,8 +235,7 @@ public sealed class UnitStore
         Array.Resize(ref FactoryCurrent, size);
         Array.Resize(ref Rally, size);
         Array.Resize(ref HasRally, size);
-        Array.Resize(ref Rally2, size);
-        Array.Resize(ref HasRally2, size);
+        Array.Resize(ref RallyExtra, size);
         Array.Resize(ref RallyEvery, size);
         Array.Resize(ref RallyCount, size);
         Array.Resize(ref TileX, size);

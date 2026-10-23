@@ -44,17 +44,43 @@ public static class ReplayFiles
     public static string Import(string osPath)
     {
         MatchReplay replay = Load(osPath); // throws on a bad file
+        return Save(replay, Path.GetFileNameWithoutExtension(osPath));
+    }
+
+    /// <summary>
+    /// Writes a replay into the replays folder under a name based on <paramref name="baseName"/>
+    /// (numbered on a clash). Re-saving upgrades older formats. Returns the file name.
+    /// </summary>
+    public static string Save(MatchReplay replay, string baseName)
+    {
         DirAccess.MakeDirRecursiveAbsolute(GameData.ReplaysDir);
-        string baseName = Path.GetFileNameWithoutExtension(osPath);
+        baseName = new string(baseName.Select(c => char.IsLetterOrDigit(c) || c is '-' or '_' or ' ' or '(' or ')' ? c : '_').ToArray()).Trim();
         if (baseName.Length == 0) baseName = "replay";
+        if (baseName.Length > 60) baseName = baseName[..60];
         string name = baseName + Extension;
         for (int i = 2; FileAccess.FileExists($"{GameData.ReplaysDir}/{name}"); i++) name = $"{baseName} ({i}){Extension}";
         using var ms = new MemoryStream();
-        replay.Write(ms); // re-save, so an imported older-format file is upgraded and bookmarks round-trip
+        replay.Write(ms);
         using var f = FileAccess.Open($"{GameData.ReplaysDir}/{name}", FileAccess.ModeFlags.Write)
             ?? throw new IOException($"Couldn't write {name}: {FileAccess.GetOpenError()}");
         f.StoreBuffer(ms.ToArray());
         return name;
+    }
+
+    /// <summary>Imports a pasted share code into the replays folder. Returns the file name.</summary>
+    public static string ImportCode(string code)
+    {
+        MatchReplay replay = ShareCodes.DecodeReplay(code);
+        string stamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+        return Save(replay, $"{stamp}_shared_{GameData.SafeFileName(replay.Scenario.Map.Name).Replace(".json", "")}");
+    }
+
+    /// <summary>The share code for a saved replay file (its bytes as they are on disk).</summary>
+    public static string CodeFor(string fileName)
+    {
+        byte[] bytes = FileAccess.GetFileAsBytes($"{GameData.ReplaysDir}/{fileName}");
+        if (bytes.Length == 0) throw new IOException($"Couldn't read {fileName}");
+        return ShareCodes.ReplayCode(bytes);
     }
 
     /// <summary>Copies a saved replay to an OS path of the player's choosing (byte for byte).</summary>
@@ -90,7 +116,7 @@ public static class ReplayFiles
             .GroupBy(p => p.Team).OrderBy(g => g.Key)
             .Select(g => string.Join(" + ", g.Select(p => $"{p.Name} ({Faction(p.Faction)}{(p.Ai != ContingencyZero.Sim.Match.AiDifficulty.None ? $" {p.Ai} AI" : "")})")))));
         sb.AppendLine($"Result: {Result(r)}");
-        var highlights = r.Bookmarks.Where(b => b.Kind is ReplayBookmarkKind.CommanderKilled or ReplayBookmarkKind.Wave or ReplayBookmarkKind.PlayerDefeated)
+        var highlights = r.Bookmarks.Where(b => b.Kind is ReplayBookmarkKind.CommanderKilled or ReplayBookmarkKind.Wave or ReplayBookmarkKind.PlayerDefeated or ReplayBookmarkKind.BigBattle)
             .Take(4).Select(b => $"{Clock(b.Tick)} {b.Text}").ToList();
         if (highlights.Count > 0) sb.AppendLine("Moments: " + string.Join("; ", highlights));
         if (fileName is not null) sb.AppendLine($"File: {fileName}  (Replays > Import, or double-click it)");
@@ -129,6 +155,7 @@ public static class ReplayFiles
     public static Color Colour(ReplayBookmark b) => b.Kind switch
     {
         ReplayBookmarkKind.GameOver => UiTheme.Amber,
+        ReplayBookmarkKind.BigBattle => new Color(1f, 0.5f, 0.2f),
         ReplayBookmarkKind.CommanderKilled or ReplayBookmarkKind.PlayerDefeated => b.Player >= 0 ? UiTheme.TeamColour(b.Player) : UiTheme.Bad,
         _ => b.Player >= 0 ? UiTheme.TeamColour(b.Player) : UiTheme.Ink,
     };
@@ -202,9 +229,17 @@ public partial class ReplayBrowser : CanvasLayer
         buttons.AddChild(UiTheme.Button("Open folder", () => OS.ShellOpen(ProjectSettings.GlobalizePath(GameData.ReplaysDir)), 140));
         buttons.AddChild(UiTheme.Button("Import...", Import, 120));
         buttons.AddChild(UiTheme.Button("Export...", Export, 120));
-        var share = UiTheme.Button("Copy share text", CopyShareText, 170);
+        var share = UiTheme.Button("Copy share text", CopyShareText, 160);
         share.TooltipText = "Puts a short summary (title, map, players, length, result) on the clipboard to paste next to the file";
         buttons.AddChild(share);
+        var code = UiTheme.Button("Copy share code", CopyShareCode, 160);
+        code.TooltipText = "Puts the whole replay on the clipboard as a text code (" + ShareCodes.ReplayPrefix + "...) to paste into chat";
+        code.Name = "CopyShareCode";
+        buttons.AddChild(code);
+        var paste = UiTheme.Button("Paste code", PasteCode, 120);
+        paste.TooltipText = "Add a replay someone sent you as a share code";
+        paste.Name = "PasteCode";
+        buttons.AddChild(paste);
         buttons.AddChild(UiTheme.Button("Delete", Delete, 110));
         buttons.AddChild(UiTheme.Button("Watch", () => { if (_currentIndex >= 0) Play(_currentIndex, 0); }, 150));
         outer.AddChild(buttons);
@@ -221,7 +256,9 @@ public partial class ReplayBrowser : CanvasLayer
         foreach (string f in ReplayFiles.List())
         {
             _files.Add(f);
-            _list.AddItem(f.Replace(ReplayFiles.Extension, "").Replace('_', ' '));
+            int marks = BookmarkCount(f);
+            string label = f.Replace(ReplayFiles.Extension, "").Replace('_', ' ');
+            _list.AddItem(marks > 0 ? $"{label}   ·  {marks} bookmark{(marks == 1 ? "" : "s")}" : label);
         }
         if (_files.Count == 0) _info.Text = "No replays yet. Finish a match and it will appear here, or import one.";
         else
@@ -282,7 +319,50 @@ public partial class ReplayBrowser : CanvasLayer
     {
         if (_currentIndex < 0) return;
         DirAccess.RemoveAbsolute($"{GameData.ReplaysDir}/{_files[_currentIndex]}");
+        _markCounts.Remove(_files[_currentIndex]);
         Load();
+    }
+
+    /// <summary>Bookmark counts per file name, so the list doesn't re-read every replay each time it is shown.</summary>
+    private static readonly Dictionary<string, int> _markCounts = new();
+
+    private static int BookmarkCount(string file)
+    {
+        if (_markCounts.TryGetValue(file, out int n)) return n;
+        try { n = ReplayFiles.Load($"{GameData.ReplaysDir}/{file}").Bookmarks.Count; }
+        catch (Exception) { n = 0; }
+        _markCounts[file] = n;
+        return n;
+    }
+
+    private void CopyShareCode()
+    {
+        if (_currentIndex < 0) return;
+        try
+        {
+            string code = ReplayFiles.CodeFor(_files[_currentIndex]);
+            AddChild(ShareCodeDialog.ShowCode("SHARE REPLAY", "replay", code));
+            _status.Text = $"Share code copied ({ShareCodes.Size(code.Length)}).";
+        }
+        catch (Exception e)
+        {
+            _status.Text = $"Couldn't make a code: {e.Message}";
+        }
+    }
+
+    /// <summary>Opens the paste box; on success the new replay is selected.</summary>
+    public void PasteCode()
+    {
+        string? imported = null;
+        AddChild(ShareCodeDialog.Paste("PASTE REPLAY CODE", "replay", ShareCodes.ReplayPrefix, text =>
+        {
+            imported = ReplayFiles.ImportCode(text);
+            return $"Added {imported}";
+        }, () =>
+        {
+            _status.Text = $"Imported {imported} from a share code";
+            Load(imported);
+        }));
     }
 
     private void CopyShareText()
@@ -354,9 +434,11 @@ public partial class ReplayBrowser : CanvasLayer
 }
 
 /// <summary>
-/// Playback bar for replays: pause, speed, whose view to watch, the casting panel, and a strip of
-/// bookmark buttons to jump to (N for the next one). Jumping forward runs the sim ahead; jumping
-/// back rebuilds the match from the replay and runs forward from the start.
+/// Playback bar for replays and spectating: pause, speed, whose view to watch and the casting
+/// panel. For replays also a timeline with a marker per bookmark (click a marker to jump just
+/// before it, click anywhere else to go to that moment), previous / next bookmark buttons
+/// (comma / N) and progress while seeking. Jumping forward runs the sim ahead; jumping back
+/// rebuilds the match from the replay and runs forward from the start.
 /// </summary>
 public partial class ReplayControls : CanvasLayer
 {
@@ -370,10 +452,17 @@ public partial class ReplayControls : CanvasLayer
     private Label _time = null!;
     private Label _seeking = null!;
     private Label _next = null!;
-    private ProgressBar _progress = null!;
-    private readonly List<Button> _markButtons = new();
+    private ReplayTimeline? _timeline;
     private bool _wasSeeking;
+    private OptionButton? _view;
+    private Control _panel = null!;
+    private float _castingTop = -1;
+    /// <summary>Viewer settings handed from a replay to its rebuilt self when seeking backwards.</summary>
+    private static (bool Casting, double Speed, int View)? _carry;
+    /// <summary>Tick the seek started from, for the progress readout.</summary>
+    private int _seekFrom;
 
+    /// <param name="replay">The replay being watched, or null when spectating a live match (no timeline).</param>
     public ReplayControls(MatchScene match, MatchReplay? replay = null)
     {
         _match = match;
@@ -381,6 +470,10 @@ public partial class ReplayControls : CanvasLayer
     }
 
     private IReadOnlyList<ReplayBookmark> Bookmarks => _replay?.Bookmarks ?? (IReadOnlyList<ReplayBookmark>)Array.Empty<ReplayBookmark>();
+    private bool IsReplay => _replay is not null;
+
+    /// <summary>The timeline (replays only), for dev automation.</summary>
+    public ReplayTimeline? Timeline => _timeline;
 
     public override void _Ready()
     {
@@ -394,126 +487,296 @@ public partial class ReplayControls : CanvasLayer
         panel.AnchorLeft = 0.5f; panel.AnchorRight = 0.5f;
         panel.OffsetLeft = -470; panel.OffsetRight = 470; panel.OffsetTop = 58;
         root.AddChild(panel);
+        _panel = panel;
 
         var bar = new HBoxContainer();
         bar.AddThemeConstantOverride("separation", 8);
         rows.AddChild(bar);
-        bar.AddChild(UiTheme.Button("Pause", () => _match.Session.Paused = !_match.Session.Paused, 76, 14));
-        foreach (double s in new[] { 0.5, 1, 2, 4, 8 })
-            bar.AddChild(UiTheme.Button($"x{s}", () => _match.Session.Speed = s, 48, 14));
-        var view = new OptionButton();
-        view.AddItem("Everyone");
+        if (!IsReplay)
+        {
+            var tag = UiTheme.Label("SPECTATING", 15, UiTheme.Amber);
+            tag.VerticalAlignment = VerticalAlignment.Center;
+            bar.AddChild(tag);
+        }
+        bool canChangeSpeed = !_match.Session.IsMultiplayer;
+        if (canChangeSpeed)
+        {
+            bar.AddChild(UiTheme.Button("Pause", () => _match.Session.Paused = !_match.Session.Paused, 76, 14));
+            foreach (double s in new[] { 0.5, 1, 2, 4, 8 })
+                bar.AddChild(UiTheme.Button($"x{s}", () => _match.Session.Speed = s, 48, 14));
+        }
+        var view = new OptionButton { TooltipText = "Whose eyes to watch through: everything, or one player's vision and fog" };
+        view.AddItem("Vision: all");
         var players = _match.Session.World.Players;
-        foreach (var p in players) view.AddItem(p.Name);
-        view.ItemSelected += i => _match.SetViewer(i == 0 ? -1 : players[i - 1].Team);
+        foreach (var p in players) view.AddItem($"Vision: {p.Name}");
+        view.ItemSelected += i =>
+        {
+            _match.SetViewer(i == 0 ? -1 : players[i - 1].Team);
+            if (_match.Hud is { } hud) hud.WatchedPlayer = (int)i - 1; // the resource bar follows the chosen player
+        };
+        view.Name = "Vision";
         bar.AddChild(view);
-        _progress = new ProgressBar { CustomMinimumSize = new Vector2(110, 10), MaxValue = 1, ShowPercentage = false, SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
-        bar.AddChild(_progress);
+        _view = view;
         _time = UiTheme.Label("", 14);
         _time.CustomMinimumSize = new Vector2(96, 0);
         _time.VerticalAlignment = VerticalAlignment.Center;
         bar.AddChild(_time);
-        var next = UiTheme.Button("Next >", JumpToNext, 70, 14);
-        next.TooltipText = "Jump to the next bookmark (N)";
-        bar.AddChild(next);
+        if (IsReplay)
+        {
+            var prev = UiTheme.Button("< Prev", JumpToPrevious, 70, 14);
+            prev.TooltipText = "Jump to the previous bookmark (comma)";
+            bar.AddChild(prev);
+            var next = UiTheme.Button("Next >", JumpToNext, 70, 14);
+            next.TooltipText = "Jump to the next bookmark (N)";
+            bar.AddChild(next);
+        }
         var casting = UiTheme.Button("Casting", () => _match.GetNodeOrNull<CastingOverlay>("Casting")?.Toggle(), 80, 14);
-        casting.TooltipText = "Broadcast panel: incomes, army value, kills and graphs for every player (C)";
+        casting.TooltipText = "Broadcast panel: incomes, army value, losses, kills and graphs for every player (C)";
         bar.AddChild(casting);
 
-        // Bookmark strip: one small button per moment, coloured by player, with the text as a tooltip.
-        var stripRow = new HBoxContainer();
-        stripRow.AddThemeConstantOverride("separation", 6);
-        rows.AddChild(stripRow);
-        var strip = new HBoxContainer();
-        strip.AddThemeConstantOverride("separation", 3);
-        var scroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Auto, VerticalScrollMode = ScrollContainer.ScrollMode.Disabled, CustomMinimumSize = new Vector2(0, 30), SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-        scroll.AddChild(strip);
-        _seeking = UiTheme.Label("", 13, UiTheme.Amber);
-        _seeking.VerticalAlignment = VerticalAlignment.Center;
+        if (IsReplay)
+        {
+            _timeline = new ReplayTimeline(this, Bookmarks) { CustomMinimumSize = new Vector2(0, 26), SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, Name = "Timeline" };
+            rows.AddChild(_timeline);
+        }
+
+        var infoRow = new HBoxContainer();
+        infoRow.AddThemeConstantOverride("separation", 10);
+        rows.AddChild(infoRow);
         _next = UiTheme.Label("", 13, UiTheme.Dim);
         _next.VerticalAlignment = VerticalAlignment.Center;
-        _next.CustomMinimumSize = new Vector2(230, 0);
+        _next.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         _next.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
-        stripRow.AddChild(_next);
-        stripRow.AddChild(scroll);
-        stripRow.AddChild(_seeking);
-        if (Bookmarks.Count == 0)
+        infoRow.AddChild(_next);
+        _seeking = UiTheme.Label("", 13, UiTheme.Amber);
+        _seeking.VerticalAlignment = VerticalAlignment.Center;
+        infoRow.AddChild(_seeking);
+        if (!IsReplay) _next.Text = "Watching live. Press C for the casting panel.";
+
+        // Sit the casting panel under this bar, and restore settings carried over a backwards seek.
+        var carry = IsReplay ? _carry : null;
+        _carry = null;
+        Callable.From(() =>
         {
-            strip.AddChild(UiTheme.Label("No bookmarks in this replay", 13, UiTheme.Dim));
-        }
-        for (int i = 0; i < Bookmarks.Count; i++)
-        {
-            ReplayBookmark b = Bookmarks[i];
-            int tick = b.Tick;
-            var button = new Button { Text = ReplayFiles.Clock(b.Tick), TooltipText = $"{ReplayFiles.Clock(b.Tick)}  {b.Text}", CustomMinimumSize = new Vector2(0, 26) };
-            button.AddThemeFontSizeOverride("font_size", 12);
-            button.AddThemeColorOverride("font_color", ReplayFiles.Colour(b));
-            button.AddThemeStyleboxOverride("normal", UiTheme.Box(new Color(0.12f, 0.12f, 0.11f), new Color(ReplayFiles.Colour(b), 0.6f), 1, 1, 3));
-            button.AddThemeStyleboxOverride("hover", UiTheme.Box(new Color(0.22f, 0.23f, 0.19f), UiTheme.Accent, 1, 1, 3));
-            button.AddThemeStyleboxOverride("pressed", UiTheme.Box(new Color(0.28f, 0.31f, 0.18f), UiTheme.Accent, 1, 1, 3));
-            button.Pressed += () => { Audio.Sfx.Play(Audio.SfxKind.Click); JumpTo(tick); };
-            strip.AddChild(button);
-            _markButtons.Add(button);
-        }
+            CastingOverlay? c = _match.GetNodeOrNull<CastingOverlay>("Casting");
+            if (carry is { } k)
+            {
+                _match.Session.Speed = k.Speed;
+                if (c is not null) c.Shown = k.Casting;
+                if (k.View > 0 && k.View < view.ItemCount)
+                {
+                    view.Select(k.View);
+                    _match.SetViewer(players[k.View - 1].Team);
+                    if (_match.Hud is { } hud) hud.WatchedPlayer = k.View - 1;
+                }
+            }
+        }).CallDeferred();
     }
 
-    /// <summary>Starts watching from just before <paramref name="tick"/> (forward: run ahead; back: rebuild from the replay).</summary>
-    public void JumpTo(int tick)
+    public int CurrentTick => _match.Session.World.Tick;
+    public int TotalTicks => _match.Session.Channel is ReplayChannel rc ? Math.Max(1, rc.LastTick) : Math.Max(1, CurrentTick);
+    /// <summary>Where a seek is heading (-1 when not seeking).</summary>
+    public int SeekTarget => _match.Session.Seeking ? _match.Session.SeekTarget : -1;
+
+    /// <summary>Starts watching from just before bookmark tick <paramref name="tick"/>.</summary>
+    public void JumpTo(int tick) => SeekExact(Math.Max(0, tick - LeadInTicks));
+
+    /// <summary>Goes to exactly <paramref name="target"/> (forward: run ahead; back: rebuild from the replay).</summary>
+    public void SeekExact(int target)
     {
-        int target = Math.Max(0, tick - LeadInTicks);
+        if (_replay is null) return;
+        target = Math.Clamp(target, 0, TotalTicks);
         SimSession s = _match.Session;
         if (target >= s.World.Tick)
         {
+            _seekFrom = s.World.Tick;
             s.SeekTo(target);
         }
-        else if (_replay is not null)
+        else
         {
             // Can't step backwards: start the replay again and run forward to the target.
             MatchReplay replay = _replay;
             string title = _match.Title;
-            Callable.From(() => GameRoot.Instance.StartReplay(replay, title, target)).CallDeferred();
+            bool casting = _match.GetNodeOrNull<CastingOverlay>("Casting")?.Shown ?? false;
+            double speed = s.Speed;
+            Callable.From(() =>
+            {
+                // Keep what the viewer had on (casting panel, speed, vision) across the rebuild.
+                _carry = (casting, speed, _view?.Selected ?? 0);
+                GameRoot.Instance.StartReplay(replay, title, target);
+            }).CallDeferred();
         }
     }
 
     /// <summary>Jumps to the first bookmark after the current time.</summary>
     public void JumpToNext()
     {
-        int now = _match.Session.World.Tick;
+        int now = CurrentTick;
         foreach (ReplayBookmark b in Bookmarks)
             if (b.Tick - LeadInTicks > now) { JumpTo(b.Tick); return; }
     }
 
+    /// <summary>Jumps to the bookmark before the one just passed (so pressing it twice keeps going back).</summary>
+    public void JumpToPrevious()
+    {
+        int now = CurrentTick;
+        // A bookmark we just jumped to (we're within its lead-in plus a couple of seconds) doesn't count.
+        int slack = LeadInTicks + 2 * ContingencyZero.Sim.World.TicksPerSecond;
+        for (int i = Bookmarks.Count - 1; i >= 0; i--)
+            if (Bookmarks[i].Tick + slack < now) { JumpTo(Bookmarks[i].Tick); return; }
+        SeekExact(0);
+    }
+
     public override void _UnhandledInput(InputEvent e)
     {
-        if (e is InputEventKey { Pressed: true, Echo: false, Keycode: Key.N, CtrlPressed: false, AltPressed: false })
-        {
-            JumpToNext();
-            GetViewport().SetInputAsHandled();
-        }
+        if (!IsReplay || e is not InputEventKey { Pressed: true, Echo: false, CtrlPressed: false, AltPressed: false } k) return;
+        if (k.Keycode == Key.N) { JumpToNext(); GetViewport().SetInputAsHandled(); }
+        else if (k.Keycode == Key.Comma) { JumpToPrevious(); GetViewport().SetInputAsHandled(); }
     }
 
     public override void _Process(double delta)
     {
-        if (_match.Session.Channel is not ReplayChannel rc) return;
+        // Keep the casting panel just under this bar, whatever height the bar ends up.
+        float bottom = _panel.GetRect().End.Y + 6;
+        if (Math.Abs(bottom - _castingTop) > 0.5f && _match.GetNodeOrNull<CastingOverlay>("Casting") is { } casting)
+        {
+            casting.SetTop(bottom);
+            _castingTop = bottom;
+        }
         SimSession s = _match.Session;
-        int t = s.World.Tick, total = Math.Max(1, rc.LastTick);
-        _progress.Value = (double)t / total;
+        int t = s.World.Tick;
+        if (!IsReplay)
+        {
+            _time.Text = ReplayFiles.Clock(t) + (s.Paused ? "  paused" : s.Speed != 1 ? $"  x{s.Speed}" : "");
+            return;
+        }
+        int total = TotalTicks;
         _time.Text = $"{ReplayFiles.Clock(t)} / {ReplayFiles.Clock(total)}";
         bool seeking = s.Seeking;
-        _seeking.Text = seeking ? $"Seeking to {ReplayFiles.Clock(s.SeekTarget)}..." : "";
+        if (seeking)
+        {
+            int span = Math.Max(1, s.SeekTarget - _seekFrom);
+            float pct = Math.Clamp((t - _seekFrom) / (float)span, 0, 1) * 100;
+            _seeking.Text = $"Seeking to {ReplayFiles.Clock(s.SeekTarget)}...  {pct:0}%";
+        }
+        else if (_seeking.Text.Length > 0) _seeking.Text = "";
         if (_wasSeeking && !seeking) _match.Units.Snapshot(); // land cleanly instead of sliding across the map
         _wasSeeking = seeking;
+        _timeline?.QueueRedraw();
 
-        // Mark passed bookmarks and say which is next.
         string next = "";
-        for (int i = 0; i < _markButtons.Count; i++)
-        {
-            ReplayBookmark b = Bookmarks[i];
-            bool passed = b.Tick <= t;
-            _markButtons[i].Modulate = passed ? new Color(1, 1, 1, 0.45f) : Colors.White;
-            if (!passed && next.Length == 0) next = $"Next: {ReplayFiles.Clock(b.Tick)} {b.Text}";
-        }
-        if (next.Length == 0 && Bookmarks.Count > 0) next = "No more bookmarks";
+        foreach (ReplayBookmark b in Bookmarks)
+            if (b.Tick > t) { next = $"Next: {ReplayFiles.Clock(b.Tick)} {b.Text}"; break; }
+        if (Bookmarks.Count == 0) next = "No bookmarks in this replay. Click the timeline to skip ahead.";
+        else if (next.Length == 0) next = "No more bookmarks";
         if (_next.Text != next) _next.Text = next;
+    }
+}
+
+/// <summary>
+/// The replay's time bar: played part filled, a marker per bookmark coloured by player (tooltip
+/// says what happened), the seek target while seeking. Click a marker to jump to it, or anywhere
+/// else on the bar to go to that moment.
+/// </summary>
+public partial class ReplayTimeline : Control
+{
+    private const float MarkerHit = 7f;
+    private readonly ReplayControls _controls;
+    private readonly IReadOnlyList<ReplayBookmark> _marks;
+    private float _hoverX = -1;
+
+    public ReplayTimeline(ReplayControls controls, IReadOnlyList<ReplayBookmark> marks)
+    {
+        _controls = controls;
+        _marks = marks;
+        MouseFilter = MouseFilterEnum.Stop;
+        MouseDefaultCursorShape = CursorShape.PointingHand;
+        TooltipText = " "; // non-empty so _GetTooltip is asked
+    }
+
+    private Rect2 Track => new(6, Size.Y / 2 - 4, Math.Max(1, Size.X - 12), 8);
+    private float XOf(int tick) => Track.Position.X + Track.Size.X * Math.Clamp(tick / (float)_controls.TotalTicks, 0, 1);
+    private int TickAt(float x) => (int)Math.Round(Math.Clamp((x - Track.Position.X) / Track.Size.X, 0, 1) * _controls.TotalTicks);
+
+    /// <summary>The bookmark whose marker is under <paramref name="x"/>, or -1.</summary>
+    public int MarkerAt(float x)
+    {
+        int best = -1;
+        float bestD = MarkerHit;
+        for (int i = 0; i < _marks.Count; i++)
+        {
+            float d = Math.Abs(XOf(_marks[i].Tick) - x);
+            if (d <= bestD) { bestD = d; best = i; }
+        }
+        return best;
+    }
+
+    /// <summary>Screen-space centre of a marker (dev automation clicks it).</summary>
+    public Vector2 MarkerPosition(int index) => GlobalPosition + new Vector2(XOf(_marks[index].Tick), Size.Y / 2);
+
+    public override string _GetTooltip(Vector2 atPosition)
+    {
+        int m = MarkerAt(atPosition.X);
+        if (m >= 0) return $"{ReplayFiles.Clock(_marks[m].Tick)}  {_marks[m].Text}\nClick to jump here";
+        return $"{ReplayFiles.Clock(TickAt(atPosition.X))}: click to go here";
+    }
+
+    public override void _GuiInput(InputEvent e)
+    {
+        if (e is InputEventMouseMotion mm) { _hoverX = mm.Position.X; QueueRedraw(); }
+        if (e is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } mb)
+        {
+            Audio.Sfx.Play(Audio.SfxKind.Click);
+            int m = MarkerAt(mb.Position.X);
+            if (m >= 0) _controls.JumpTo(_marks[m].Tick);
+            else _controls.SeekExact(TickAt(mb.Position.X));
+            AcceptEvent();
+        }
+    }
+
+    public override void _Notification(int what)
+    {
+        if (what == NotificationMouseExit) { _hoverX = -1; QueueRedraw(); }
+    }
+
+    public override void _Draw()
+    {
+        Rect2 track = Track;
+        int now = _controls.CurrentTick;
+        DrawRect(track, new Color(0, 0, 0, 0.55f));
+        DrawRect(new Rect2(track.Position, new Vector2(XOf(now) - track.Position.X, track.Size.Y)), new Color(UiTheme.Accent, 0.55f));
+        DrawRect(track, new Color(UiTheme.PanelEdge, 0.9f), false, 1);
+        // Minute ticks.
+        int minutes = _controls.TotalTicks / (60 * ContingencyZero.Sim.World.TicksPerSecond);
+        int every = minutes > 40 ? 10 : minutes > 15 ? 5 : 1;
+        for (int m = every; m <= minutes; m += every)
+        {
+            float x = XOf(m * 60 * ContingencyZero.Sim.World.TicksPerSecond);
+            DrawLine(new Vector2(x, track.End.Y), new Vector2(x, track.End.Y + 3), new Color(UiTheme.Dim, 0.6f), 1);
+        }
+        int seek = _controls.SeekTarget;
+        if (seek >= 0)
+        {
+            float sx = XOf(seek);
+            DrawLine(new Vector2(sx, 1), new Vector2(sx, Size.Y - 1), UiTheme.Amber, 2);
+        }
+        int hover = _hoverX >= 0 ? MarkerAt(_hoverX) : -1;
+        for (int i = 0; i < _marks.Count; i++)
+        {
+            ReplayBookmark b = _marks[i];
+            float x = XOf(b.Tick);
+            Color c = ReplayFiles.Colour(b);
+            if (b.Tick <= now) c = new Color(c, 0.5f);
+            float r = i == hover ? 7 : 5;
+            float cy = Size.Y / 2;
+            var diamond = new[] { new Vector2(x, cy - r), new Vector2(x + r, cy), new Vector2(x, cy + r), new Vector2(x - r, cy) };
+            DrawColoredPolygon(diamond, c);
+            DrawPolyline(new[] { diamond[0], diamond[1], diamond[2], diamond[3], diamond[0] }, new Color(0, 0, 0, 0.8f), 1);
+        }
+        // Playhead.
+        float px = XOf(now);
+        DrawRect(new Rect2(px - 1.5f, 1, 3, Size.Y - 2), UiTheme.Ink);
+        if (_hoverX >= 0 && hover < 0)
+            DrawLine(new Vector2(_hoverX, 2), new Vector2(_hoverX, Size.Y - 2), new Color(UiTheme.Ink, 0.35f), 1);
     }
 }

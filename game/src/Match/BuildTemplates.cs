@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using ContingencyZero.Sim;
+using ContingencyZero.Sim.Core;
 using ContingencyZero.Sim.Data;
 using ContingencyZero.Sim.Map;
 using Godot;
@@ -15,6 +16,12 @@ namespace ContingencyZero.Game.Match;
 public sealed class TemplateItem
 {
     [JsonPropertyName("type")] public string Type { get; set; } = "";
+    /// <summary>
+    /// The structure's role ("metal_extractor", "factory_bot", ...). Roles are shared by both
+    /// factions, so a template saved as Crucible stamps the Lattice equivalents and vice versa.
+    /// Older files without it fall back to <see cref="Type"/>.
+    /// </summary>
+    [JsonPropertyName("role")] public string Role { get; set; } = "";
     [JsonPropertyName("dx")] public int Dx { get; set; }
     [JsonPropertyName("dy")] public int Dy { get; set; }
 }
@@ -34,7 +41,7 @@ public sealed class BuildTemplate
             int fp = catalog.TryIndexOf(it.Type, out int idx) ? catalog[idx].Footprint : 1;
             // A footprint covering tiles [dx, dx+fp) x [dy, dy+fp) rotated 90 degrees about the tile corner (0,0)
             // covers [-dy-fp, -dy) x [dx, dx+fp): the maths stays on whole tiles, so nothing ever misaligns.
-            items.Add(new TemplateItem { Type = it.Type, Dx = -it.Dy - fp, Dy = it.Dx });
+            items.Add(new TemplateItem { Type = it.Type, Role = it.Role, Dx = -it.Dy - fp, Dy = it.Dx });
         }
         if (items.Count > 0)
         {
@@ -42,6 +49,40 @@ public sealed class BuildTemplate
             foreach (TemplateItem it in items) { it.Dx -= ax; it.Dy -= ay; }
         }
         return new BuildTemplate { Name = Name, Items = items };
+    }
+
+    /// <summary>
+    /// The catalog index this item means for <paramref name="faction"/>: the faction's structure with
+    /// the same role if there is one (so templates cross factions), otherwise the saved type id.
+    /// </summary>
+    public static bool Resolve(UnitCatalog catalog, TemplateItem item, string faction, out int type)
+    {
+        if (item.Role.Length > 0)
+        {
+            for (int i = 0; i < catalog.Count; i++)
+            {
+                UnitDef d = catalog[i];
+                if (d.IsStructure && d.Role == item.Role && d.Faction == faction) { type = i; return true; }
+            }
+        }
+        if (catalog.TryIndexOf(item.Type, out type)) return true;
+        type = -1;
+        return false;
+    }
+
+    /// <summary>
+    /// Stamping order: economy first (extractors, then energy, converters, storage), then factories,
+    /// then radar and defences. Lower builds sooner.
+    /// </summary>
+    public static int BuildPriority(UnitDef d)
+    {
+        if (d.NeedsMetalSpot || d.MetalIncomePerTick > Fix64.Zero) return 0;
+        if (d.EnergyIncomePerTick > Fix64.Zero || d.UsesWind) return 1;
+        if (d.ConvertMetalPerTick > Fix64.Zero) return 2;
+        if (d.MetalStorage > Fix64.Zero || d.EnergyStorage > Fix64.Zero) return 3;
+        if (d.IsFactory) return 4;
+        if (!d.IsArmed) return 5; // radar and other utility
+        return 6;
     }
 
     /// <summary>Builds a template from the player's selected structures. Returns null if there are none.</summary>
@@ -54,11 +95,13 @@ public sealed class BuildTemplate
         int anchor = structures.OrderBy(id => world.Units.TileY[id]).ThenBy(id => world.Units.TileX[id]).First();
         int ax = world.Units.TileX[anchor], ay = world.Units.TileY[anchor];
         var t = new BuildTemplate { Name = name };
-        t.Items.Add(new TemplateItem { Type = world.Catalog[world.Units.TypeIndex[anchor]].Id, Dx = 0, Dy = 0 });
+        UnitDef ad = world.Catalog[world.Units.TypeIndex[anchor]];
+        t.Items.Add(new TemplateItem { Type = ad.Id, Role = ad.Role, Dx = 0, Dy = 0 });
         foreach (int id in structures.OrderBy(id => world.Units.TileY[id]).ThenBy(id => world.Units.TileX[id]))
         {
             if (id == anchor) continue;
-            t.Items.Add(new TemplateItem { Type = world.Catalog[world.Units.TypeIndex[id]].Id, Dx = world.Units.TileX[id] - ax, Dy = world.Units.TileY[id] - ay });
+            UnitDef d = world.Catalog[world.Units.TypeIndex[id]];
+            t.Items.Add(new TemplateItem { Type = d.Id, Role = d.Role, Dx = world.Units.TileX[id] - ax, Dy = world.Units.TileY[id] - ay });
         }
         return t;
     }
@@ -78,9 +121,10 @@ public sealed class TemplatePlan
     {
         var plan = new TemplatePlan();
         var takenSpots = new HashSet<int>();
+        string faction = player >= 0 && player < world.Players.Length ? world.Players[player].Faction : "";
         foreach (TemplateItem it in template.Items)
         {
-            if (!world.Catalog.TryIndexOf(it.Type, out int type)) continue;
+            if (!BuildTemplate.Resolve(world.Catalog, it, faction, out int type)) continue;
             UnitDef def = world.Catalog[type];
             if (!def.IsStructure) continue;
             int tx = anchorTx + it.Dx, ty = anchorTy + it.Dy;
@@ -118,6 +162,10 @@ public sealed class TemplatePlan
             }
             plan.Items.Add((type, centre, ok));
         }
+        // Economy first, factories next, defences last; ties keep the template's order (stable sort).
+        var ordered = plan.Items.OrderBy(i => BuildTemplate.BuildPriority(world.Catalog[i.Type])).ToList();
+        plan.Items.Clear();
+        plan.Items.AddRange(ordered);
         return plan;
     }
 }

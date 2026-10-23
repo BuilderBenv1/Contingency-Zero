@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using ContingencyZero.Game.View;
 using ContingencyZero.Game.View.Meshes;
 using ContingencyZero.Sim;
+using ContingencyZero.Sim.Core;
 using ContingencyZero.Sim.Data;
 using ContingencyZero.Sim.Map;
 using Godot;

@@ -23,5 +23,6 @@
       "projectileSpeed": 70
     }
   ],
-  "description": "Heavy hull and a big gun."
+  "description": "Heavy hull and a big gun.",
+  "salvageWrecks": 3
 }

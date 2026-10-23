@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using ContingencyZero.Sim.Core;
+using ContingencyZero.Sim.Pathing;
 
 namespace ContingencyZero.Sim.Data;
 
@@ -194,6 +195,7 @@ public sealed class UnitCatalog
             ConvertEnergyPerTick = PerTick(Num(root, "convertEnergy")),
             ConvertMetalPerTick = PerTick(Num(root, "convertMetal")),
             WreckFraction = Num(root, "wreckFraction", "0.6"),
+            SalvageWrecks = Math2.Max(1, Num(root, "salvageWrecks", "3").ToIntFloor()),
             DeathExplosionDamage = Num(root, "deathExplosionDamage"),
             DeathExplosionRadius = Num(root, "deathExplosionRadius"),
             SelfReclaimRange = Num(root, "selfReclaimRange"),

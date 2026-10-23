@@ -23,5 +23,6 @@
       "targetsGround": true
     }
   ],
-  "description": "Fast and fragile. Sees far."
+  "description": "Fast and fragile. Sees far.",
+  "salvageWrecks": 3
 }

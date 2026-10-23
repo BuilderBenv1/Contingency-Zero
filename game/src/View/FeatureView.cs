@@ -9,7 +9,7 @@ using Godot;
 namespace ContingencyZero.Game.View;
 
 /// <summary>
-/// Trees, rocks and wrecks. Rebuilt only when the set of features changes (one is reclaimed,
+/// Trees, rocks, wrecks, and the foundations and rubble that fallen structures leave. Rebuilt only when the set of features changes (one is reclaimed,
 /// a wreck appears). Features in unexplored ground are hidden; wrecks shrink as they're stripped.
 /// </summary>
 public partial class FeatureView : Node3D
@@ -21,6 +21,7 @@ public partial class FeatureView : Node3D
     private ShaderMaterial _material = null!;
     private int _lastCount = -1;
     private long _lastChecksum;
+    private int _lastTerrain = -1;
     private float _timer;
 
     public void Init(World world, TerrainView terrain, int viewerTeam)
@@ -43,10 +44,12 @@ public partial class FeatureView : Node3D
         long checksum = 0;
         foreach (Feature f in _world.Features)
             checksum = checksum * 31 + (f.Gone ? 1 : (f.Metal.Raw >> 18) + (f.Energy.Raw >> 18) + 7);
-        if (_world.Features.Count != _lastCount || checksum != _lastChecksum)
+        // Rebuild when features change, or a crater moved the ground under them.
+        if (_world.Features.Count != _lastCount || checksum != _lastChecksum || _terrain.Revision != _lastTerrain)
         {
             _lastCount = _world.Features.Count;
             _lastChecksum = checksum;
+            _lastTerrain = _terrain.Revision;
             Rebuild();
         }
     }
@@ -58,6 +61,16 @@ public partial class FeatureView : Node3D
         AddChild(new MultiMeshInstance3D { Multimesh = mm, MaterialOverride = _material });
         _batches[key] = mm;
         return mm;
+    }
+
+    /// <summary>Lowest ground under a square, so a slab never floats over a dip.</summary>
+    private float LowestUnder(float x, float z, float half)
+    {
+        float h = _terrain.HeightAt(x, z);
+        for (int i = -1; i <= 1; i++)
+        for (int j = -1; j <= 1; j++)
+            h = Mathf.Min(h, _terrain.HeightAt(x + i * half * 0.8f, z + j * half * 0.8f));
+        return h;
     }
 
     private static float Hash(int i) => ((uint)(i * 2654435761u) >> 8) / 16777216f;
@@ -91,6 +104,24 @@ public partial class FeatureView : Node3D
                     make = () => UnitModels.Rock(theme, variant);
                     scale = 0.7f + Math.Min(1.2f, f.Metal.Raw / 65536f / 60f);
                     break;
+                case FeatureKind.Rubble:
+                    key = $"rubble{variant}";
+                    make = () => UnitModels.Rubble(variant);
+                    scale = 0.8f + Hash(f.Id + 23) * 0.5f;
+                    break;
+                case FeatureKind.Wreck when f.SourceTypeIndex >= 0 && _world.Catalog[f.SourceTypeIndex].IsStructure:
+                {
+                    // A fallen structure: its broken foundation, square to the grid like the building was.
+                    int width = _world.Catalog[f.SourceTypeIndex].Footprint * MapData.TileSize;
+                    key = $"foundation{width}_{variant}";
+                    make = () => UnitModels.Foundation(width, variant);
+                    float turn = (int)(Hash(f.Id + 5) * 4) * (Mathf.Pi / 2);
+                    float left = Math.Clamp(f.Metal.Raw / (float)Math.Max(1, (_world.Catalog[f.SourceTypeIndex].MetalCost * _world.Catalog[f.SourceTypeIndex].WreckFraction).Raw), 0.35f, 1f);
+                    var fb = new Basis(Vector3.Up, turn).Scaled(new Vector3(1, 0.4f + 0.6f * left, 1)); // stripped ruins sink into the ground
+                    if (!pending.TryGetValue(key, out var fe)) pending[key] = fe = (make, new List<Transform3D>());
+                    fe.Xf.Add(new Transform3D(fb, new Vector3(x, LowestUnder(x, z, width / 2f), z)));
+                    continue;
+                }
                 default:
                 {
                     float size = MathF.Round(Math.Clamp(f.Radius.Raw / 65536f * 2f, 3f, 24f));

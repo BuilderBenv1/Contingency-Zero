@@ -31,5 +31,6 @@
     "lattice_advanced_assembly"
   ],
   "description": "Armoured constructor with more build power.",
-  "reclaimMultiplier": 1.0
+  "reclaimMultiplier": 1.0,
+  "salvageWrecks": 3
 }

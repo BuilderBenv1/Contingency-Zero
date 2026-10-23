@@ -28,6 +28,7 @@ namespace ContingencyZero.Game.Net;
 ///   --dev-net-chat=text          say this in the lobby and again a few seconds into the match
 ///   --dev-net-log=file           append "tick hash" lines (one per second of game time) and net events
 ///   --dev-net-quit-at=S          leave the match S seconds after it starts (tests disconnects)
+///   --dev-net-mode=coop:key     (host) co-op mission (e.g. coop:coop_01), or survival[:hard] waves
 ///   --dev-net-backdrop           show the main menu's AI battle behind the lobby (slow on weak machines)
 ///   --dev-net-lowgfx             cheaper 3D (no MSAA, half-res 3D, small shadow map) for several instances on one box
 ///   --dev-net-event-shots=dir    screenshot shortly after a player leaves, the host is lost, or a desync
@@ -102,6 +103,19 @@ public partial class NetDevDriver : Node
                 AiDifficulty ai = Enum.TryParse(ais[i], true, out AiDifficulty d) && d != AiDifficulty.None ? d : AiDifficulty.Normal;
                 host.SetSlotKind(slot, SlotKind.Ai, ai);
                 host.SetTeam(slot, 1);
+            }
+            // Game modes: --dev-net-mode=coop:<mission key> | survival[:difficulty] (see NetModes.cs).
+            if (Arg("--dev-net-mode") is { Length: > 0 } mode)
+            {
+                string[] parts = mode.Split(':');
+                string? problem = parts[0] switch
+                {
+                    "coop" => NetModes.CoopMissions().FirstOrDefault(m => m.Key == (parts.Length > 1 ? parts[1] : "coop_01")) is { } mission
+                        ? host.SetCoop(NetModes.ToCoop(mission)) : "no such co-op mission",
+                    "survival" => host.SetSurvival(parts.Length > 1 && Enum.TryParse(parts[1], true, out AiDifficulty sd) ? sd : AiDifficulty.Normal),
+                    _ => null,
+                };
+                Note(problem is null ? $"mode {host.State.Mode} {host.State.MissionKey}" : $"mode failed: {problem}");
             }
             Note($"hosting on {port}");
         }

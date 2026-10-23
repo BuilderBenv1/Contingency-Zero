@@ -31,5 +31,6 @@
     "lattice_advanced_assembly"
   ],
   "description": "Walking constructor. Climbs hills vehicles can't.",
-  "reclaimMultiplier": 1.0
+  "reclaimMultiplier": 1.0,
+  "salvageWrecks": 3
 }

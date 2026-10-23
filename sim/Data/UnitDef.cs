@@ -123,6 +123,8 @@ public sealed class UnitDef
     // Death
     /// <summary>Share of metal cost left in the wreck when this unit dies.</summary>
     public Fix64 WreckFraction { get; init; }
+    /// <summary>Wrecks of this design another faction must reclaim before its factories can build it.</summary>
+    public int SalvageWrecks { get; init; } = 3;
     public Fix64 DeathExplosionDamage { get; init; }
     public Fix64 DeathExplosionRadius { get; init; }
 

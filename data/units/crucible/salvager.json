@@ -16,5 +16,6 @@
   "buildRange": 12,
   "reclaimMultiplier": 5.6,
   "buildOptions": [],
-  "description": "Strips wrecks four times faster than a builder. Can't build."
+  "description": "Strips wrecks four times faster than a builder. Can't build.",
+  "salvageWrecks": 3
 }

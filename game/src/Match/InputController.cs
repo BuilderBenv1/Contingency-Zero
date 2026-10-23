@@ -158,7 +158,9 @@ public partial class InputController : Node
         switch (Mode)
         {
             case ClickMode.Move: return "MOVE: click the ground";
-            case ClickMode.Fight: return "ATTACK: click an enemy, or the ground to attack-move (Ctrl: fire at the ground)";
+            case ClickMode.Fight:
+                return AreaRadius >= MinAreaRadius ? $"ATTACK AREA: {AreaRadius:0} units"
+                    : "ATTACK: click an enemy, the ground to attack-move (Ctrl: fire at the ground), or drag a circle to clear an area";
             case ClickMode.Patrol: return "PATROL: click the far end of the route";
             case ClickMode.Reclaim:
                 return AreaRadius >= MinAreaRadius ? $"RECLAIM AREA: {AreaRadius:0} units" : "RECLAIM: click a wreck, rock or tree, or drag a circle to clear an area";
@@ -226,6 +228,36 @@ public partial class InputController : Node
 
     // ---- Input -----------------------------------------------------------------------------------
 
+    private int[]? _salvageSeen;
+    private double _salvageTimer;
+
+    /// <summary>Watches the local player's salvage progress and announces each newly unlocked design.</summary>
+    public override void _Process(double delta)
+    {
+        if (_session is null || Me < 0 || Me >= World.Players.Length) return;
+        _salvageTimer -= delta;
+        if (_salvageTimer > 0) return;
+        _salvageTimer = 0.25;
+        int[] progress = World.Players[Me].SalvageProgress;
+        if (_salvageSeen is null || _salvageSeen.Length != progress.Length) { _salvageSeen = (int[])progress.Clone(); return; }
+        for (int t = 0; t < progress.Length; t++)
+        {
+            if (progress[t] == _salvageSeen[t]) continue;
+            int needed = World.SalvageNeeded(t);
+            UnitDef def = World.Catalog[t];
+            if (progress[t] >= needed && _salvageSeen[t] < needed)
+            {
+                Notice?.Invoke($"Salvage complete: your factories can now build the enemy {def.Name}");
+                Sfx.Play(SfxKind.BuildComplete, -4);
+            }
+            else
+            {
+                Notice?.Invoke($"Salvage: {def.Name} {progress[t]}/{needed}");
+            }
+            _salvageSeen[t] = progress[t];
+        }
+    }
+
     public override void _UnhandledInput(InputEvent e)
     {
         if (_session is null) return;
@@ -233,6 +265,7 @@ public partial class InputController : Node
         {
             _mouse = mm.Position;
             if (!_boxing) _overlay.HoverUnit = UnitUnderMouse(mm.Position);
+            _overlay.HoverFeature = !_boxing && _overlay.HoverUnit < 0 && GroundUnderMouse(mm.Position) is { } hg ? FeatureUnderMouse(hg) : -1;
             UpdateGhost();
             UpdateAreaDrag();
             return;
@@ -278,7 +311,7 @@ public partial class InputController : Node
             return;
         }
 
-        if (Mode is ClickMode.Reclaim or ClickMode.Assist)
+        if (Mode is ClickMode.Reclaim or ClickMode.Assist or ClickMode.Fight)
         {
             // Press starts a possible area drag; release decides between an area order and a plain click.
             if (mb.Pressed)
@@ -314,8 +347,9 @@ public partial class InputController : Node
         }
 
         if (!_boxing) return;
+        Rect2? dragged = Box; // read before clearing _boxing, which makes Box null
         _boxing = false;
-        if (Box is { } box && box.Size.Length() > 6)
+        if (dragged is { } box && box.Size.Length() > 6)
         {
             BoxSelect(box, shift);
             return;
@@ -388,6 +422,12 @@ public partial class InputController : Node
         Vector3? g = GroundUnderMouse(mb.Position);
         if (g is null) return;
 
+        bool onlyFactories = mine.All(id => World.Catalog[World.Units.TypeIndex[id]].IsFactory);
+        if (mb.CtrlPressed && onlyFactories)
+        {
+            ClearRallies();
+            return;
+        }
         if (mb.CtrlPressed || mb.AltPressed)
         {
             GroupMove(mine, g.Value, CommandType.Fight, queue);
@@ -448,18 +488,18 @@ public partial class InputController : Node
             return;
         }
 
-        // Ground: factories set rally points (shift: the secondary / ferry rally), everything else moves.
+        // Ground: factories set rally points (shift adds another stop to the rotation, up to four), everything else moves.
         int factories = 0;
         foreach (int id in mine)
             if (World.Catalog[World.Units.TypeIndex[id]].IsFactory)
             {
-                Issue(new Command(0, Me, CommandType.SetRally, id, ToFix(g.Value), Arg: queue ? 1 : 0));
+                Issue(new Command(0, Me, CommandType.SetRally, id, ToFix(g.Value), Queue: queue));
                 factories++;
             }
         var movers = mine.Where(id => World.Catalog[World.Units.TypeIndex[id]].CanMove).ToList();
         if (movers.Count > 0) GroupMove(movers, g.Value, CommandType.Move, queue);
         _overlay.Mark(g.Value, factories > 0 && movers.Count == 0 && queue ? new Color(0.4f, 0.9f, 1f) : new Color(0.4f, 1f, 0.4f));
-        if (factories > 0 && queue && movers.Count == 0) Notice?.Invoke("Ferry rally point set (use the Ferry button to send every Nth unit there)");
+        if (factories > 0 && queue && movers.Count == 0) Notice?.Invoke("Rally stop added: new units take the stops in turn (Ctrl+right-click clears)");
         Sfx.Play(SfxKind.Acknowledge, -8);
     }
 
@@ -581,11 +621,16 @@ public partial class InputController : Node
 
     // ---- Area orders -----------------------------------------------------------------------------
 
-    private static Color AreaColour(ClickMode mode) => mode == ClickMode.Reclaim ? new Color(0.8f, 0.5f, 1f, 0.8f) : new Color(1f, 0.95f, 0.4f, 0.8f);
+    private static Color AreaColour(ClickMode mode) => mode switch
+    {
+        ClickMode.Reclaim => new Color(0.8f, 0.5f, 1f, 0.8f),
+        ClickMode.Fight => new Color(1f, 0.35f, 0.25f, 0.85f),
+        _ => new Color(1f, 0.95f, 0.4f, 0.8f),
+    };
 
     private void UpdateAreaDrag()
     {
-        if (_areaStart is not { } start || Mode is not (ClickMode.Reclaim or ClickMode.Assist)) return;
+        if (_areaStart is not { } start || Mode is not (ClickMode.Reclaim or ClickMode.Assist or ClickMode.Fight)) return;
         if (!Input.IsMouseButtonPressed(MouseButton.Left)) return;
         Vector3? g = GroundUnderMouse(_mouse);
         if (g is null) return;
@@ -596,23 +641,52 @@ public partial class InputController : Node
         if (was || r >= MinAreaRadius) ModeChanged?.Invoke();
     }
 
-    /// <summary>Orders every selected builder to reclaim (or repair / help build) everything inside a circle.</summary>
-    public void IssueArea(Vector3 centre, float radius, bool queue)
+    /// <summary>
+    /// Area order for the current mode: reclaim (Reclaim), repair / help build (Assist) or attack
+    /// every enemy (Fight) inside a circle, given to every selected unit that can do it.
+    /// </summary>
+    public void IssueArea(Vector3 centre, float radius, bool queue) => IssueArea(AreaTypeFor(Mode), centre, radius, queue);
+
+    /// <summary>The area command a click mode drags out.</summary>
+    public static CommandType AreaTypeFor(ClickMode mode) => mode switch
+    {
+        ClickMode.Reclaim => CommandType.ReclaimArea,
+        ClickMode.Fight => CommandType.AttackArea,
+        _ => CommandType.RepairArea,
+    };
+
+    /// <summary>Issues an area command (ReclaimArea, RepairArea or AttackArea) to every selected unit able to carry it out.</summary>
+    public void IssueArea(CommandType type, Vector3 centre, float radius, bool queue)
     {
         var mine = MySelected();
         int sent = 0;
         int r = (int)Math.Round(Math.Clamp(radius, MinAreaRadius, 200f));
-        CommandType type = Mode == ClickMode.Reclaim ? CommandType.ReclaimArea : CommandType.RepairArea;
         foreach (int id in mine)
         {
             UnitDef def = World.Catalog[World.Units.TypeIndex[id]];
-            bool able = type == CommandType.ReclaimArea ? def.CanReclaim && def.CanMove : def.CanAssist && def.CanMove;
+            bool able = type switch
+            {
+                CommandType.ReclaimArea => def.CanReclaim && def.CanMove,
+                CommandType.AttackArea => def.IsArmed && def.CanMove,
+                _ => def.CanAssist && def.CanMove,
+            };
             if (!able) continue;
             Issue(new Command(0, Me, type, id, ToFix(centre), Arg: r, Queue: queue));
             sent++;
         }
-        if (sent == 0) { Notice?.Invoke("No builders selected"); Sfx.Play(SfxKind.Error, -6); return; }
-        _overlay.Mark(centre, AreaColour(Mode));
+        Color colour = type switch
+        {
+            CommandType.ReclaimArea => AreaColour(ClickMode.Reclaim),
+            CommandType.AttackArea => AreaColour(ClickMode.Fight),
+            _ => AreaColour(ClickMode.Assist),
+        };
+        if (sent == 0)
+        {
+            Notice?.Invoke(type == CommandType.AttackArea ? "No armed units selected" : "No builders selected");
+            Sfx.Play(SfxKind.Error, -6);
+            return;
+        }
+        _overlay.Mark(centre, colour);
         Sfx.Play(SfxKind.Acknowledge, -8);
     }
 
@@ -870,13 +944,24 @@ public partial class InputController : Node
         foreach (int id in MySelected())
         {
             UnitDef def = World.Catalog[World.Units.TypeIndex[id]];
-            if (def.IsFactory && def.BuildOptions.Contains(type))
+            if (def.IsFactory && (def.BuildOptions.Contains(type) || World.SalvagedOptions(def, Me).Contains(type)))
                 Issue(new Command(0, Me, CommandType.FactoryQueue, id, TypeIndex: type, Arg: count));
         }
         Sfx.Play(count > 0 ? SfxKind.Click : SfxKind.Hover, -6);
     }
 
-    /// <summary>Sets how often selected factories send a unit to their ferry rally point (0 = never).</summary>
+    /// <summary>Forgets every rally point of the selected factories.</summary>
+    public void ClearRallies()
+    {
+        int n = 0;
+        foreach (int id in MySelected())
+            if (World.Catalog[World.Units.TypeIndex[id]].IsFactory) { Issue(new Command(0, Me, CommandType.ClearRally, id)); n++; }
+        if (n == 0) return;
+        Notice?.Invoke("Rally points cleared");
+        Sfx.Play(SfxKind.Click, -6);
+    }
+
+    /// <summary>Sets how selected factories spread units over their rally stops: 0 in turn, N every Nth unit to the next extra stop.</summary>
     public void SetFerryEvery(int every)
     {
         foreach (int id in MySelected())

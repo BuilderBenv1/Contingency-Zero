@@ -24,5 +24,6 @@
       "projectileSpeed": 45
     }
   ],
-  "description": "Long-range howitzer. Keep it behind the line."
+  "description": "Long-range howitzer. Keep it behind the line.",
+  "salvageWrecks": 3
 }

@@ -35,5 +35,6 @@
   "deathExplosionRadius": 36,
   "wreckFraction": 0.5,
   "description": "Mantle Crawler: a tracked smelter that eats wrecks to repair itself and fires molten slag.",
-  "selfReclaimRange": 26
+  "selfReclaimRange": 26,
+  "salvageWrecks": 6
 }

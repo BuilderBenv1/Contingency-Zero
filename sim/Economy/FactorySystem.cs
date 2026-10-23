@@ -68,13 +68,24 @@ internal static class FactorySystem
 
         units.ClearOrders(unit);
         units.Orders[unit].Add(new Order(OrderType.Move, door));
-        // Every Nth unit ferries to the secondary rally point; the rest go to the primary.
-        units.RallyCount[factory]++;
-        bool ferry = units.HasRally2[factory] && units.RallyEvery[factory] > 0
-                     && units.RallyCount[factory] % units.RallyEvery[factory] == 0;
-        if (ferry)
-            units.Orders[unit].Add(new Order(OrderType.Move, units.Rally2[factory]));
-        else if (units.HasRally[factory])
-            units.Orders[unit].Add(new Order(OrderType.Move, units.Rally[factory]));
+        // Spread finished units over the rally points: in turn, or every Nth one to the next extra stop.
+        if (!units.HasRally[factory]) return;
+        var extra = units.RallyExtra[factory];
+        int n = units.RallyCount[factory]++;
+        FixVec2 goal = units.Rally[factory];
+        if (extra.Count > 0)
+        {
+            int every = units.RallyEvery[factory];
+            if (every <= 0)
+            {
+                int k = n % (extra.Count + 1);
+                if (k > 0) goal = extra[k - 1];
+            }
+            else if ((n + 1) % every == 0)
+            {
+                goal = extra[((n + 1) / every - 1) % extra.Count];
+            }
+        }
+        units.Orders[unit].Add(new Order(OrderType.Move, goal));
     }
 }

@@ -155,6 +155,10 @@ public partial class EditorHud : CanvasLayer
         _save = Btn("Save", () => _ed.Save(), "Save to your maps (Ctrl+S). Saved maps appear in Skirmish.", 66);
         bar.AddChild(_save);
         bar.AddChild(Btn("Save as", () => _ed.SaveAs(), "Save under a new name (Ctrl+Shift+S)", 84));
+        bar.AddChild(Btn("Share", () =>
+        {
+            if (_ed.Document is { } doc) AddChild(UI.ShareCodeDialog.ShowCode("SHARE MAP", "map", UI.ShareCodes.MapCode(doc.Map)));
+        }, "Copy this map as a text code (" + UI.ShareCodes.MapPrefix + "...) to paste into chat. Others use Paste map code in Skirmish or Open.", 70));
         bar.AddChild(new VSeparator());
         _undo = Btn("Undo", () => _ed.Undo(), "Undo the last change (Ctrl+Z)", 66);
         _redo = Btn("Redo", () => _ed.Redo(), "Redo (Ctrl+Y)", 66);

@@ -13,8 +13,9 @@ using ContingencyZero.Sim.Replay;
 namespace ContingencyZero.Sim.Missions;
 
 /// <summary>
-/// Survival: one or two players hold their start positions against waves of a "Horde" that grow in
-/// size and tier until the last Commander falls. There is no victory; the score is minutes survived.
+/// Survival: one to four players hold their start positions against waves of a "Horde" that grow in
+/// size and tier (bots, then tanks, artillery, air, heavies and experimentals) until the last Commander
+/// falls. Waves grow with the number of defenders. There is no victory; see <see cref="Score"/>.
 /// <see cref="Build"/> writes the whole thing as an ordinary mission script (see MissionScript.cs), so
 /// it runs inside the sim, replays, and works over the network like any other mission.
 ///
@@ -76,16 +77,60 @@ public static class SurvivalMode
         return list;
     }
 
+    /// <summary>At most this many defenders.</summary>
+    public const int MaxDefenders = 4;
+
     /// <summary>Match options survival needs: Commander win condition, Commanders placed by the script.</summary>
-    public static MatchOptions Options(AiDifficulty difficulty) =>
-        new(StartMetal, StartEnergy, WinCondition.Commander, SpawnCommanders: false);
+    public static MatchOptions Options(AiDifficulty difficulty, int startResources = StartMetal) =>
+        new(startResources, startResources, WinCondition.Commander, SpawnCommanders: false);
 
     /// <summary>Everything in one call: the defenders get a Horde slot, a script and options.</summary>
-    public static Scenario CreateScenario(MapData map, IReadOnlyList<PlayerSetup> defenders, AiDifficulty difficulty, int seed, string? hordeFaction = null)
+    public static Scenario CreateScenario(MapData map, IReadOnlyList<PlayerSetup> defenders, AiDifficulty difficulty, int seed,
+        string? hordeFaction = null, int startResources = StartMetal)
     {
         IReadOnlyList<PlayerSetup> players = Players(defenders, map, hordeFaction);
         string json = Build(map, players, difficulty, seed);
-        return new Scenario(map, (ulong)seed, players, Options(difficulty), new List<Spawn>(), json);
+        return new Scenario(map, (ulong)(uint)seed, players, Options(difficulty, startResources), new List<Spawn>(), json);
+    }
+
+    /// <summary>How many defenders fit on a map: every start position, up to <see cref="MaxDefenders"/>.</summary>
+    public static int Capacity(MapData map) => Math2.Max(1, Math2.Min(MaxDefenders, map.StartPositions.Count));
+
+    // ---- Score -------------------------------------------------------------------------------
+
+    /// <summary>A survival result. Points = (waves x 100 + seconds) x difficulty factor.</summary>
+    public readonly record struct SurvivalScore(int Waves, int Seconds, int Points, string Difficulty);
+
+    /// <summary>Points per difficulty, in percent.</summary>
+    public static int DifficultyFactor(string difficulty) => difficulty switch
+    {
+        "Easy" => 100,
+        "Hard" => 200,
+        "Brutal" => 300,
+        _ => 150,
+    };
+
+    /// <summary>
+    /// The score so far (or final, once the match is over). Waves counts waves beaten: once the
+    /// defenders fall, the wave that overran them doesn't count. Null if this isn't a survival match.
+    /// </summary>
+    public static SurvivalScore? Score(World world)
+    {
+        if (world.Mission is not { Mode: ModeKey } m) return null;
+        int waves = m.Wave;
+        int ticks = world.Tick;
+        if (world.IsOver)
+        {
+            waves = Math2.Max(0, waves - 1);
+            int last = 0;
+            foreach (int h in m.HumanPlayers)
+                if (world.Players[h].Defeated) last = Math2.Max(last, world.Players[h].DefeatedTick);
+            if (last > 0) ticks = last;
+        }
+        int seconds = ticks / World.TicksPerSecond;
+        string d = m.Difficulty.Length > 0 ? m.Difficulty : "Normal";
+        int points = (waves * 100 + seconds) * DifficultyFactor(d) / 100;
+        return new SurvivalScore(waves, seconds, points, d);
     }
 
     // ---- Tuning ------------------------------------------------------------------------------
@@ -119,14 +164,14 @@ public static class SurvivalMode
     private sealed record Lane(FixVec2 Point, string Direction, FixVec2 Target, bool FromStart);
 
     /// <summary>The block MissionScript lays a group out in: rows of five, five apart, up to this many rows.</summary>
-    private const int BlockHalfWidth = 12, BlockDepth = 32;
+    private const int BlockHalfWidth = 12;
     /// <summary>Spawn points stay this far inside the map edge.</summary>
     private const int EdgeInset = 72;
     private const int LaneSeparation = 160;
 
-    private static bool BlockPassable(Terrain terrain, FixVec2 p)
+    private static bool BlockPassable(Terrain terrain, FixVec2 p, int depth)
     {
-        for (int dy = -4; dy <= BlockDepth; dy += 4)
+        for (int dy = -4; dy <= depth; dy += 4)
         for (int dx = -BlockHalfWidth; dx <= BlockHalfWidth; dx += 4)
         {
             FixVec2 q = p + FixVec2.FromInts(dx, dy);
@@ -137,7 +182,7 @@ public static class SurvivalMode
     }
 
     /// <summary>The nearest point to <paramref name="around"/> (within 64 units) whose block is open ground, or null.</summary>
-    private static FixVec2? FindBlock(Terrain terrain, FixVec2 around)
+    private static FixVec2? FindBlock(Terrain terrain, FixVec2 around, int depth)
     {
         for (int r = 0; r <= 64; r += 8)
         for (int dy = -r; dy <= r; dy += 8)
@@ -145,7 +190,7 @@ public static class SurvivalMode
         {
             if (Math2.Max(Math2.Abs(dx), Math2.Abs(dy)) != r) continue;
             FixVec2 p = around + FixVec2.FromInts(dx, dy);
-            if (BlockPassable(terrain, p)) return p;
+            if (BlockPassable(terrain, p, depth)) return p;
         }
         return null;
     }
@@ -162,18 +207,19 @@ public static class SurvivalMode
     {
         long dx = (to.X - from.X).Raw, dy = (to.Y - from.Y).Raw; // Y runs south
         long ax = dx < 0 ? -dx : dx, ay = dy < 0 ? -dy : dy;
+        if (ax < Fix64.FromInt(64).Raw && ay < Fix64.FromInt(64).Raw) return "centre";
         if (ax > 2 * ay) return dx > 0 ? "east" : "west";
         if (ay > 2 * ax) return dy > 0 ? "south" : "north";
         return (dy > 0 ? "south" : "north") + "-" + (dx > 0 ? "east" : "west");
     }
 
-    private static Lane[] ChooseLanes(MapData map, List<FixVec2> defenderStarts, int seed)
+    private static Lane[] ChooseLanes(MapData map, List<FixVec2> defenderStarts, int seed, int depth)
     {
         var terrain = new Terrain(map);
         var pathfinder = new Pathfinder(terrain);
         FixVec2 home = Centroid(defenderStarts);
         int w = map.Width, h = map.Height;
-        Fix64 minDistance = Fix64.FromInt(Math2.Min(w, h) * 2 / 5);
+        Fix64 minDistance = Fix64.Zero;
 
         // Candidates: the start positions nobody defends, then points just inside the map edge.
         var candidates = new List<(FixVec2 Point, bool FromStart)>();
@@ -182,6 +228,8 @@ public static class SurvivalMode
         int[] ex = { w / 2, w - EdgeInset, w - EdgeInset, w - EdgeInset, w / 2, EdgeInset, EdgeInset, EdgeInset };
         int[] ey = { EdgeInset, EdgeInset, h / 2, h - EdgeInset, h - EdgeInset, h - EdgeInset, h / 2, EdgeInset };
         for (int i = 0; i < 8; i++) candidates.Add((FixVec2.FromInts(ex[i], ey[i]), false));
+        // With every corner defended, the middle of the map is often the farthest open ground.
+        candidates.Add((FixVec2.FromInts(w / 2, h / 2), false));
 
         var lanes = new List<Lane>();
         var accepted = new List<FixVec2>();
@@ -189,7 +237,7 @@ public static class SurvivalMode
         {
             foreach (FixVec2 d in defenderStarts)
                 if (FixVec2.DistanceSquared(c.Point, d) < minDistance * minDistance) return false;
-            FixVec2? block = FindBlock(terrain, c.Point);
+            FixVec2? block = FindBlock(terrain, c.Point, depth);
             if (block is null) return false;
             FixVec2 p = block.Value;
             Fix64 sep = Fix64.FromInt(LaneSeparation);
@@ -203,20 +251,23 @@ public static class SurvivalMode
             return true;
         }
 
-        // Starts first, then edge points farthest from home first.
-        foreach (var c in candidates)
-            if (c.FromStart && lanes.Count < MaxLanes) Accept(c, true);
         var edges = candidates.FindAll(c => !c.FromStart);
         edges.Sort((a, b) => FixVec2.DistanceSquared(b.Point, home).CompareTo(FixVec2.DistanceSquared(a.Point, home)));
-        foreach (var c in edges)
-            if (lanes.Count < MaxLanes) Accept(c, true);
+        // Spawn points keep 40% of the map's size away from every defender; crowded maps relax that.
+        foreach (int percent in new[] { 40, 30, 22, 15 })
+        {
+            minDistance = Fix64.FromInt(Math2.Min(w, h) * percent / 100);
+            // Starts first, then edge points farthest from home first.
+            foreach (var c in candidates)
+                if (c.FromStart && lanes.Count < MaxLanes) Accept(c, true);
+            foreach (var c in edges)
+                if (lanes.Count < MaxLanes) Accept(c, true);
+            if (lanes.Count >= 2) break;
+        }
 
         // A map where nothing reaches the base by road: take the farthest open ground and let the pathfinder cope.
         if (lanes.Count == 0)
-        {
-            edges.Sort((a, b) => FixVec2.DistanceSquared(b.Point, home).CompareTo(FixVec2.DistanceSquared(a.Point, home)));
             foreach (var c in candidates) if (lanes.Count == 0) Accept(c, false);
-        }
         if (lanes.Count == 0)
             throw new InvalidDataException($"{map.Name}: no open ground far enough from the defenders for survival waves");
 
@@ -267,11 +318,26 @@ public static class SurvivalMode
         }
 
         Tuning t = TuningFor(difficulty);
-        Lane[] lanes = ChooseLanes(map, defenderStarts, Math2.Abs(seed));
+        // More defenders, bigger waves: +60% per extra defender.
+        int crowd = 100 + 60 * (defenders.Count - 1);
+        int Cap(int max) => max * crowd / 100;
+        // The deepest block a group is laid out in (rows of five, five apart).
+        int depth = Math2.Max(32, (Cap(30) - 1) / 5 * 5 + 4);
+        Lane[] lanes;
+        try
+        {
+            lanes = ChooseLanes(map, defenderStarts, Math2.Abs(seed % 1000000), depth);
+        }
+        catch (InvalidDataException) when (depth > 32)
+        {
+            // Cramped map: big late groups may spill onto rough ground, but the waves still come.
+            lanes = ChooseLanes(map, defenderStarts, Math2.Abs(seed % 1000000), 32);
+        }
         string f = hordeSetup.Faction;
         string tank = f == "lattice" ? "lattice_strider" : "crucible_anvil";
         int Tier(int normalSeconds) => normalSeconds * t.TierPace / 100;
-        int Size(int tenthsAtEasy) => Math2.Max(1, tenthsAtEasy * t.Size / 100);
+        int Size(int tenthsAtEasy) => Math2.Max(1, tenthsAtEasy * t.Size * crowd / 10000);
+        int Grow(int hundredths) => hundredths * crowd / 100;
         int period = lanes.Length * t.WaveSeconds;
 
         var messages = new List<string>
@@ -299,6 +365,7 @@ public static class SurvivalMode
             w.WriteString("title", "Survival");
             w.WriteString("briefing", $"Hold {map.Name} against {HordeName} for as long as you can. Waves come every {t.WaveSeconds} seconds and grow without limit. There is no victory, only the clock.");
             w.WriteString("mode", ModeKey);
+            w.WriteString("difficulty", difficulty.ToString());
             w.WriteNumber("humanPlayer", defenders[0]);
             w.WriteStartArray("humanPlayers");
             foreach (int d in defenders) w.WriteNumberValue(d);
@@ -309,7 +376,7 @@ public static class SurvivalMode
             w.WriteEndArray();
 
             w.WriteStartArray("objectives");
-            Objective(w, "hold", "Hold out  ·  wave {wave}  ·  {clock} survived  ·  next wave in {countdown}", false);
+            Objective(w, "hold", "Hold out for as long as you can", false);
             Objective(w, "ten", "Hold for 10 minutes", true);
             Objective(w, "twenty", "Hold for 20 minutes", true);
             Objective(w, "thirty", "Hold for 30 minutes", true);
@@ -342,6 +409,15 @@ public static class SurvivalMode
             TimeTrigger(w, "held45", 2700, 10);
             TimeTrigger(w, "held60", 3600, 11);
 
+            // Waves that have nothing left where they were sent go after the nearest defender.
+            w.WriteStartObject();
+            w.WriteString("id", "hunt");
+            w.WriteNumber("every", 10);
+            w.WriteStartArray("actions");
+            w.WriteStartObject(); w.WriteString("type", "hunt"); w.WriteNumber("player", horde); w.WriteEndObject();
+            w.WriteEndArray();
+            w.WriteEndObject();
+
             for (int i = 0; i < lanes.Length; i++)
             {
                 Lane lane = lanes[i];
@@ -365,17 +441,17 @@ public static class SurvivalMode
                 w.WriteString("tag", $"lane{i}");
                 w.WriteStartArray("units");
                 // (unit, base count, growth in hundredths per minute, max, first appears at)
-                Entry(w, $"{f}_assault_bot", horde, lane.Point, Size(30), t.Growth, 30, 0);
+                Entry(w, $"{f}_assault_bot", horde, lane.Point, Size(30), Grow(t.Growth), Cap(30), 0);
                 Entry(w, $"{f}_scout_bot", horde, lane.Point, 2, 0, 2, 0);
-                Entry(w, tank, horde, lane.Point, Size(12), t.Growth * 60 / 100, 20, Tier(TankStart));
-                Entry(w, $"{f}_mortar_bot", horde, lane.Point, 1, t.Growth * 30 / 100, 8, Tier(MortarStart));
-                Entry(w, $"{f}_artillery_vehicle", horde, lane.Point, Size(8), t.Growth * 25 / 100, 8, Tier(ArtilleryStart));
-                Entry(w, $"{f}_gunship", horde, lane.Point, Size(8), t.Growth * 30 / 100, 10, Tier(AirStart));
-                Entry(w, $"{f}_flak_vehicle", horde, lane.Point, 1, t.Growth * 20 / 100, 6, Tier(AirStart));
-                Entry(w, $"{f}_bomber", horde, lane.Point, Size(6), t.Growth * 25 / 100, 8, Tier(BomberStart));
-                Entry(w, $"{f}_heavy_assault", horde, lane.Point, Size(8), t.Growth * 30 / 100, 10, Tier(HeavyStart));
-                Entry(w, $"{f}_long_artillery", horde, lane.Point, 1, t.Growth * 15 / 100, 5, Tier(LongArtilleryStart));
-                Entry(w, $"{f}_experimental", horde, lane.Point, 1, t.Growth * 8 / 100, 4, Tier(ExperimentalStart));
+                Entry(w, tank, horde, lane.Point, Size(12), Grow(t.Growth * 60 / 100), Cap(20), Tier(TankStart));
+                Entry(w, $"{f}_mortar_bot", horde, lane.Point, 1, Grow(t.Growth * 30 / 100), Cap(8), Tier(MortarStart));
+                Entry(w, $"{f}_artillery_vehicle", horde, lane.Point, Size(8), Grow(t.Growth * 25 / 100), Cap(8), Tier(ArtilleryStart));
+                Entry(w, $"{f}_gunship", horde, lane.Point, Size(8), Grow(t.Growth * 30 / 100), Cap(10), Tier(AirStart));
+                Entry(w, $"{f}_flak_vehicle", horde, lane.Point, 1, Grow(t.Growth * 20 / 100), Cap(6), Tier(AirStart));
+                Entry(w, $"{f}_bomber", horde, lane.Point, Size(6), Grow(t.Growth * 25 / 100), Cap(8), Tier(BomberStart));
+                Entry(w, $"{f}_heavy_assault", horde, lane.Point, Size(8), Grow(t.Growth * 30 / 100), Cap(10), Tier(HeavyStart));
+                Entry(w, $"{f}_long_artillery", horde, lane.Point, 1, Grow(t.Growth * 15 / 100), Cap(5), Tier(LongArtilleryStart));
+                Entry(w, $"{f}_experimental", horde, lane.Point, 1, Grow(t.Growth * 8 / 100), Cap(4), Tier(ExperimentalStart));
                 w.WriteEndArray(); // units
                 w.WriteStartObject("order");
                 w.WriteString("type", "fight");

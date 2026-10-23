@@ -1,0 +1,1005 @@
+{
+  "campaign": "coop",
+  "order": 1,
+  "title": "Two Fronts",
+  "briefing": "The Crucible Host is massing in the southern hollows of Crater Basin and will come north up both rims at once. Westwatch holds the western rim, Eastwatch the eastern. Each of you has one road to keep shut; when a flank buckles, the other has to send help. Outlast the offensive, then burn both staging camps in the south.",
+  "map": "crater_basin",
+  "players": [
+    {
+      "name": "Westwatch",
+      "team": 0,
+      "faction": "lattice",
+      "start": 0,
+      "ai": "None"
+    },
+    {
+      "name": "Eastwatch",
+      "team": 0,
+      "faction": "crucible",
+      "start": 1,
+      "ai": "None"
+    },
+    {
+      "name": "The Crucible Host",
+      "team": 1,
+      "faction": "crucible",
+      "start": 2,
+      "ai": "None"
+    }
+  ],
+  "humanPlayer": 0,
+  "humanPlayers": [
+    0,
+    1
+  ],
+  "startMetal": 1200,
+  "startEnergy": 1200,
+  "spawnCommanders": true,
+  "messages": [
+    "Oversight online. Two commands, two roads. Westwatch: the western rim is yours. Eastwatch: the east. First contact in about three minutes.",
+    "Get extractors on the rim deposits and a factory up early. Turrets on the road buy time; an army wins it.",
+    "A Commander is down! The surviving command holds both roads now.",
+    "Contact, west road! Host scouts and bots climbing the rim.",
+    "East road now. Eastwatch, they're testing you.",
+    "Anvils on the west road.",
+    "And the east. Both flanks at once.",
+    "Heavy push west, mortars behind the tanks.",
+    "Heavy push east. Westwatch, can you spare anything?",
+    "Artillery with the west column. Kill the guns.",
+    "Gunships over the basin, heading between your bases. Anti-air!",
+    "Last of the offensive: heavies on both roads. Hold!",
+    "The offensive is broken. Now finish it: both staging camps in the south, west and east.",
+    "Western camp burning.",
+    "Eastern camp burning.",
+    "The Host is throwing its reserve at the gap between your bases.",
+    "Both camps erased. Crater Basin is ours. Good work, both of you."
+  ],
+  "objectives": [
+    {
+      "id": "hold",
+      "text": "Hold both rims against the Host's offensive"
+    },
+    {
+      "id": "west",
+      "text": "Destroy the western staging camp",
+      "hidden": true
+    },
+    {
+      "id": "east",
+      "text": "Destroy the eastern staging camp",
+      "hidden": true
+    },
+    {
+      "id": "both",
+      "text": "Keep both Commanders alive",
+      "optional": true
+    }
+  ],
+  "spawns": [
+    {
+      "tag": "westCamp",
+      "type": "crucible_vehicle_plant",
+      "owner": 2,
+      "x": 148,
+      "y": 756
+    },
+    {
+      "tag": "westCamp",
+      "type": "crucible_bot_lab",
+      "owner": 2,
+      "x": 204,
+      "y": 780
+    },
+    {
+      "tag": "westCamp",
+      "type": "crucible_solar_collector",
+      "owner": 2,
+      "x": 128,
+      "y": 808
+    },
+    {
+      "tag": "westCamp",
+      "type": "crucible_solar_collector",
+      "owner": 2,
+      "x": 168,
+      "y": 824
+    },
+    {
+      "tag": "westCamp",
+      "type": "crucible_light_turret",
+      "owner": 2,
+      "x": 148,
+      "y": 708
+    },
+    {
+      "tag": "westCamp",
+      "type": "crucible_light_turret",
+      "owner": 2,
+      "x": 204,
+      "y": 724
+    },
+    {
+      "tag": "westCamp",
+      "type": "crucible_light_turret",
+      "owner": 2,
+      "x": 108,
+      "y": 732
+    },
+    {
+      "tag": "westCamp",
+      "type": "crucible_heavy_turret",
+      "owner": 2,
+      "x": 176,
+      "y": 736
+    },
+    {
+      "tag": "westCamp",
+      "type": "crucible_aa_turret",
+      "owner": 2,
+      "x": 220,
+      "y": 748
+    },
+    {
+      "tag": "eastCamp",
+      "type": "crucible_vehicle_plant",
+      "owner": 2,
+      "x": 748,
+      "y": 756
+    },
+    {
+      "tag": "eastCamp",
+      "type": "crucible_bot_lab",
+      "owner": 2,
+      "x": 812,
+      "y": 780
+    },
+    {
+      "tag": "eastCamp",
+      "type": "crucible_solar_collector",
+      "owner": 2,
+      "x": 728,
+      "y": 808
+    },
+    {
+      "tag": "eastCamp",
+      "type": "crucible_solar_collector",
+      "owner": 2,
+      "x": 768,
+      "y": 824
+    },
+    {
+      "tag": "eastCamp",
+      "type": "crucible_light_turret",
+      "owner": 2,
+      "x": 748,
+      "y": 708
+    },
+    {
+      "tag": "eastCamp",
+      "type": "crucible_light_turret",
+      "owner": 2,
+      "x": 796,
+      "y": 724
+    },
+    {
+      "tag": "eastCamp",
+      "type": "crucible_light_turret",
+      "owner": 2,
+      "x": 708,
+      "y": 732
+    },
+    {
+      "tag": "eastCamp",
+      "type": "crucible_heavy_turret",
+      "owner": 2,
+      "x": 776,
+      "y": 744
+    },
+    {
+      "tag": "eastCamp",
+      "type": "crucible_aa_turret",
+      "owner": 2,
+      "x": 820,
+      "y": 748
+    },
+    {
+      "tag": "cmdrWest",
+      "type": "lattice_commander",
+      "owner": 0,
+      "x": 116,
+      "y": 116
+    },
+    {
+      "tag": "cmdrEast",
+      "type": "crucible_commander",
+      "owner": 1,
+      "x": 780,
+      "y": 116
+    },
+    {
+      "tag": "",
+      "type": "lattice_strider",
+      "owner": 0,
+      "x": 150,
+      "y": 220
+    },
+    {
+      "tag": "",
+      "type": "crucible_anvil",
+      "owner": 1,
+      "x": 740,
+      "y": 220
+    },
+    {
+      "tag": "",
+      "type": "lattice_strider",
+      "owner": 0,
+      "x": 160,
+      "y": 220
+    },
+    {
+      "tag": "",
+      "type": "crucible_anvil",
+      "owner": 1,
+      "x": 750,
+      "y": 220
+    },
+    {
+      "tag": "",
+      "type": "lattice_strider",
+      "owner": 0,
+      "x": 170,
+      "y": 220
+    },
+    {
+      "tag": "",
+      "type": "crucible_anvil",
+      "owner": 1,
+      "x": 760,
+      "y": 220
+    }
+  ],
+  "triggers": [
+    {
+      "id": "intro",
+      "when": {
+        "type": "time",
+        "seconds": 1
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 0
+        }
+      ]
+    },
+    {
+      "id": "intro2",
+      "when": {
+        "type": "time",
+        "seconds": 30
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 1
+        }
+      ]
+    },
+    {
+      "id": "cmdrLost",
+      "when": {
+        "type": "any",
+        "of": [
+          {
+            "type": "destroyed",
+            "tag": "cmdrWest"
+          },
+          {
+            "type": "destroyed",
+            "tag": "cmdrEast"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 2
+        },
+        {
+          "type": "objective",
+          "id": "both",
+          "state": "failed"
+        }
+      ]
+    },
+    {
+      "id": "w1",
+      "when": {
+        "type": "time",
+        "seconds": 180
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 3
+        },
+        {
+          "type": "spawn",
+          "tag": "w1",
+          "units": [
+            {
+              "unit": "crucible_assault_bot",
+              "owner": 2,
+              "x": 120,
+              "y": 640,
+              "count": 5
+            },
+            {
+              "unit": "crucible_scout_bot",
+              "owner": 2,
+              "x": 150,
+              "y": 640,
+              "count": 3
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "w1",
+          "x": 130,
+          "y": 150
+        }
+      ]
+    },
+    {
+      "id": "e1",
+      "when": {
+        "type": "time",
+        "seconds": 270
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 4
+        },
+        {
+          "type": "spawn",
+          "tag": "e1",
+          "units": [
+            {
+              "unit": "crucible_assault_bot",
+              "owner": 2,
+              "x": 716,
+              "y": 640,
+              "count": 5
+            },
+            {
+              "unit": "crucible_scout_bot",
+              "owner": 2,
+              "x": 746,
+              "y": 640,
+              "count": 3
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "e1",
+          "x": 766,
+          "y": 150
+        }
+      ]
+    },
+    {
+      "id": "w2",
+      "when": {
+        "type": "time",
+        "seconds": 390
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 5
+        },
+        {
+          "type": "spawn",
+          "tag": "w2",
+          "units": [
+            {
+              "unit": "crucible_assault_bot",
+              "owner": 2,
+              "x": 120,
+              "y": 640,
+              "count": 6
+            },
+            {
+              "unit": "crucible_anvil",
+              "owner": 2,
+              "x": 150,
+              "y": 640,
+              "count": 3
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "w2",
+          "x": 130,
+          "y": 150
+        }
+      ]
+    },
+    {
+      "id": "e2",
+      "when": {
+        "type": "time",
+        "seconds": 390
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 6
+        },
+        {
+          "type": "spawn",
+          "tag": "e2",
+          "units": [
+            {
+              "unit": "crucible_assault_bot",
+              "owner": 2,
+              "x": 716,
+              "y": 640,
+              "count": 6
+            },
+            {
+              "unit": "crucible_anvil",
+              "owner": 2,
+              "x": 746,
+              "y": 640,
+              "count": 3
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "e2",
+          "x": 766,
+          "y": 150
+        }
+      ]
+    },
+    {
+      "id": "w3",
+      "when": {
+        "type": "time",
+        "seconds": 540
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 7
+        },
+        {
+          "type": "spawn",
+          "tag": "w3",
+          "units": [
+            {
+              "unit": "crucible_anvil",
+              "owner": 2,
+              "x": 120,
+              "y": 640,
+              "count": 5
+            },
+            {
+              "unit": "crucible_mortar_bot",
+              "owner": 2,
+              "x": 150,
+              "y": 640,
+              "count": 3
+            },
+            {
+              "unit": "crucible_assault_bot",
+              "owner": 2,
+              "x": 180,
+              "y": 640,
+              "count": 5
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "w3",
+          "x": 130,
+          "y": 150
+        }
+      ]
+    },
+    {
+      "id": "e3",
+      "when": {
+        "type": "time",
+        "seconds": 630
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 8
+        },
+        {
+          "type": "spawn",
+          "tag": "e3",
+          "units": [
+            {
+              "unit": "crucible_anvil",
+              "owner": 2,
+              "x": 716,
+              "y": 640,
+              "count": 5
+            },
+            {
+              "unit": "crucible_mortar_bot",
+              "owner": 2,
+              "x": 746,
+              "y": 640,
+              "count": 3
+            },
+            {
+              "unit": "crucible_assault_bot",
+              "owner": 2,
+              "x": 776,
+              "y": 640,
+              "count": 5
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "e3",
+          "x": 766,
+          "y": 150
+        }
+      ]
+    },
+    {
+      "id": "w4",
+      "when": {
+        "type": "time",
+        "seconds": 780
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 9
+        },
+        {
+          "type": "spawn",
+          "tag": "w4",
+          "units": [
+            {
+              "unit": "crucible_anvil",
+              "owner": 2,
+              "x": 120,
+              "y": 640,
+              "count": 7
+            },
+            {
+              "unit": "crucible_artillery_vehicle",
+              "owner": 2,
+              "x": 150,
+              "y": 640,
+              "count": 2
+            },
+            {
+              "unit": "crucible_assault_bot",
+              "owner": 2,
+              "x": 180,
+              "y": 640,
+              "count": 6
+            },
+            {
+              "unit": "crucible_flak_vehicle",
+              "owner": 2,
+              "x": 120,
+              "y": 670,
+              "count": 1
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "w4",
+          "x": 130,
+          "y": 150
+        }
+      ]
+    },
+    {
+      "id": "e4",
+      "when": {
+        "type": "time",
+        "seconds": 780
+      },
+      "actions": [
+        {
+          "type": "spawn",
+          "tag": "e4",
+          "units": [
+            {
+              "unit": "crucible_anvil",
+              "owner": 2,
+              "x": 716,
+              "y": 640,
+              "count": 7
+            },
+            {
+              "unit": "crucible_artillery_vehicle",
+              "owner": 2,
+              "x": 746,
+              "y": 640,
+              "count": 2
+            },
+            {
+              "unit": "crucible_assault_bot",
+              "owner": 2,
+              "x": 776,
+              "y": 640,
+              "count": 6
+            },
+            {
+              "unit": "crucible_flak_vehicle",
+              "owner": 2,
+              "x": 716,
+              "y": 670,
+              "count": 1
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "e4",
+          "x": 766,
+          "y": 150
+        }
+      ]
+    },
+    {
+      "id": "air1",
+      "when": {
+        "type": "time",
+        "seconds": 870
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 10
+        },
+        {
+          "type": "spawn",
+          "tag": "air1",
+          "units": [
+            {
+              "unit": "crucible_gunship",
+              "owner": 2,
+              "x": 448,
+              "y": 700,
+              "count": 4
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "air1",
+          "x": 448,
+          "y": 160
+        }
+      ]
+    },
+    {
+      "id": "w5",
+      "when": {
+        "type": "time",
+        "seconds": 960
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 11
+        },
+        {
+          "type": "spawn",
+          "tag": "w5",
+          "units": [
+            {
+              "unit": "crucible_heavy_assault",
+              "owner": 2,
+              "x": 120,
+              "y": 640,
+              "count": 2
+            },
+            {
+              "unit": "crucible_anvil",
+              "owner": 2,
+              "x": 150,
+              "y": 640,
+              "count": 6
+            },
+            {
+              "unit": "crucible_mortar_bot",
+              "owner": 2,
+              "x": 180,
+              "y": 640,
+              "count": 3
+            },
+            {
+              "unit": "crucible_assault_bot",
+              "owner": 2,
+              "x": 120,
+              "y": 670,
+              "count": 6
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "w5",
+          "x": 130,
+          "y": 150
+        }
+      ]
+    },
+    {
+      "id": "e5",
+      "when": {
+        "type": "time",
+        "seconds": 960
+      },
+      "actions": [
+        {
+          "type": "spawn",
+          "tag": "e5",
+          "units": [
+            {
+              "unit": "crucible_heavy_assault",
+              "owner": 2,
+              "x": 716,
+              "y": 640,
+              "count": 2
+            },
+            {
+              "unit": "crucible_anvil",
+              "owner": 2,
+              "x": 746,
+              "y": 640,
+              "count": 6
+            },
+            {
+              "unit": "crucible_mortar_bot",
+              "owner": 2,
+              "x": 776,
+              "y": 640,
+              "count": 3
+            },
+            {
+              "unit": "crucible_assault_bot",
+              "owner": 2,
+              "x": 716,
+              "y": 670,
+              "count": 6
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "e5",
+          "x": 766,
+          "y": 150
+        }
+      ]
+    },
+    {
+      "id": "holdDone",
+      "when": {
+        "type": "all",
+        "of": [
+          {
+            "type": "destroyed",
+            "tag": "w1"
+          },
+          {
+            "type": "destroyed",
+            "tag": "e1"
+          },
+          {
+            "type": "destroyed",
+            "tag": "w2"
+          },
+          {
+            "type": "destroyed",
+            "tag": "e2"
+          },
+          {
+            "type": "destroyed",
+            "tag": "w3"
+          },
+          {
+            "type": "destroyed",
+            "tag": "e3"
+          },
+          {
+            "type": "destroyed",
+            "tag": "w4"
+          },
+          {
+            "type": "destroyed",
+            "tag": "e4"
+          },
+          {
+            "type": "destroyed",
+            "tag": "air1"
+          },
+          {
+            "type": "destroyed",
+            "tag": "w5"
+          },
+          {
+            "type": "destroyed",
+            "tag": "e5"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "objective",
+          "id": "hold",
+          "state": "complete"
+        },
+        {
+          "type": "objective",
+          "id": "west",
+          "state": "active"
+        },
+        {
+          "type": "objective",
+          "id": "east",
+          "state": "active"
+        },
+        {
+          "type": "message",
+          "message": 12
+        }
+      ]
+    },
+    {
+      "id": "westDone",
+      "when": {
+        "type": "all",
+        "of": [
+          {
+            "type": "fired",
+            "trigger": "holdDone",
+            "after": 0
+          },
+          {
+            "type": "destroyed",
+            "tag": "westCamp"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "objective",
+          "id": "west",
+          "state": "complete"
+        },
+        {
+          "type": "message",
+          "message": 13
+        }
+      ]
+    },
+    {
+      "id": "eastDone",
+      "when": {
+        "type": "all",
+        "of": [
+          {
+            "type": "fired",
+            "trigger": "holdDone",
+            "after": 0
+          },
+          {
+            "type": "destroyed",
+            "tag": "eastCamp"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "objective",
+          "id": "east",
+          "state": "complete"
+        },
+        {
+          "type": "message",
+          "message": 14
+        }
+      ]
+    },
+    {
+      "id": "counter",
+      "when": {
+        "type": "fired",
+        "trigger": "holdDone",
+        "after": 90
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 15
+        },
+        {
+          "type": "spawn",
+          "tag": "counter",
+          "units": [
+            {
+              "unit": "crucible_anvil",
+              "owner": 2,
+              "x": 418,
+              "y": 760,
+              "count": 6
+            },
+            {
+              "unit": "crucible_assault_bot",
+              "owner": 2,
+              "x": 448,
+              "y": 760,
+              "count": 8
+            },
+            {
+              "unit": "crucible_artillery_vehicle",
+              "owner": 2,
+              "x": 478,
+              "y": 760,
+              "count": 2
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "counter",
+          "x": 448,
+          "y": 200
+        }
+      ]
+    },
+    {
+      "id": "win",
+      "when": {
+        "type": "objectivesDone"
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 16
+        },
+        {
+          "type": "reveal"
+        }
+      ]
+    },
+    {
+      "id": "winEnd",
+      "when": {
+        "type": "fired",
+        "trigger": "win",
+        "after": 4
+      },
+      "actions": [
+        {
+          "type": "victory"
+        }
+      ]
+    }
+  ]
+}
