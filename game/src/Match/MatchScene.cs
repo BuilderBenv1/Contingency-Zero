@@ -90,6 +90,7 @@ public partial class MatchScene : Node3D
 
         Effects = new EffectsView { Name = "Effects" };
         AddChild(Effects);
+        AddChild(MakeVignette());
 
         // Start looking at our own Commander (or the middle when watching).
         Vector3 focus = new(world.Map.Width / 2f, 0, world.Map.Height / 2f);
@@ -139,6 +140,33 @@ public partial class MatchScene : Node3D
         Session.Ticked += OnTicked;
         Terrain.UpdateFog(world.Vision, _viewerTeam);
         if (kind != MatchKind.MenuBackground) MusicHost.Play(MusicPlayer.Track.Battle);
+    }
+
+    /// <summary>A dark edge around the battlefield view (under the HUD), for a grittier picture.</summary>
+    private static CanvasLayer MakeVignette()
+    {
+        var layer = new CanvasLayer { Layer = 0, Name = "Vignette" };
+        var rect = new TextureRect
+        {
+            Texture = new GradientTexture2D
+            {
+                Gradient = new Gradient
+                {
+                    Colors = new[] { new Color(0, 0, 0, 0), new Color(0, 0, 0, 0.12f), new Color(0, 0, 0, 0.55f) },
+                    Offsets = new[] { 0.45f, 0.7f, 1f },
+                },
+                Fill = GradientTexture2D.FillEnum.Radial,
+                FillFrom = new Vector2(0.5f, 0.5f),
+                FillTo = new Vector2(1.05f, 1.05f),
+                Width = 256,
+                Height = 256,
+            },
+            StretchMode = TextureRect.StretchModeEnum.Scale,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        rect.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        layer.AddChild(rect);
+        return layer;
     }
 
     private void OnTicked()

@@ -87,12 +87,16 @@ public partial class DevAutomation : Node
                 foreach (var (t, x, y) in basePieces)
                     spawns.Add(new Spawn(t == "bot_lab" || t == "vehicle_plant" ? $"{f}_{t}" : $"{f}_{t}", owner, FixVec2.FromInts(x, Y(y))));
                 string tank = f == "lattice" ? "lattice_strider" : "crucible_anvil";
-                for (int i = 0; i < 12; i++) spawns.Add(new Spawn(tank, owner, FixVec2.FromInts(150 + i * 19, Y(212))));
-                for (int i = 0; i < 6; i++) spawns.Add(new Spawn($"{f}_heavy_assault", owner, FixVec2.FromInts(175 + i * 30, Y(200))));
-                for (int i = 0; i < 14; i++) spawns.Add(new Spawn($"{f}_assault_bot", owner, FixVec2.FromInts(140 + i * 17, Y(224))));
-                for (int i = 0; i < 6; i++) spawns.Add(new Spawn($"{f}_artillery_vehicle", owner, FixVec2.FromInts(185 + i * 28, Y(185))));
-                for (int i = 0; i < 3; i++) spawns.Add(new Spawn($"{f}_flak_vehicle", owner, FixVec2.FromInts(215 + i * 40, Y(192))));
-                for (int i = 0; i < 5; i++) spawns.Add(new Spawn($"{f}_gunship", owner, FixVec2.FromInts(190 + i * 32, Y(190))));
+                int k = owner * 1000;
+                // Loose, uneven groups rather than parade lines.
+                int J(int i, int amp) { uint h = (uint)((k + i) * 2654435761u); return (int)(h >> 16) % (2 * amp + 1) - amp; }
+                void Add(string type, int x, int y) { k++; spawns.Add(new Spawn(type, owner, FixVec2.FromInts(x + J(k, 7), Y(y + J(k + 77, 6))))); }
+                for (int i = 0; i < 12; i++) Add(tank, 150 + i * 19, 212);
+                for (int i = 0; i < 6; i++) Add($"{f}_heavy_assault", 175 + i * 30, 200);
+                for (int i = 0; i < 14; i++) Add($"{f}_assault_bot", 140 + i * 17, 224);
+                for (int i = 0; i < 6; i++) Add($"{f}_artillery_vehicle", 185 + i * 28, 185);
+                for (int i = 0; i < 3; i++) Add($"{f}_flak_vehicle", 215 + i * 40, 192);
+                for (int i = 0; i < 5; i++) Add($"{f}_gunship", 190 + i * 32, 190);
             }
             Side("lattice", 0, +1);
             Side("crucible", 1, -1);

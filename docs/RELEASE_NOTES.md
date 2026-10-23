@@ -1,4 +1,12 @@
-## Contingency Zero 1.0
+## Contingency Zero 1.1
+
+**New in 1.1:** a grittier, more Total Annihilation look:
+- a north-up camera at a steeper angle, instead of the isometric diamond view;
+- textured, weathered ground with no grid;
+- grimy metal units with worn, muted team paint;
+- harsher lighting with darker shadows;
+- steel-grey menus.
+
 
 A machine-war RTS in the spirit of Total Annihilation: two factions, a flow economy, wreckage you reclaim, and a Commander you can't afford to lose.
 

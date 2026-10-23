@@ -4,7 +4,7 @@ using Godot;
 namespace ContingencyZero.Game.Match;
 
 /// <summary>
-/// The RTS camera: orthographic, looking down at about 35 degrees from one of four compass
+/// The RTS camera: orthographic, looking down at about 50 degrees from one of four compass
 /// angles. Pans with the arrow keys / screen edges / middle-drag, zooms with the wheel, turns in
 /// 90-degree steps with Q and E. (Letter keys are unit hotkeys, as in Total Annihilation.)
 /// </summary>
@@ -21,9 +21,10 @@ public partial class CameraRig : Node3D
 
     private float _size = 220;
     private float _targetSize = 220;
-    private float _yaw = Mathf.DegToRad(45);
-    private float _targetYaw = Mathf.DegToRad(45);
-    private const float Pitch = 35f;
+    // North-up and fairly steep, like Total Annihilation (not a 45-degree isometric diamond).
+    private float _yaw = 0;
+    private float _targetYaw = 0;
+    private const float Pitch = 50f;
     private bool _dragging;
     private Vector2 _dragLast;
 

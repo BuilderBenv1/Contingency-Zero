@@ -23,7 +23,7 @@ public partial class ReplayBrowser : CanvasLayer
         var root = new Control { Theme = UiTheme.Theme };
         root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         AddChild(root);
-        var shade = new ColorRect { Color = new Color(0.02f, 0.03f, 0.05f, 0.8f) };
+        var shade = new ColorRect { Color = new Color(0.035f, 0.035f, 0.03f, 0.8f) };
         shade.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         root.AddChild(shade);
 

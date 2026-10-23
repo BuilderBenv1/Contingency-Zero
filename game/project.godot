@@ -10,7 +10,7 @@ config/description="A machine-war RTS in the spirit of Total Annihilation."
 run/main_scene="res://Main.tscn"
 config/features=PackedStringArray("4.3", "C#", "GL Compatibility")
 config/icon="res://icon.svg"
-boot_splash/bg_color=Color(0.03, 0.04, 0.06, 1)
+boot_splash/bg_color=Color(0.035, 0.035, 0.03, 1)
 boot_splash/show_image=false
 
 [display]

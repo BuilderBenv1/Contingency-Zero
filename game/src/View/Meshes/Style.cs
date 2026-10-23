@@ -44,35 +44,37 @@ internal sealed class Style
     public static readonly Style Lattice = new()
     {
         IsLattice = true,
-        Hull = Paint.Plain(0.74f, 0.75f, 0.78f),
-        HullDark = Paint.Plain(0.50f, 0.52f, 0.57f),
-        Mech = Paint.Plain(0.24f, 0.26f, 0.30f),
-        Metal = Paint.Plain(0.46f, 0.49f, 0.54f),
-        Accent = Paint.Plain(0.50f, 0.58f, 0.66f),
+        // Weathered steel-grey armour with a cold tint, not clean ceramic.
+        Hull = Paint.Plain(0.52f, 0.54f, 0.56f),
+        HullDark = Paint.Plain(0.34f, 0.36f, 0.39f),
+        Mech = Paint.Plain(0.19f, 0.2f, 0.22f),
+        Metal = Paint.Plain(0.4f, 0.42f, 0.44f),
+        Accent = Paint.Plain(0.4f, 0.45f, 0.5f),
         Glow = Paint.Glow(0.1f, 0.42f, 1.0f),
         GlowDim = Paint.Glow(0.05f, 0.2f, 0.55f),
-        Team = Paint.Team(0.85f),
-        TeamDark = Paint.Team(0.55f),
-        Tread = Paint.Plain(0.20f, 0.21f, 0.24f),
-        Glass = Paint.Plain(0.14f, 0.22f, 0.32f),
-        Solar = Paint.Plain(0.10f, 0.16f, 0.30f),
+        Team = Paint.Team(0.8f),
+        TeamDark = Paint.Team(0.5f),
+        Tread = Paint.Plain(0.15f, 0.15f, 0.16f),
+        Glass = Paint.Plain(0.1f, 0.16f, 0.22f),
+        Solar = Paint.Plain(0.08f, 0.12f, 0.2f),
     };
 
     public static readonly Style Crucible = new()
     {
         IsLattice = false,
-        Hull = Paint.Plain(0.36f, 0.30f, 0.25f),
-        HullDark = Paint.Plain(0.24f, 0.20f, 0.17f),
-        Mech = Paint.Plain(0.13f, 0.12f, 0.11f),
-        Metal = Paint.Plain(0.47f, 0.44f, 0.40f),
-        Accent = Paint.Plain(0.52f, 0.37f, 0.22f),
+        // Scorched, oily gunmetal with a rust cast.
+        Hull = Paint.Plain(0.33f, 0.3f, 0.26f),
+        HullDark = Paint.Plain(0.2f, 0.18f, 0.16f),
+        Mech = Paint.Plain(0.11f, 0.1f, 0.09f),
+        Metal = Paint.Plain(0.4f, 0.38f, 0.35f),
+        Accent = Paint.Plain(0.46f, 0.32f, 0.2f),
         Glow = Paint.Glow(1.0f, 0.24f, 0.03f),
         GlowDim = Paint.Glow(0.6f, 0.12f, 0.02f),
-        Team = Paint.Team(0.80f),
-        TeamDark = Paint.Team(0.50f),
-        Tread = Paint.Plain(0.12f, 0.11f, 0.10f),
-        Glass = Paint.Plain(0.20f, 0.14f, 0.10f),
-        Solar = Paint.Plain(0.14f, 0.12f, 0.16f),
+        Team = Paint.Team(0.75f),
+        TeamDark = Paint.Team(0.45f),
+        Tread = Paint.Plain(0.1f, 0.09f, 0.08f),
+        Glass = Paint.Plain(0.16f, 0.11f, 0.08f),
+        Solar = Paint.Plain(0.11f, 0.1f, 0.12f),
     };
 
     public static Style For(string faction) => faction == "crucible" ? Crucible : Lattice;

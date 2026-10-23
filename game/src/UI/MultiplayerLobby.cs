@@ -72,7 +72,7 @@ public partial class MultiplayerLobby : CanvasLayer
         _root = new Control { Theme = UiTheme.Theme };
         _root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         AddChild(_root);
-        var shade = new ColorRect { Color = new Color(0.02f, 0.03f, 0.05f, 0.85f) };
+        var shade = new ColorRect { Color = new Color(0.035f, 0.035f, 0.03f, 0.85f) };
         shade.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         _root.AddChild(shade);
         ShowStartPage();

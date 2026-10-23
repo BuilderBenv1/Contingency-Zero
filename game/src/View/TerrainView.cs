@@ -25,18 +25,18 @@ public partial class TerrainView : Node3D
 
     public static TerrainPalette PaletteFor(string theme) => theme switch
     {
-        "desert" => new TerrainPalette(new Color(0.78f, 0.68f, 0.5f), new Color(0.72f, 0.58f, 0.4f), new Color(0.64f, 0.48f, 0.33f),
-            new Color(0.74f, 0.64f, 0.52f), new Color(0.55f, 0.36f, 0.25f), new Color(0.2f, 0.42f, 0.5f, 0.75f), new Color(0.08f, 0.2f, 0.3f), false,
+        "desert" => new TerrainPalette(new Color(0.66f, 0.57f, 0.43f), new Color(0.6f, 0.47f, 0.34f), new Color(0.52f, 0.39f, 0.29f),
+            new Color(0.62f, 0.54f, 0.44f), new Color(0.55f, 0.36f, 0.25f), new Color(0.2f, 0.42f, 0.5f, 0.75f), new Color(0.08f, 0.2f, 0.3f), false,
             new Color(0.62f, 0.5f, 0.4f)),
         "lava" => new TerrainPalette(new Color(0.25f, 0.18f, 0.16f), new Color(0.24f, 0.22f, 0.22f), new Color(0.32f, 0.28f, 0.26f),
             new Color(0.45f, 0.4f, 0.38f), new Color(0.18f, 0.15f, 0.15f), new Color(1.0f, 0.38f, 0.05f, 0.95f), new Color(0.9f, 0.15f, 0.02f), true,
             new Color(0.22f, 0.12f, 0.1f)),
-        "arctic" => new TerrainPalette(new Color(0.55f, 0.6f, 0.66f), new Color(0.62f, 0.67f, 0.73f), new Color(0.7f, 0.74f, 0.8f),
-            new Color(0.8f, 0.83f, 0.87f), new Color(0.48f, 0.52f, 0.58f), new Color(0.35f, 0.55f, 0.7f, 0.8f), new Color(0.12f, 0.25f, 0.4f), false,
+        "arctic" => new TerrainPalette(new Color(0.5f, 0.53f, 0.56f), new Color(0.58f, 0.61f, 0.65f), new Color(0.66f, 0.69f, 0.73f),
+            new Color(0.76f, 0.78f, 0.81f), new Color(0.48f, 0.52f, 0.58f), new Color(0.35f, 0.55f, 0.7f, 0.8f), new Color(0.12f, 0.25f, 0.4f), false,
             new Color(0.6f, 0.68f, 0.76f)),
-        _ => new TerrainPalette(new Color(0.72f, 0.67f, 0.5f), new Color(0.36f, 0.45f, 0.28f), new Color(0.45f, 0.5f, 0.34f),
-            new Color(0.55f, 0.56f, 0.47f), new Color(0.45f, 0.43f, 0.4f), new Color(0.15f, 0.4f, 0.55f, 0.78f), new Color(0.05f, 0.18f, 0.3f), false,
-            new Color(0.45f, 0.55f, 0.62f)),
+        _ => new TerrainPalette(new Color(0.58f, 0.54f, 0.42f), new Color(0.35f, 0.39f, 0.25f), new Color(0.43f, 0.42f, 0.31f),
+            new Color(0.5f, 0.49f, 0.43f), new Color(0.4f, 0.38f, 0.35f), new Color(0.2f, 0.32f, 0.36f, 0.82f), new Color(0.06f, 0.12f, 0.15f), false,
+            new Color(0.5f, 0.52f, 0.53f)),
     };
 
     /// <summary>How heights map onto the palette's bands for one map.</summary>
@@ -82,11 +82,12 @@ public partial class TerrainView : Node3D
         env.BackgroundMode = Godot.Environment.BGMode.Color;
         env.BackgroundColor = palette.Sky.Darkened(0.6f);
         env.AmbientLightSource = Godot.Environment.AmbientSource.Color;
-        env.AmbientLightColor = palette.Sky.Lerp(Colors.White, 0.5f);
-        env.AmbientLightEnergy = 0.45f;
+        // Hard sun and a low, grey ambient: strong shadows, a harsher battlefield.
+        env.AmbientLightColor = palette.Sky.Lerp(new Color(0.6f, 0.6f, 0.6f), 0.6f);
+        env.AmbientLightEnergy = 0.4f;
         env.TonemapMode = Godot.Environment.ToneMapper.Linear;
-        sun.LightEnergy = theme == "lava" ? 0.75f : 0.85f;
-        sun.LightColor = theme == "lava" ? new Color(1f, 0.82f, 0.7f) : new Color(1f, 0.97f, 0.92f);
+        sun.LightEnergy = theme == "lava" ? 0.85f : 1.0f;
+        sun.LightColor = theme == "lava" ? new Color(1f, 0.8f, 0.66f) : new Color(1f, 0.95f, 0.86f);
     }
 
     public void Build(MapData map)
@@ -263,6 +264,11 @@ uniform sampler2D fog_tex : filter_linear;
 uniform vec2 map_size;
 varying vec3 world_pos;
 void vertex() { world_pos = VERTEX; }
+float h2(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
+float n2(vec2 x) {
+    vec2 i = floor(x); vec2 f = fract(x); f = f * f * (3.0 - 2.0 * f);
+    return mix(mix(h2(i), h2(i + vec2(1.0, 0.0)), f.x), mix(h2(i + vec2(0.0, 1.0)), h2(i + vec2(1.0, 1.0)), f.x), f.y);
+}
 void fragment() {
     vec2 uv = world_pos.xz / map_size;
     // Five taps soften the tile-shaped edge of what's in sight.
@@ -270,11 +276,16 @@ void fragment() {
     vec2 fog = texture(fog_tex, uv).rg * 0.4
         + (texture(fog_tex, uv + vec2(px.x, 0.0)).rg + texture(fog_tex, uv - vec2(px.x, 0.0)).rg
          + texture(fog_tex, uv + vec2(0.0, px.y)).rg + texture(fog_tex, uv - vec2(0.0, px.y)).rg) * 0.15;
-    float light = mix(mix(0.18, 0.55, fog.g), 1.0, fog.r);
-    // Subtle tile grid, like a planning map, only where explored.
-    vec2 g = abs(fract(world_pos.xz / 8.0) - 0.5);
-    float line = smoothstep(0.47, 0.5, max(g.x, g.y)) * 0.06 * fog.g;
-    ALBEDO = COLOR.rgb * light * (1.0 - line);
+    float light = mix(mix(0.16, 0.5, fog.g), 1.0, fog.r);
+    // Ground texture from layered noise: broad mottling, grit, scattered stones and dry patches.
+    vec2 w = world_pos.xz;
+    float d = n2(w * 0.06) * 0.42 + n2(w * 0.23) * 0.28 + n2(w * 0.9) * 0.18 + n2(w * 3.1) * 0.12;
+    float stones = smoothstep(0.84, 0.92, n2(w * 1.1 + 13.0)) * smoothstep(0.5, 0.8, n2(w * 0.08 + 5.0));
+    float dry = smoothstep(0.55, 0.78, n2(w * 0.035 + 7.0));
+    vec3 c = COLOR.rgb * (0.7 + 0.55 * d);
+    c = mix(c, mix(COLOR.rgb * 0.65, vec3(0.3, 0.26, 0.21), 0.5) * (0.85 + 0.3 * d), dry * 0.45);
+    c = mix(c, c * 0.62, stones * 0.6);
+    ALBEDO = c * light;
     ROUGHNESS = 0.95;
 }";
 

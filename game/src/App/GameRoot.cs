@@ -29,7 +29,7 @@ public partial class GameRoot : Node
     {
         Instance = this;
         GetTree().Root.Title = "Contingency Zero";
-        RenderingServer.SetDefaultClearColor(new Color(0.03f, 0.04f, 0.06f));
+        RenderingServer.SetDefaultClearColor(new Color(0.035f, 0.035f, 0.03f));
         Settings.Current.Apply();
         Sfx.Init(this);
         var music = new MusicPlayer { Name = "Music" };

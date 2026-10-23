@@ -21,7 +21,7 @@ public partial class CampaignScreen : CanvasLayer
         var root = new Control { Theme = UiTheme.Theme };
         root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         AddChild(root);
-        var shade = new ColorRect { Color = new Color(0.02f, 0.03f, 0.05f, 0.82f) };
+        var shade = new ColorRect { Color = new Color(0.035f, 0.035f, 0.03f, 0.82f) };
         shade.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         root.AddChild(shade);
 
@@ -108,6 +108,6 @@ public partial class CampaignScreen : CanvasLayer
         }
         string side = m.Campaign == "lattice" ? "Lattice" : "Crucible";
         string won = CampaignProgress.Won.Contains(m.Key) ? "  ·  [color=#59e673]completed[/color]" : "";
-        _briefing.Text = $"[b]{m.Title}[/b]\n[color=#8a96a8]{side} campaign · mission {m.Order} · {mapName}{won}[/color]\n\n{m.Briefing}";
+        _briefing.Text = $"[b]{m.Title}[/b]\n[color=#94948a]{side} campaign · mission {m.Order} · {mapName}{won}[/color]\n\n{m.Briefing}";
     }
 }

@@ -20,7 +20,7 @@ public partial class MainMenu : CanvasLayer
             {
                 Gradient = new Gradient
                 {
-                    Colors = new[] { new Color(0.02f, 0.03f, 0.05f, 0.92f), new Color(0.02f, 0.03f, 0.05f, 0.0f) },
+                    Colors = new[] { new Color(0.035f, 0.035f, 0.03f, 0.92f), new Color(0.035f, 0.035f, 0.03f, 0.0f) },
                     Offsets = new[] { 0.35f, 1f },
                 },
                 FillFrom = new Vector2(0, 0),

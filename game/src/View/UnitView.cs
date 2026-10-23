@@ -289,27 +289,49 @@ public partial class UnitView : Node3D
 shader_type spatial;
 render_mode diffuse_lambert, specular_schlick_ggx;
 varying vec4 inst;
-void vertex() { inst = INSTANCE_CUSTOM; }
+varying vec3 lp;
+void vertex() { inst = INSTANCE_CUSTOM; lp = VERTEX; }
 // Note: the Compatibility renderer lights in display (sRGB) space, so colours are used as authored.
+float h3(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+float n3(vec3 x) {
+    vec3 i = floor(x); vec3 f = fract(x); f = f * f * (3.0 - 2.0 * f);
+    return mix(mix(mix(h3(i), h3(i + vec3(1, 0, 0)), f.x), mix(h3(i + vec3(0, 1, 0)), h3(i + vec3(1, 1, 0)), f.x), f.y),
+               mix(mix(h3(i + vec3(0, 0, 1)), h3(i + vec3(1, 0, 1)), f.x), mix(h3(i + vec3(0, 1, 1)), h3(i + vec3(1, 1, 1)), f.x), f.y), f.z);
+}
 void fragment() {
     vec3 base = COLOR.rgb;
     float a = COLOR.a;
+    // Grime fixed to the model: blotchy dirt, fine scratches, dust settling on the lower parts.
+    float g = n3(lp * 1.3) * 0.6 + n3(lp * 4.7) * 0.4;
+    float speck = n3(lp * 11.0 + 3.0);
+    float dirt = clamp((g - 0.35) * 1.5, 0.0, 1.0);
+    float low = 1.0 - smoothstep(0.0, 2.5, lp.y);
     vec3 col;
     vec3 emit = vec3(0.0);
+    float rough = 0.55;
     if (a < 0.25) {
-        float lum = dot(COLOR.rgb, vec3(0.333));
-        col = inst.rgb * (0.25 + 0.85 * lum);
+        // Team colour as worn paint on metal: muted, chipped where the grime is heaviest.
+        float lum = dot(base, vec3(0.333));
+        vec3 paint = mix(inst.rgb, vec3(dot(inst.rgb, vec3(0.333))), 0.3) * (0.3 + 0.7 * lum);
+        float chip = step(0.72, speck * 0.45 + g * 0.55);
+        col = mix(paint, vec3(0.34, 0.33, 0.31) * (0.45 + 0.55 * lum), chip * 0.7);
     } else if (a < 0.75) {
         col = base * 0.3;
         emit = base * 1.6;
     } else {
         col = base;
     }
+    if (a < 0.25 || a >= 0.75) {
+        col *= mix(1.05, 0.6, dirt * 0.75 + low * 0.35);
+        col = mix(col, vec3(0.27, 0.24, 0.2), dirt * 0.25 + low * 0.15);
+        col *= 0.9 + 0.14 * speck;
+        rough = 0.4 + 0.5 * dirt;
+    }
     col = mix(col, vec3(1.0), inst.a * 0.55);
     ALBEDO = col;
     EMISSION = emit + vec3(1.0, 0.9, 0.8) * inst.a * 0.25;
-    ROUGHNESS = 0.55;
-    METALLIC = 0.25;
+    ROUGHNESS = rough;
+    METALLIC = 0.35;
 }";
 
     /// <summary>
