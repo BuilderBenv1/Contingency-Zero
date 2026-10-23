@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using ContingencyZero.Game.Match;
 using ContingencyZero.Sim.Core;
+using ContingencyZero.Sim.Map;
 using ContingencyZero.Sim.Match;
+using ContingencyZero.Sim.Replay;
 using Godot;
 
 namespace ContingencyZero.Game.App;
@@ -67,6 +69,58 @@ public partial class DevAutomation : Node
                 case "editor": root.ShowEditor(); break;
             }
         }
+        else if (_args.ContainsKey("--dev-showcase"))
+        {
+            // A set-piece for promo screenshots: two bases on Proving Grounds and two armies ordered
+            // to attack-move into each other. Everything after the orders is the normal sim.
+            MapData map = GameData.Maps().First(m => m.Key == "proving_grounds").Load();
+            var spawns = new List<Spawn>();
+            void Side(string f, int owner, int dir)
+            {
+                int Y(int y) => dir > 0 ? y : 512 - y;
+                (string Type, int X, int Y)[] basePieces =
+                {
+                    ("vehicle_plant", 190, 105), ("bot_lab", 330, 105), ("solar_collector", 130, 60), ("solar_collector", 390, 60),
+                    ("wind_turbine", 100, 120), ("wind_turbine", 420, 120), ("heavy_turret", 260, 150), ("light_turret", 180, 165),
+                    ("light_turret", 340, 165), ("fusion_reactor", 260, 30), ("radar_tower", 455, 75), ("aa_turret", 75, 75),
+                };
+                foreach (var (t, x, y) in basePieces)
+                    spawns.Add(new Spawn(t == "bot_lab" || t == "vehicle_plant" ? $"{f}_{t}" : $"{f}_{t}", owner, FixVec2.FromInts(x, Y(y))));
+                string tank = f == "lattice" ? "lattice_strider" : "crucible_anvil";
+                for (int i = 0; i < 12; i++) spawns.Add(new Spawn(tank, owner, FixVec2.FromInts(150 + i * 19, Y(212))));
+                for (int i = 0; i < 6; i++) spawns.Add(new Spawn($"{f}_heavy_assault", owner, FixVec2.FromInts(175 + i * 30, Y(200))));
+                for (int i = 0; i < 14; i++) spawns.Add(new Spawn($"{f}_assault_bot", owner, FixVec2.FromInts(140 + i * 17, Y(224))));
+                for (int i = 0; i < 6; i++) spawns.Add(new Spawn($"{f}_artillery_vehicle", owner, FixVec2.FromInts(185 + i * 28, Y(185))));
+                for (int i = 0; i < 3; i++) spawns.Add(new Spawn($"{f}_flak_vehicle", owner, FixVec2.FromInts(215 + i * 40, Y(192))));
+                for (int i = 0; i < 5; i++) spawns.Add(new Spawn($"{f}_gunship", owner, FixVec2.FromInts(190 + i * 32, Y(190))));
+            }
+            Side("lattice", 0, +1);
+            Side("crucible", 1, -1);
+            var players = new List<PlayerSetup> { new("You", 0, "lattice", 0), new("Crucible", 1, "crucible", 1) };
+            var scenario = new Scenario(map, 2026, players, new MatchOptions(5000, 5000, RevealMap: true), spawns);
+            var session = new SimSession(scenario, GameData.Catalog, 0, new LocalChannel());
+            MatchScene.SuppressHints = true;
+            _match = root.StartMatch(session, MatchKind.Skirmish, "Showcase", null);
+            var w = session.World;
+            var orders = new List<Command>();
+            for (int id = 0; id < w.Units.Count; id++)
+            {
+                var d = w.Catalog[w.Units.TypeIndex[id]];
+                if (!d.CanMove || d.CanBuild || !d.IsArmed) continue;
+                int owner = w.Units.Owner[id];
+                orders.Add(new Command(0, owner, CommandType.Fight, id, FixVec2.FromInts(256, owner == 0 ? 430 : 82)));
+            }
+            int ff = int.Parse(Arg("--dev-fastforward", "0"));
+            w.Step(orders);
+            for (int i = 1; i < ff * 15; i++) w.Step();
+            _match.Units.Snapshot();
+            _match.Units.Snapshot();
+            var look = Arg("--dev-look", "256,256").Split(',');
+            _match.Rig.JumpTo(new Vector3(float.Parse(look[0], System.Globalization.CultureInfo.InvariantCulture), 0,
+                float.Parse(look[1], System.Globalization.CultureInfo.InvariantCulture)));
+            if (Arg("--dev-zoom") is { Length: > 0 } sz)
+                _match.Rig.SetZoom(float.Parse(sz, System.Globalization.CultureInfo.InvariantCulture));
+        }
         else if (_args.ContainsKey("--dev-replay"))
         {
             // Plays the newest saved replay, fast-forwarded by --dev-fastforward seconds.
@@ -103,9 +157,13 @@ public partial class DevAutomation : Node
             var players = new List<PlayerSetup>
             {
                 new("You", 0, Arg("--dev-faction", "lattice"), 0, Arg("--dev-self-ai") == "" ? AiDifficulty.None : AiDifficulty.Hard),
-                new("Enemy", 1, "crucible", 1, AiDifficulty.Normal),
+                new("Enemy", 1, "crucible", 1, Arg("--dev-enemy") == "hard" ? AiDifficulty.Hard : AiDifficulty.Normal),
             };
-            root.StartSkirmish(map, players, new MatchOptions(5000, 5000));
+            // --dev-ffa: fill every start position with a Hard computer player, each on its own team.
+            if (_args.ContainsKey("--dev-ffa"))
+                for (int i = 2; i < map.StartPositions.Count; i++)
+                    players.Add(new($"AI {i + 1}", i, i % 2 == 0 ? "lattice" : "crucible", i, AiDifficulty.Hard));
+            root.StartSkirmish(map, players, new MatchOptions(5000, 5000, RevealMap: _args.ContainsKey("--dev-reveal")));
             _match = root.GetNodeOrNull<MatchScene>("Match");
             int ff = int.Parse(Arg("--dev-fastforward", "0"));
             if (_match is not null && ff > 0)
@@ -120,7 +178,53 @@ public partial class DevAutomation : Node
             if (_match is not null && Arg("--dev-look") is { Length: > 0 } look)
             {
                 var w = _match.Session.World;
-                if (look == "fight")
+                if (look.StartsWith("battle"))
+                {
+                    // Keep playing until some 64-unit square has at least N units shooting (battle:N),
+                    // then point the camera at the busiest one.
+                    int want = look.Contains(':') ? int.Parse(look.Split(':')[1]) : 1;
+                    (int, int) best = default;
+                    int bestCount = 0;
+                    for (int extra = 0; extra < 600 * 15; extra += 15)
+                    {
+                        // Score a 96-unit square by its mobile units, but only where two sides meet and shots are flying.
+                        var units = new Dictionary<(int, int), int>();
+                        var firing = new Dictionary<(int, int), int>();
+                        var owners = new Dictionary<(int, int), int>();
+                        for (int id = 0; id < w.Units.Count; id++)
+                        {
+                            if (!w.Units.Alive[id] || w.Catalog[w.Units.TypeIndex[id]].IsStructure) continue;
+                            var cell = (w.Units.Position[id].X.ToIntFloor() / 96, w.Units.Position[id].Y.ToIntFloor() / 96);
+                            owners[cell] = owners.GetValueOrDefault(cell) | (1 << w.Units.Owner[id]);
+                            units[cell] = units.GetValueOrDefault(cell) + 1;
+                            if (w.Units.Target0[id] >= 0 || w.Units.Target1[id] >= 0) firing[cell] = firing.GetValueOrDefault(cell) + 1;
+                        }
+                        var counts = new Dictionary<(int, int), int>();
+                        foreach (var (cell, n) in units)
+                            if (System.Numerics.BitOperations.PopCount((uint)owners[cell]) >= 2 && firing.GetValueOrDefault(cell) >= 3)
+                                counts[cell] = n;
+                        if (counts.Count > 0)
+                        {
+                            var top = counts.OrderByDescending(kv => kv.Value).First();
+                            best = top.Key; bestCount = top.Value;
+                        }
+                        if (bestCount >= want) break;
+                        for (int i = 0; i < 15; i++) w.Step();
+                    }
+                    _match.Units.Snapshot();
+                    _match.Units.Snapshot();
+                    // Centre on the units shooting in that square.
+                    float sx = 0, sz = 0; int shooters = 0;
+                    for (int id = 0; id < w.Units.Count; id++)
+                    {
+                        if (!w.Units.Alive[id] || w.Units.Target0[id] < 0 || w.Catalog[w.Units.TypeIndex[id]].IsStructure) continue;
+                        if (w.Units.Position[id].X.ToIntFloor() / 96 != best.Item1 || w.Units.Position[id].Y.ToIntFloor() / 96 != best.Item2) continue;
+                        sx += w.Units.Position[id].X.Raw / 65536f; sz += w.Units.Position[id].Y.Raw / 65536f; shooters++;
+                    }
+                    _match.Rig.JumpTo(shooters > 0 ? new Vector3(sx / shooters, 0, sz / shooters) : new Vector3(best.Item1 * 96 + 48, 0, best.Item2 * 96 + 48));
+                    GD.Print($"DEV: battle at {best} with {bestCount} units, {w.Tick / 15 / 60}:{w.Tick / 15 % 60:D2}");
+                }
+                else if (look == "fight")
                 {
                     for (int id = 0; id < w.Units.Count; id++)
                         if (w.Units.Alive[id] && w.Units.Target0[id] >= 0 && !w.Catalog[w.Units.TypeIndex[id]].IsStructure)
@@ -162,6 +266,14 @@ public partial class DevAutomation : Node
             if (_args.ContainsKey("--dev-select-all") && _match is not null)
             {
                 _match.Selection.Set(_match.Input.OwnUnits(_ => true));
+            }
+            // --dev-select-army: select our combat units in view, as a player would before attacking.
+            if (_args.ContainsKey("--dev-select-army") && _match is not null)
+            {
+                var w = _match.Session.World;
+                Vector3 f = _match.Rig.Focus;
+                _match.Selection.Set(_match.Input.OwnUnits(d => d.CanMove && d.IsArmed && !d.CanBuild).Where(id =>
+                    new Vector2(w.Units.Position[id].X.Raw / 65536f - f.X, w.Units.Position[id].Y.Raw / 65536f - f.Z).Length() < 90));
             }
             // --dev-orders: send our mobile units to the middle of the map, as a player would.
             if (_args.ContainsKey("--dev-orders") && _match is not null)

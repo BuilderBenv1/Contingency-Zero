@@ -46,6 +46,9 @@ public partial class MatchScene : Node3D
     private GameOverPanel? _gameOver;
     private int _fogTimer;
     private bool _endHandled;
+
+    /// <summary>Skips the opening tips (set by dev automation for clean screenshots).</summary>
+    public static bool SuppressHints { get; set; }
     private int _viewerTeam;
 
     public void Start(SimSession session, MatchKind kind, string title)
@@ -117,7 +120,7 @@ public partial class MatchScene : Node3D
             {
                 Hud.Post(m.Title, UiTheme.Amber, 8);
             }
-            else if (kind == MatchKind.Skirmish || kind == MatchKind.Multiplayer)
+            else if ((kind == MatchKind.Skirmish || kind == MatchKind.Multiplayer) && !SuppressHints)
             {
                 Hud.Post("Build metal extractors on the glowing spots, then energy, then a factory.", UiTheme.Accent, 12);
                 Hud.Post("Destroy the enemy Commander to win. Keep yours alive.", UiTheme.Accent, 12);
