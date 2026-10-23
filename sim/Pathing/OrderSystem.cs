@@ -127,6 +127,49 @@ internal static class OrderSystem
                 ExecuteAssist(world, id, def, order);
                 break;
 
+            case OrderType.ReclaimArea:
+            {
+                // Work through the wrecks, rocks and trees inside the circle, nearest first.
+                if (order.Target < 0 || order.Target >= world.Features.Count || world.Features[order.Target].Gone)
+                {
+                    int next = NearestFeatureIn(world, order.Position, Fix64.FromInt(order.TypeIndex), units.Position[id]);
+                    if (next < 0) { units.PopOrder(id); break; }
+                    order.Target = next;
+                    units.Orders[id][0] = order;
+                }
+                Feature f = world.Features[order.Target];
+                Fix64 reach = def.BuildRange + f.Radius - Fix64.One;
+                if (FixVec2.DistanceSquared(units.Position[id], f.Position) > reach * reach)
+                    MoveTo(world, id, def, f.Position, reach);
+                else
+                    units.ClearPath(id);
+                break;
+            }
+
+            case OrderType.RepairArea:
+            {
+                // Help with every frame and damaged friendly unit inside the circle, nearest first.
+                if (!units.IsValid(order.Target) || !NeedsRepair(world, order.Target))
+                {
+                    int next = NearestRepairJobIn(world, id, order.Position, Fix64.FromInt(order.TypeIndex));
+                    if (next < 0) { units.PopOrder(id); break; }
+                    order.Target = next;
+                    units.Orders[id][0] = order;
+                }
+                int target = order.Target;
+                if (!EconomySystem.InBuildRange(world, id, def, target))
+                {
+                    UnitDef tdef = world.Catalog[units.TypeIndex[target]];
+                    Fix64 half = tdef.IsStructure ? Fix64.FromInt(tdef.Footprint * MapData.TileSize / 2) : tdef.Radius;
+                    MoveTo(world, id, def, units.Position[target], def.BuildRange + half - Fix64.One);
+                }
+                else
+                {
+                    units.ClearPath(id);
+                }
+                break;
+            }
+
             case OrderType.Patrol:
                 if (MoveTo(world, id, def, order.Position, Fix64.FromInt(3)))
                 {
@@ -208,6 +251,48 @@ internal static class OrderSystem
         }
         order.Target = frame;
         units.Orders[id][0] = order;
+    }
+
+    /// <summary>The closest reclaimable thing to <paramref name="from"/> within <paramref name="radius"/> of <paramref name="centre"/>, or -1.</summary>
+    private static int NearestFeatureIn(World world, FixVec2 centre, Fix64 radius, FixVec2 from)
+    {
+        int best = -1;
+        Fix64 bestD = Fix64.MaxValue;
+        Fix64 r2 = radius * radius;
+        foreach (Feature f in world.Features)
+        {
+            if (f.Gone) continue;
+            if (FixVec2.DistanceSquared(f.Position, centre) > r2) continue;
+            Fix64 d = FixVec2.DistanceSquared(f.Position, from);
+            if (d < bestD) { bestD = d; best = f.Id; }
+        }
+        return best;
+    }
+
+    private static bool NeedsRepair(World world, int target)
+    {
+        UnitStore units = world.Units;
+        UnitDef tdef = world.Catalog[units.TypeIndex[target]];
+        return !units.Complete[target] || units.Health[target] < tdef.MaxHealth;
+    }
+
+    /// <summary>The closest friendly frame or damaged unit to the worker inside the circle, or -1.</summary>
+    private static int NearestRepairJobIn(World world, int worker, FixVec2 centre, Fix64 radius)
+    {
+        UnitStore units = world.Units;
+        int owner = units.Owner[worker];
+        int best = -1;
+        Fix64 bestD = Fix64.MaxValue;
+        Fix64 r2 = radius * radius;
+        for (int id = 0; id < units.Count; id++)
+        {
+            if (!units.Alive[id] || id == worker || world.AreEnemies(owner, units.Owner[id])) continue;
+            if (!NeedsRepair(world, id)) continue;
+            if (FixVec2.DistanceSquared(units.Position[id], centre) > r2) continue;
+            Fix64 d = FixVec2.DistanceSquared(units.Position[id], units.Position[worker]);
+            if (d < bestD) { bestD = d; best = id; }
+        }
+        return best;
     }
 
     private static void ExecuteAssist(World world, int id, UnitDef def, Order order)

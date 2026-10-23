@@ -44,6 +44,7 @@ public partial class GameRoot : Node
             AddChild(_dev);
             return;
         }
+        if (ReplayFiles.OpenFromCommandLine()) return; // a .czr on the command line (double-clicked file) plays straight away
         ShowMainMenu();
     }
 
@@ -195,11 +196,13 @@ public partial class GameRoot : Node
         Missions.CampaignProgress.Track(m, mission);
     }
 
-    public void StartReplay(MatchReplay replay, string title)
+    /// <summary>Watches a replay. <paramref name="startTick"/> runs the sim ahead to that tick first (bookmark jumps).</summary>
+    public void StartReplay(MatchReplay replay, string title, int startTick = 0)
     {
         var session = new SimSession(replay.Scenario, GameData.Catalog, -1, new ReplayChannel(replay));
         MatchScene m = StartMatch(session, MatchKind.Replay, title, null);
-        m.AddChild(new ReplayControls(m));
+        m.AddChild(new ReplayControls(m, replay));
+        if (startTick > 0) session.SeekTo(startTick);
     }
 
     public override void _Notification(int what)

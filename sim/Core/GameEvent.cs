@@ -28,6 +28,10 @@ public enum GameEventType : byte
     MissionMessage,
     /// <summary>An order couldn't be carried out. Unit, Other = owner, Value = reason code.</summary>
     OrderFailed,
+    /// <summary>Salvage progress: a player finished reclaiming an enemy wreck. Other = player, Value = unit type, Kind = wrecks so far (unlocked at <see cref="World.SalvageWrecksNeeded"/>).</summary>
+    Salvage,
+    /// <summary>The ground was reshaped (a crater). Position = min corner, Position2 = max corner of the changed area, in world units.</summary>
+    TerrainChanged,
 }
 
 /// <summary>

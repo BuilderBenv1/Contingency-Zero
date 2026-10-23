@@ -16,6 +16,13 @@ public sealed record DesyncReport(int Tick, ulong HostHash, ulong PeerHash, int 
 /// machine, host included, steps tick T only once it holds T's bundle, so everyone applies the
 /// same commands on the same tick. The first <see cref="Delay"/> ticks are empty by definition.
 /// Messages may arrive in any order; only reliability matters.
+/// <para>
+/// Spectators ride along: they get the scenario and every bundle and run the same sim, but they
+/// own no player, send no input and the host never waits on them. They do send hashes, so a
+/// spectator that drifts is reported like a player would be. Inside the channel a spectator is
+/// a "participant" numbered after the players (<see cref="ParticipantCount"/>), so names, hashes
+/// and round trips use one index space.
+/// </para>
 /// </summary>
 public abstract class LockstepChannel : ICommandChannel, IDisposable
 {
@@ -37,10 +44,16 @@ public abstract class LockstepChannel : ICommandChannel, IDisposable
     private double _stallSince = -1;
     private bool _disposed;
 
-    /// <summary>This machine's player index.</summary>
+    /// <summary>This machine's player index, or <see cref="NetProtocol.SpectatorPlayer"/> when only watching.</summary>
     public int LocalPlayer { get; }
+    /// <summary>True when this machine watches without playing.</summary>
+    public bool IsSpectator => LocalPlayer < 0;
     /// <summary>Names of every player in the match, by index.</summary>
     public IReadOnlyList<string> PlayerNames { get; }
+    /// <summary>Names of everyone watching, in the order the host numbered them (participant = PlayerNames.Count + i).</summary>
+    public IReadOnlyList<string> SpectatorNames { get; }
+    /// <summary>Players plus spectators.</summary>
+    public int ParticipantCount => PlayerNames.Count + SpectatorNames.Count;
     /// <summary>Ticks between issuing a command and it taking effect.</summary>
     public int Delay { get; protected set; }
     /// <summary>False until every human has loaded the match and the host says go.</summary>
@@ -61,6 +74,8 @@ public abstract class LockstepChannel : ICommandChannel, IDisposable
 
     /// <summary>A player dropped out (their Resign is already in a bundle).</summary>
     public event Action<int>? PlayerLeft;
+    /// <summary>A spectator (participant index) stopped watching. Nothing changes in the game.</summary>
+    public event Action<int>? SpectatorLeft;
     /// <summary>Hashes disagreed. Raised once.</summary>
     public event Action<DesyncReport>? Desynced;
     /// <summary>The host is gone. Raised once, with a reason to show.</summary>
@@ -70,12 +85,14 @@ public abstract class LockstepChannel : ICommandChannel, IDisposable
     /// <summary>This machine's per-second state hash (tick, hash), for logs.</summary>
     public event Action<int, ulong>? HashComputed;
 
-    protected LockstepChannel(INetTransport transport, Func<double> clock, int localPlayer, IReadOnlyList<string> names, int delay)
+    protected LockstepChannel(INetTransport transport, Func<double> clock, int localPlayer, IReadOnlyList<string> names, int delay,
+        IReadOnlyList<string>? spectatorNames = null)
     {
         Transport = transport;
         Clock = clock;
         LocalPlayer = localPlayer;
         PlayerNames = names;
+        SpectatorNames = spectatorNames ?? Array.Empty<string>();
         Delay = Math.Clamp(delay, 1, MaxDelay);
         NoteDelay();
         // Ticks before the first delay are empty for everyone: nobody could have sent anything yet.
@@ -83,8 +100,17 @@ public abstract class LockstepChannel : ICommandChannel, IDisposable
         SentThrough = Delay - 1;
     }
 
-    public string NameOf(int player) =>
-        player >= 0 && player < PlayerNames.Count ? PlayerNames[player] : $"Player {player + 1}";
+    /// <summary>The name of a player, or of a spectator given its participant index.</summary>
+    public string NameOf(int participant)
+    {
+        if (participant >= 0 && participant < PlayerNames.Count) return PlayerNames[participant];
+        int s = participant - PlayerNames.Count;
+        if (s >= 0 && s < SpectatorNames.Count) return SpectatorNames[s];
+        return $"Player {participant + 1}";
+    }
+
+    /// <summary>Whether a participant index names a spectator rather than a player.</summary>
+    public bool IsSpectatorIndex(int participant) => participant >= PlayerNames.Count && participant < ParticipantCount;
 
     /// <summary>Players this machine is waiting on right now (empty if not waiting or unknown).</summary>
     public abstract IReadOnlyList<int> WaitingOn { get; }
@@ -205,6 +231,7 @@ public abstract class LockstepChannel : ICommandChannel, IDisposable
     }
 
     protected void RaisePlayerLeft(int player) => PlayerLeft?.Invoke(player);
+    protected void RaiseSpectatorLeft(int participant) => SpectatorLeft?.Invoke(participant);
     protected void RaiseChat(int player, string name, string text) => ChatReceived?.Invoke(player, name, text);
 
     protected void RaiseDesync(DesyncReport report)

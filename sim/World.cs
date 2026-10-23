@@ -72,10 +72,12 @@ public sealed partial class World
     {
         if (players.Count == 0) throw new ArgumentException("A match needs at least one player", nameof(players));
         Catalog = catalog;
-        Map = map;
+        // The match gets its own copy of the ground: craters reshape it, and the scenario's map must
+        // stay pristine so a replay starts from the same place.
+        Map = map.Clone();
         Options = options ?? new MatchOptions();
         Rng = new DeterministicRng(seed);
-        Terrain = new Terrain(map);
+        Terrain = new Terrain(Map);
         Pathfinder = new Pathfinder(Terrain);
         Grid = new SpatialGrid(map.Width, map.Height);
         Vision = new VisionSystem(map.TilesX, map.TilesY) { RevealAll = Options.RevealMap };
@@ -98,6 +100,7 @@ public sealed partial class World
                 MetalStorage = BaseStorage,
                 EnergyStorage = BaseStorage,
                 IncomeMultiplier = p.Ai == AiDifficulty.Brutal ? Fix64.Parse("1.5") : Fix64.One,
+                SalvageProgress = new int[catalog.Count],
             };
         }
 
@@ -299,10 +302,39 @@ public sealed partial class World
                 var blasts = _explosions.ToList();
                 _explosions.Clear();
                 foreach (var (pos, damage, radius, source) in blasts)
+                {
                     CombatSystem.Splash(this, pos, damage, radius, source, hitsAir: false);
+                    Craters.FromExplosion(this, pos, radius);
+                }
                 any = true;
             }
             if (!any) break;
+        }
+    }
+
+    /// <summary>
+    /// Blasts a crater into the ground and tells everyone: the renderer (an event) and any unit
+    /// whose path ran through the area (it will search again).
+    /// </summary>
+    public void DeformTerrain(FixVec2 centre, Fix64 radius, int depthSteps)
+    {
+        var rect = Terrain.Deform(centre, radius, depthSteps);
+        if (rect is null) return;
+        var (tx0, ty0, tx1, ty1) = rect.Value;
+        Events.Add(new GameEvent(GameEventType.TerrainChanged,
+            Position: FixVec2.FromInts(tx0 * MapData.TileSize, ty0 * MapData.TileSize),
+            Position2: FixVec2.FromInts((tx1 + 1) * MapData.TileSize, (ty1 + 1) * MapData.TileSize)));
+
+        // Ground units near a crater deep enough to matter drop their paths; the next step plans
+        // round the new shape. Shallow pockmarks don't change what's passable.
+        if (depthSteps < Terrain.VehicleMaxSlope) return;
+        Fix64 reach = radius * 2 + Fix64.FromInt(24);
+        Fix64 reach2 = reach * reach;
+        for (int id = 0; id < Units.Count; id++)
+        {
+            if (!Units.Alive[id] || Units.Path[id] is null) continue;
+            if (Catalog[Units.TypeIndex[id]].IsAir) continue;
+            if (FixVec2.DistanceSquared(Units.Position[id], centre) <= reach2) Units.ClearPath(id);
         }
     }
 
@@ -346,6 +378,30 @@ public sealed partial class World
                     Radius = def.IsStructure ? Fix64.FromInt(def.Footprint * 3) : def.Radius + Fix64.One,
                 });
             }
+            // A fallen structure also scatters rubble round its footprint: small, lasting scars
+            // that mark where a base stood, each worth a little metal.
+            if (def.IsStructure && def.Footprint >= 2)
+            {
+                int chunks = 2 + def.Footprint / 2;
+                Fix64 half = Fix64.FromInt(def.Footprint * MapData.TileSize / 2);
+                for (int i = 0; i < chunks; i++)
+                {
+                    // Spread round the edge; the shared RNG keeps replays in step.
+                    Fix64 ox = Fix64.FromInt(Rng.Range(-8, 9)) + (Rng.Range(0, 2) == 0 ? -half : half);
+                    Fix64 oy = Fix64.FromInt(Rng.Range(-8, 9)) + (Rng.Range(0, 2) == 0 ? -half : half);
+                    if (Rng.Range(0, 2) == 0) ox = Fix64.FromInt(Rng.Range(-half.ToIntFloor(), half.ToIntFloor() + 1));
+                    else oy = Fix64.FromInt(Rng.Range(-half.ToIntFloor(), half.ToIntFloor() + 1));
+                    Features.Add(new Feature
+                    {
+                        Id = Features.Count,
+                        Kind = FeatureKind.Rubble,
+                        Position = ClampToMap(pos + new FixVec2(ox, oy)),
+                        SourceTypeIndex = Units.TypeIndex[id],
+                        Metal = Fix64.Max(Fix64.One, def.MetalCost / 40),
+                        Radius = Fix64.FromInt(2),
+                    });
+                }
+            }
         }
 
         if (explode && wasComplete && def.DeathExplosionDamage > Fix64.Zero)
@@ -356,6 +412,54 @@ public sealed partial class World
 
         if (def.IsCommander && Options.WinCondition == WinCondition.Commander && wasComplete)
             DefeatPlayer(owner);
+    }
+
+    /// <summary>Enemy wrecks of one type a player must reclaim before their factories can build it.</summary>
+    public const int SalvageWrecksNeeded = 3;
+
+    /// <summary>A wreck was fully reclaimed by <paramref name="player"/>: count it toward salvaging that design.</summary>
+    internal void OnFeatureReclaimed(int player, Feature f)
+    {
+        if (f.Kind != FeatureKind.Wreck || f.SourceTypeIndex < 0) return;
+        UnitDef source = Catalog[f.SourceTypeIndex];
+        if (!IsSalvageable(player, source)) return;
+        int[] progress = Players[player].SalvageProgress;
+        if (progress[f.SourceTypeIndex] >= SalvageWrecksNeeded) return;
+        progress[f.SourceTypeIndex]++;
+        Events.Add(new GameEvent(GameEventType.Salvage, Other: player, Value: f.SourceTypeIndex, Kind: (byte)progress[f.SourceTypeIndex]));
+    }
+
+    /// <summary>Designs worth salvaging: another faction's mobile units (not Commanders).</summary>
+    public bool IsSalvageable(int player, UnitDef def) =>
+        !def.IsStructure && !def.IsCommander && def.Faction != Players[player].Faction;
+
+    /// <summary>True once the player has reclaimed enough wrecks of this type to build it.</summary>
+    public bool HasSalvaged(int player, int typeIndex) =>
+        typeIndex >= 0 && typeIndex < Catalog.Count && Players[player].SalvageProgress[typeIndex] >= SalvageWrecksNeeded;
+
+    /// <summary>
+    /// Salvaged designs this factory can build: the player has salvaged them and the factory already
+    /// builds something with the same role (a bot lab builds salvaged bots, a shipyard salvaged ships).
+    /// </summary>
+    public List<int> SalvagedOptions(UnitDef factory, int player)
+    {
+        var list = new List<int>();
+        if (!factory.IsFactory) return list;
+        int[] progress = Players[player].SalvageProgress;
+        for (int t = 0; t < Catalog.Count; t++)
+        {
+            if (progress[t] < SalvageWrecksNeeded) continue;
+            if (!FactoryTakesRole(factory, Catalog[t].Role)) continue;
+            list.Add(t);
+        }
+        return list;
+    }
+
+    private bool FactoryTakesRole(UnitDef factory, string role)
+    {
+        foreach (int o in factory.BuildOptions)
+            if (Catalog[o].Role == role) return true;
+        return false;
     }
 
     internal void DefeatPlayer(int player)
@@ -425,6 +529,7 @@ public sealed partial class World
             h.Add(p.BuildRatio);
             h.Add(p.Defeated);
             h.Add(p.ConvertersOn);
+            foreach (int n in p.SalvageProgress) h.Add(n);
         }
 
         h.Add(Units.Count);
@@ -453,7 +558,11 @@ public sealed partial class World
             h.Add(Units.FactoryQueue[id].Count);
             foreach (int q in Units.FactoryQueue[id]) h.Add(q);
             h.Add(Units.FactoryCurrent[id]);
+            h.Add(Units.RallyEvery[id]);
+            h.Add(Units.RallyCount[id]);
         }
+
+        foreach (int height in Map.Heights) h.Add(height);
 
         h.Add(Features.Count);
         foreach (Feature f in Features)

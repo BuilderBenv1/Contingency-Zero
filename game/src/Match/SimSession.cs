@@ -84,9 +84,53 @@ public sealed class SimSession
 
     /// <summary>Raised after every tick, before the next one starts.</summary>
     public event Action? Ticked;
+    /// <summary>
+    /// Raised after every <see cref="World.Step"/> this session runs, including the ticks a replay
+    /// seek rushes through without rendering (which don't raise <see cref="Ticked"/>). For cheap
+    /// per-tick bookkeeping such as statistics sampling.
+    /// </summary>
+    public event Action? Stepped;
 
     private readonly List<Command> _recorded = new();
     private double _accumulator;
+    private int _seekTarget = -1;
+
+    /// <summary>True while a replay is being run forward to <see cref="SeekTarget"/> (see <see cref="SeekTo"/>).</summary>
+    public bool Seeking => _seekTarget > World.Tick;
+    /// <summary>The tick a seek is heading for, or -1.</summary>
+    public int SeekTarget => _seekTarget;
+
+    /// <summary>
+    /// Replays only: runs the sim forward to <paramref name="tick"/> as fast as it can over the next
+    /// few frames, without rendering the ticks in between. Jumping backwards needs a fresh session
+    /// (rebuild it from the replay and seek from the start).
+    /// </summary>
+    public void SeekTo(int tick)
+    {
+        if (!IsReplay) return;
+        if (Channel is ReplayChannel rc) tick = Math.Min(tick, rc.LastTick);
+        if (tick > World.Tick) _seekTarget = tick;
+    }
+
+    private void RunSeek()
+    {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        while (World.Tick < _seekTarget && sw.ElapsedMilliseconds < 40)
+        {
+            int tick = World.Tick;
+            if (!Channel.Ready(tick)) { _seekTarget = -1; break; }
+            List<Command> commands = Channel.Take(tick);
+            _recorded.AddRange(commands);
+            World.Step(commands);
+            Stepped?.Invoke();
+        }
+        if (World.Tick >= _seekTarget)
+        {
+            _seekTarget = -1;
+            _accumulator = 0;
+            Ticked?.Invoke();
+        }
+    }
 
     public SimSession(Scenario scenario, UnitCatalog catalog, int localPlayer, ICommandChannel channel)
     {
@@ -108,6 +152,7 @@ public sealed class SimSession
     public void Update(double delta)
     {
         Channel.Poll();
+        if (_seekTarget > World.Tick) { RunSeek(); return; }
         if (Paused) return;
         _accumulator += delta * (IsMultiplayer ? Channel.TimeScale : Speed);
         int steps = 0;
@@ -126,6 +171,7 @@ public sealed class SimSession
             _recorded.AddRange(commands);
             World.Step(commands);
             Channel.AfterTick(tick, IsMultiplayer && tick % World.TicksPerSecond == 0 ? World.ComputeHash() : 0);
+            Stepped?.Invoke();
             Ticked?.Invoke();
             _accumulator -= TickSeconds;
             steps++;

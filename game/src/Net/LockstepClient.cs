@@ -17,9 +17,10 @@ public sealed class LockstepClient : LockstepChannel
     private bool _loadedSent;
     private IReadOnlyList<int> _hostWaiting = Array.Empty<int>();
 
+    /// <param name="localPlayer">This machine's player index, or <see cref="NetProtocol.SpectatorPlayer"/> to only watch.</param>
     public LockstepClient(INetTransport transport, Func<double> clock, int localPlayer, int hostPlayer,
-        IReadOnlyList<string> names, int delay)
-        : base(transport, clock, localPlayer, names, delay)
+        IReadOnlyList<string> names, int delay, IReadOnlyList<string>? spectatorNames = null)
+        : base(transport, clock, localPlayer, names, delay, spectatorNames)
     {
         _hostPlayer = hostPlayer;
     }
@@ -85,6 +86,9 @@ public sealed class LockstepClient : LockstepChannel
             case Msg.PlayerLeft:
                 RaisePlayerLeft(r.ReadInt32());
                 break;
+            case Msg.SpectatorLeft:
+                RaiseSpectatorLeft(r.ReadInt32());
+                break;
             case Msg.Waiting:
             {
                 int n = r.ReadByte();
@@ -112,12 +116,14 @@ public sealed class LockstepClient : LockstepChannel
     {
         if (_loadedSent || LostReason is not null) return;
         _loadedSent = true;
+        // A spectator says so too; the host just doesn't wait for it.
         Transport.Send(INetTransport.HostPeer, NetProtocol.Build(Msg.Loaded));
     }
 
     protected override void SendInput(int from, int through, List<Command> commands)
     {
-        if (LostReason is not null) return;
+        // Spectators have no say. The host would drop the message anyway; don't even send it.
+        if (LostReason is not null || IsSpectator) return;
         Transport.Send(INetTransport.HostPeer, NetProtocol.Build(Msg.Input, w =>
         {
             w.Write(from);

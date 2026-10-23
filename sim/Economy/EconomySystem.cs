@@ -107,6 +107,7 @@ internal static class EconomySystem
                     break;
 
                 case OrderType.Assist:
+                case OrderType.RepairArea:
                 {
                     int target = order.Target;
                     if (!units.IsValid(target)) break;
@@ -133,6 +134,7 @@ internal static class EconomySystem
                 }
 
                 case OrderType.Reclaim:
+                case OrderType.ReclaimArea:
                 {
                     if (order.Target < 0 || order.Target >= world.Features.Count) break;
                     Feature f = world.Features[order.Target];
@@ -148,6 +150,7 @@ internal static class EconomySystem
                     metalIncome[owner] += m;
                     energyIncome[owner] += e;
                     world.Events.Add(new GameEvent(GameEventType.ReclaimBeam, id, order.Target, Position2: f.Position));
+                    if (f.Gone) world.OnFeatureReclaimed(owner, f);
                     break;
                 }
             }
@@ -194,6 +197,7 @@ internal static class EconomySystem
             // Metal makers only use energy above half of storage, so they soak up surplus without
             // starving construction; near the line they run part-time.
             Fix64 reserve = energyStorage[p] / 2;
+            player.ConverterEnergy = Fix64.Zero;
             if (convertEnergy[p] > Fix64.Zero && energy > reserve)
             {
                 Fix64 used = Fix64.Min(energy - reserve, convertEnergy[p]);
@@ -201,6 +205,7 @@ internal static class EconomySystem
                 energy -= used;
                 metal += made;
                 player.EnergySpent += used;
+                player.ConverterEnergy = used;
                 metalIncome[p] += made;
             }
 

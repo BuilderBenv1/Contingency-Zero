@@ -24,6 +24,10 @@ public enum OrderType : byte
     DGun = 8,
     /// <summary>Attack-move: head for Position, stopping to fight anything met on the way.</summary>
     Fight = 9,
+    /// <summary>Reclaim everything within TypeIndex units of Position; Target is the feature being worked on.</summary>
+    ReclaimArea = 10,
+    /// <summary>Repair/help build everything friendly within TypeIndex units of Position; Target is the unit being worked on.</summary>
+    RepairArea = 11,
 }
 
 public enum FireState : byte
@@ -105,6 +109,11 @@ public sealed class UnitStore
     public int[] FactoryCurrent = new int[InitialCapacity];
     public FixVec2[] Rally = new FixVec2[InitialCapacity];
     public bool[] HasRally = new bool[InitialCapacity];
+    /// <summary>Secondary (ferry) rally point: every <see cref="RallyEvery"/>-th unit goes here instead.</summary>
+    public FixVec2[] Rally2 = new FixVec2[InitialCapacity];
+    public bool[] HasRally2 = new bool[InitialCapacity];
+    public int[] RallyEvery = new int[InitialCapacity];
+    public int[] RallyCount = new int[InitialCapacity];
 
     // Structures
     /// <summary>Top-left tile of a structure's footprint.</summary>
@@ -146,6 +155,10 @@ public sealed class UnitStore
         FactoryCurrent[id] = -1;
         Rally[id] = position;
         HasRally[id] = false;
+        Rally2[id] = position;
+        HasRally2[id] = false;
+        RallyEvery[id] = 0;
+        RallyCount[id] = 0;
         TileX[id] = -1;
         TileY[id] = -1;
         ExtractorYield[id] = Fix64.Zero;
@@ -211,6 +224,10 @@ public sealed class UnitStore
         Array.Resize(ref FactoryCurrent, size);
         Array.Resize(ref Rally, size);
         Array.Resize(ref HasRally, size);
+        Array.Resize(ref Rally2, size);
+        Array.Resize(ref HasRally2, size);
+        Array.Resize(ref RallyEvery, size);
+        Array.Resize(ref RallyCount, size);
         Array.Resize(ref TileX, size);
         Array.Resize(ref TileY, size);
         Array.Resize(ref ExtractorYield, size);

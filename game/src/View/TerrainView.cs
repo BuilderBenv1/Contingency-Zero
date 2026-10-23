@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using ContingencyZero.Sim.Map;
 using ContingencyZero.Sim.Vision;
 using Godot;
@@ -100,6 +101,8 @@ public partial class TerrainView : Node3D
         for (int i = 0; i < _heights.Length; i++) _heights[i] = map.Heights[i] * HeightScale;
 
         TerrainPalette pal = PaletteFor(map.Theme);
+        _pal = pal;
+        _scorch = new float[vx * vy];
         AddChild(BuildGround(map, pal));
         AddChild(BuildWater(map, pal));
         AddChild(BuildBorder(map, pal));
@@ -174,55 +177,41 @@ public partial class TerrainView : Node3D
         }
     }
 
-    private MeshInstance3D BuildGround(MapData map, TerrainPalette pal)
+    public const int Chunk = 16;
+    private Node3D _ground = null!;
+    private readonly List<MeshInstance3D> _chunks = new();
+    private int _chunksX, _chunksY;
+    private Vector3[] _normals = Array.Empty<Vector3>();
+    private Color[] _colours = Array.Empty<Color>();
+    private float[] _scorch = Array.Empty<float>();
+    private ColourBands _bands;
+    private TerrainPalette _pal = PaletteFor("temperate");
+    private readonly HashSet<int> _dirtyChunks = new();
+
+    /// <summary>The ground material (shared by the map editor's own chunks).</summary>
+    public Material? GroundMaterial => _material;
+
+    /// <summary>Shows or hides the ground (the map editor draws its own while painting).</summary>
+    public bool GroundVisible
+    {
+        get => _ground?.Visible ?? false;
+        set { if (_ground is not null) _ground.Visible = value; }
+    }
+
+    /// <summary>
+    /// The ground, drawn in 16-tile chunks so a crater or a scorch mark only rebuilds the few
+    /// chunks it touches. Vertex arrays are kept so a refresh recomputes just the changed corners.
+    /// </summary>
+    private Node3D BuildGround(MapData map, TerrainPalette pal)
     {
         int vx = map.TilesX + 1, vy = map.TilesY + 1;
-        var verts = new Vector3[vx * vy];
-        var normals = new Vector3[vx * vy];
-        var colours = new Color[vx * vy];
-        var uvs = new Vector2[vx * vy];
         float water = map.WaterLevel * HeightScale;
-
         float min = float.MaxValue, max = float.MinValue;
         foreach (float h in _heights) { min = Mathf.Min(min, h); max = Mathf.Max(max, h); }
-        var bands = ColourBands.For(min, max, water);
-
-        for (int y = 0; y < vy; y++)
-        for (int x = 0; x < vx; x++)
-        {
-            int i = y * vx + x;
-            float h = _heights[i];
-            verts[i] = new Vector3(x * MapData.TileSize, h, y * MapData.TileSize);
-            uvs[i] = new Vector2((float)x / map.TilesX, (float)y / map.TilesY);
-
-            float hl = _heights[y * vx + Math.Max(x - 1, 0)], hr = _heights[y * vx + Math.Min(x + 1, vx - 1)];
-            float hd = _heights[Math.Max(y - 1, 0) * vx + x], hu = _heights[Math.Min(y + 1, vy - 1) * vx + x];
-            var n = new Vector3(hl - hr, 2 * MapData.TileSize, hd - hu).Normalized();
-            normals[i] = n;
-
-            colours[i] = GroundColour(pal, bands, h, n, x, y);
-        }
-
-        var indices = new int[map.TilesX * map.TilesY * 6];
-        int k = 0;
-        for (int y = 0; y < map.TilesY; y++)
-        for (int x = 0; x < map.TilesX; x++)
-        {
-            int a = y * vx + x, b = a + 1, c = a + vx, d = c + 1;
-            // Two triangles per tile, wound so they face up.
-            indices[k++] = a; indices[k++] = b; indices[k++] = c;
-            indices[k++] = b; indices[k++] = d; indices[k++] = c;
-        }
-
-        var arrays = new Godot.Collections.Array();
-        arrays.Resize((int)Mesh.ArrayType.Max);
-        arrays[(int)Mesh.ArrayType.Vertex] = verts;
-        arrays[(int)Mesh.ArrayType.Normal] = normals;
-        arrays[(int)Mesh.ArrayType.Color] = colours;
-        arrays[(int)Mesh.ArrayType.TexUV] = uvs;
-        arrays[(int)Mesh.ArrayType.Index] = indices;
-        var mesh = new ArrayMesh();
-        mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
+        _bands = ColourBands.For(min, max, water);
+        _normals = new Vector3[vx * vy];
+        _colours = new Color[vx * vy];
+        RecomputeCorners(0, 0, map.TilesX, map.TilesY);
 
         _fogImage = Image.CreateEmpty(map.TilesX, map.TilesY, false, Image.Format.Rg8);
         _fogImage.Fill(new Color(1, 1, 0));
@@ -231,7 +220,157 @@ public partial class TerrainView : Node3D
         _material = new ShaderMaterial { Shader = new Shader { Code = GroundShader } };
         _material.SetShaderParameter("fog_tex", _fogTexture);
         _material.SetShaderParameter("map_size", new Vector2(map.Width, map.Height));
-        return new MeshInstance3D { Mesh = mesh, MaterialOverride = _material, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
+
+        _ground = new Node3D { Name = "Ground" };
+        _chunks.Clear();
+        _chunksX = (map.TilesX + Chunk - 1) / Chunk;
+        _chunksY = (map.TilesY + Chunk - 1) / Chunk;
+        for (int cy = 0; cy < _chunksY; cy++)
+        for (int cx = 0; cx < _chunksX; cx++)
+        {
+            var mi = new MeshInstance3D { MaterialOverride = _material, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
+            _ground.AddChild(mi);
+            _chunks.Add(mi);
+            BuildChunk(cx, cy);
+        }
+        return _ground;
+    }
+
+    /// <summary>Recomputes normals and colours for corners in an inclusive corner rectangle.</summary>
+    private void RecomputeCorners(int x0, int y0, int x1, int y1)
+    {
+        int vx = Map.TilesX + 1, vy = Map.TilesY + 1;
+        x0 = Math.Max(0, x0); y0 = Math.Max(0, y0); x1 = Math.Min(vx - 1, x1); y1 = Math.Min(vy - 1, y1);
+        for (int y = y0; y <= y1; y++)
+        for (int x = x0; x <= x1; x++)
+        {
+            int i = y * vx + x;
+            float h = _heights[i];
+            float hl = _heights[y * vx + Math.Max(x - 1, 0)], hr = _heights[y * vx + Math.Min(x + 1, vx - 1)];
+            float hd = _heights[Math.Max(y - 1, 0) * vx + x], hu = _heights[Math.Min(y + 1, vy - 1) * vx + x];
+            var n = new Vector3(hl - hr, 2 * MapData.TileSize, hd - hu).Normalized();
+            _normals[i] = n;
+            Color c = GroundColour(_pal, _bands, h, n, x, y);
+            float sc = _scorch.Length > i ? _scorch[i] : 0;
+            if (sc > 0)
+            {
+                // Burnt ground: darker, a little browner, and duller.
+                c = c.Lerp(new Color(0.09f, 0.08f, 0.07f), Mathf.Min(0.8f, sc * 0.85f));
+            }
+            _colours[i] = c;
+        }
+    }
+
+    private void BuildChunk(int cx, int cy)
+    {
+        int vx = Map.TilesX + 1;
+        int tx0 = cx * Chunk, ty0 = cy * Chunk;
+        int tw = Math.Min(Chunk, Map.TilesX - tx0), th = Math.Min(Chunk, Map.TilesY - ty0);
+        int cw = tw + 1, ch = th + 1;
+        var verts = new Vector3[cw * ch];
+        var normals = new Vector3[cw * ch];
+        var colours = new Color[cw * ch];
+        var uvs = new Vector2[cw * ch];
+        for (int y = 0; y < ch; y++)
+        for (int x = 0; x < cw; x++)
+        {
+            int gx = tx0 + x, gy = ty0 + y;
+            int gi = gy * vx + gx, li = y * cw + x;
+            verts[li] = new Vector3(gx * MapData.TileSize, _heights[gi], gy * MapData.TileSize);
+            normals[li] = _normals[gi];
+            colours[li] = _colours[gi];
+            uvs[li] = new Vector2((float)gx / Map.TilesX, (float)gy / Map.TilesY);
+        }
+        var indices = new int[tw * th * 6];
+        int k = 0;
+        for (int y = 0; y < th; y++)
+        for (int x = 0; x < tw; x++)
+        {
+            int a = y * cw + x, b = a + 1, c = a + cw, d = c + 1;
+            indices[k++] = a; indices[k++] = b; indices[k++] = c;
+            indices[k++] = b; indices[k++] = d; indices[k++] = c;
+        }
+        // Dispose the native copies at once: a stroke or a bombing run makes many of them.
+        using Variant vVerts = Variant.CreateFrom(verts), vNormals = Variant.CreateFrom(normals),
+            vColours = Variant.CreateFrom(colours), vUvs = Variant.CreateFrom(uvs), vIndices = Variant.CreateFrom(indices);
+        using var arrays = new Godot.Collections.Array();
+        arrays.Resize((int)Mesh.ArrayType.Max);
+        arrays[(int)Mesh.ArrayType.Vertex] = vVerts;
+        arrays[(int)Mesh.ArrayType.Normal] = vNormals;
+        arrays[(int)Mesh.ArrayType.Color] = vColours;
+        arrays[(int)Mesh.ArrayType.TexUV] = vUvs;
+        arrays[(int)Mesh.ArrayType.Index] = vIndices;
+        MeshInstance3D mi = _chunks[cy * _chunksX + cx];
+        if (mi.Mesh is ArrayMesh existing)
+        {
+            existing.ClearSurfaces();
+            existing.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
+        }
+        else
+        {
+            var mesh = new ArrayMesh();
+            mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
+            mi.Mesh = mesh;
+        }
+    }
+
+    /// <summary>
+    /// The ground changed in a tile rectangle (inclusive): re-read heights from the map, recompute
+    /// the corners around it and mark the chunks it touches for a rebuild on the next frame.
+    /// </summary>
+    public void RefreshRegion(int tx0, int ty0, int tx1, int ty1)
+    {
+        if (_heights.Length == 0) return;
+        int vx = Map.TilesX + 1;
+        int x0 = Math.Max(0, tx0 - 1), y0 = Math.Max(0, ty0 - 1);
+        int x1 = Math.Min(Map.TilesX, tx1 + 2), y1 = Math.Min(Map.TilesY, ty1 + 2);
+        for (int y = y0; y <= y1; y++)
+        for (int x = x0; x <= x1; x++)
+            _heights[y * vx + x] = Map.Heights[y * vx + x] * HeightScale;
+        RecomputeCorners(x0, y0, x1, y1);
+        MarkChunks(x0, y0, x1, y1);
+    }
+
+    /// <summary>Burns the ground: darkens corners within <paramref name="radius"/> of a point, for good.</summary>
+    public void Scorch(Vector3 centre, float radius, float strength = 1f)
+    {
+        if (_scorch.Length == 0) return;
+        int vx = Map.TilesX + 1;
+        int x0 = Math.Max(0, (int)((centre.X - radius) / MapData.TileSize)), x1 = Math.Min(Map.TilesX, (int)((centre.X + radius) / MapData.TileSize) + 1);
+        int y0 = Math.Max(0, (int)((centre.Z - radius) / MapData.TileSize)), y1 = Math.Min(Map.TilesY, (int)((centre.Z + radius) / MapData.TileSize) + 1);
+        bool any = false;
+        for (int y = y0; y <= y1; y++)
+        for (int x = x0; x <= x1; x++)
+        {
+            float dx = x * MapData.TileSize - centre.X, dz = y * MapData.TileSize - centre.Z;
+            float d = Mathf.Sqrt(dx * dx + dz * dz);
+            if (d >= radius) continue;
+            float add = strength * (1 - d / radius);
+            int i = y * vx + x;
+            float before = _scorch[i];
+            _scorch[i] = Mathf.Min(1.5f, before + add);
+            if (_scorch[i] != before) any = true;
+        }
+        if (!any) return;
+        RecomputeCorners(x0, y0, x1, y1);
+        MarkChunks(x0, y0, x1, y1);
+    }
+
+    private void MarkChunks(int cx0, int cy0, int cx1, int cy1)
+    {
+        // Corner rectangle to chunk rectangle (a corner on a chunk edge belongs to both chunks).
+        int c0 = Math.Max(0, (cx0 - 1) / Chunk), c1 = Math.Min(_chunksX - 1, cx1 / Chunk);
+        int r0 = Math.Max(0, (cy0 - 1) / Chunk), r1 = Math.Min(_chunksY - 1, cy1 / Chunk);
+        for (int r = r0; r <= r1; r++)
+        for (int c = c0; c <= c1; c++)
+            _dirtyChunks.Add(r * _chunksX + c);
+    }
+
+    public override void _Process(double delta)
+    {
+        if (_dirtyChunks.Count == 0) return;
+        foreach (int i in _dirtyChunks) BuildChunk(i % _chunksX, i / _chunksX);
+        _dirtyChunks.Clear();
     }
 
     /// <summary>Copies a team's fog grids into the ground shader. Pass -1 to clear the fog (spectating).</summary>

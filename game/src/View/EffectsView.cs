@@ -66,7 +66,7 @@ public partial class EffectsView : Node3D
             TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
             UseCustomData = true,
             Mesh = new PlaneMesh { Size = new Vector2(1, 1) },
-            InstanceCount = 160,
+            InstanceCount = 512,
             VisibleInstanceCount = 0,
         };
         AddChild(new MultiMeshInstance3D
@@ -78,6 +78,9 @@ public partial class EffectsView : Node3D
     }
 
     public void SetViewerTeam(int team) => _viewerTeam = team;
+
+    /// <summary>Raised after a crater reshaped the ground (features and decals re-seat themselves).</summary>
+    public event Action? TerrainChanged;
 
     private bool Seen(FixVec2 p) =>
         _viewerTeam < 0 || _world.Vision.IsVisible(_viewerTeam, MapData.TileOf(p.X), MapData.TileOf(p.Y));
@@ -156,6 +159,17 @@ public partial class EffectsView : Node3D
                     break;
                 }
 
+                case GameEventType.TerrainChanged:
+                {
+                    // A crater: rebuild that patch of ground and re-seat anything lying on it.
+                    int tx0 = e.Position.X.ToIntFloor() / MapData.TileSize, ty0 = e.Position.Y.ToIntFloor() / MapData.TileSize;
+                    int tx1 = e.Position2.X.ToIntFloor() / MapData.TileSize, ty1 = e.Position2.Y.ToIntFloor() / MapData.TileSize;
+                    _terrain.RefreshRegion(tx0, ty0, tx1, ty1);
+                    ReseatBurns(Ground(e.Position), Ground(e.Position2));
+                    TerrainChanged?.Invoke();
+                    break;
+                }
+
                 case GameEventType.Impact:
                 {
                     if (!Seen(e.Position)) break;
@@ -164,6 +178,9 @@ public partial class EffectsView : Node3D
                     float size = Math.Max(1.5f, e.Value);
                     if (kind == WeaponKind.Missile) size = 1.5f;
                     Explode(p, size, kind == WeaponKind.Artillery || kind == WeaponKind.Bomb || kind == WeaponKind.DGun);
+                    if (kind == WeaponKind.Bomb) _terrain.Scorch(p, size * 2.2f, 0.5f);
+                    else if (kind == WeaponKind.DGun) _terrain.Scorch(p, 14f, 1.1f);
+                    else if (kind == WeaponKind.Artillery && size >= 5) _terrain.Scorch(p, size * 1.6f, 0.18f);
                     Sfx.PlayAt(size > 4 ? SfxKind.ExplosionSmall : SfxKind.ImpactSmall, p, listener, zoom, size > 4 ? -2 : -8);
                     break;
                 }
@@ -176,6 +193,8 @@ public partial class EffectsView : Node3D
                     Vector3 p = Ground(e.Position, def.IsAir ? UnitView.AirAltitude : 1f);
                     Explode(p, size, true);
                     Debris(p, (int)Math.Clamp(size * 3, 6, 40), size);
+                    if (def.IsStructure) _terrain.Scorch(p, size * 1.4f, 0.6f);
+                    else if (!def.IsAir) _terrain.Scorch(p, Math.Max(6f, size * 1.5f), 0.25f);
                     Sfx.PlayAt(size > 10 ? SfxKind.ExplosionLarge : SfxKind.ExplosionSmall, p, listener, zoom, size > 10 ? 0 : -3);
                     break;
                 }
@@ -187,6 +206,7 @@ public partial class EffectsView : Node3D
                     Explode(p, r * 0.8f, true);
                     Shockwave(p, r);
                     Debris(p, 60, r * 0.6f);
+                    _terrain.Scorch(p, r * 1.1f, 1.3f);
                     Sfx.PlayAt(SfxKind.ExplosionHuge, p, listener, zoom * 0.5f, 4);
                     break;
                 }
@@ -296,16 +316,44 @@ public partial class EffectsView : Node3D
         _sprites.Add(new Sprite { P = p + new Vector3(0, 3, 0), C = new Color(1f, 0.95f, 0.8f), Life = 0.3f, Max = 0.3f, Size = radius * 1.8f });
     }
 
-    private void Scorch(Vector3 p, float size)
+    private readonly struct Burn
+    {
+        public required Vector3 P { get; init; }
+        public required float Size { get; init; }
+        public required float Yaw { get; init; }
+        public required float Alpha { get; init; }
+    }
+    private readonly Burn[] _burns = new Burn[512];
+
+    /// <summary>A lasting burn mark on the ground (the oldest is reused once all 512 are placed).</summary>
+    private void Scorch(Vector3 p, float size, float alpha = 1f)
     {
         int i = _scorchNext++ % _scorch.InstanceCount;
-        Vector3 n = _terrain.NormalAt(p.X, p.Z);
-        float yaw = _rng.Randf() * Mathf.Tau;
-        Basis b = new Basis(Vector3.Up, yaw).Scaled(new Vector3(size, 1, size));
-        if (n.Y < 0.999f) b = new Basis(Vector3.Up.Cross(n).Normalized(), Mathf.Acos(n.Y)) * b;
-        _scorch.SetInstanceTransform(i, new Transform3D(b, new Vector3(p.X, _terrain.SurfaceAt(p.X, p.Z) + 0.12f, p.Z)));
-        _scorch.SetInstanceCustomData(i, new Color(Time.GetTicksMsec() / 1000f, 0, 0, 0));
+        _burns[i] = new Burn { P = p, Size = size, Yaw = _rng.Randf() * Mathf.Tau, Alpha = alpha };
+        PlaceBurn(i);
+        _scorch.SetInstanceCustomData(i, new Color(0, _rng.Randf(), alpha, 0));
         _scorch.VisibleInstanceCount = Math.Min(_scorchNext, _scorch.InstanceCount);
+    }
+
+    private void PlaceBurn(int i)
+    {
+        Burn b = _burns[i];
+        Vector3 n = _terrain.NormalAt(b.P.X, b.P.Z);
+        Basis basis = new Basis(Vector3.Up, b.Yaw).Scaled(new Vector3(b.Size, 1, b.Size));
+        if (n.Y < 0.999f) basis = new Basis(Vector3.Up.Cross(n).Normalized(), Mathf.Acos(n.Y)) * basis;
+        _scorch.SetInstanceTransform(i, new Transform3D(basis, new Vector3(b.P.X, _terrain.SurfaceAt(b.P.X, b.P.Z) + 0.12f, b.P.Z)));
+    }
+
+    /// <summary>The ground was reshaped: drop burn marks back onto the new surface.</summary>
+    private void ReseatBurns(Vector3 min, Vector3 max)
+    {
+        int count = Math.Min(_scorchNext, _scorch.InstanceCount);
+        for (int i = 0; i < count; i++)
+        {
+            Vector3 p = _burns[i].P;
+            if (p.X < min.X - 8 || p.X > max.X + 8 || p.Z < min.Z - 8 || p.Z > max.Z + 8) continue;
+            PlaceBurn(i);
+        }
     }
 
     public override void _Process(double delta)
@@ -495,12 +543,16 @@ shader_type spatial;
 render_mode blend_mix, unshaded, depth_draw_never, cull_disabled;
 varying vec4 inst;
 void vertex() { inst = INSTANCE_CUSTOM; }
+float h2(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
 void fragment() {
     vec2 d = UV * 2.0 - 1.0;
     float r = dot(d, d);
-    float age = TIME - inst.r;
-    float fade = 1.0 - clamp((age - 20.0) / 15.0, 0.0, 1.0);
-    ALBEDO = vec3(0.04, 0.035, 0.03);
-    ALPHA = clamp(1.0 - r, 0.0, 1.0) * 0.6 * fade;
+    // A ragged burn: a dark core, an uneven edge, and streaks thrown outward.
+    float ang = atan(d.y, d.x);
+    float edge = 0.75 + 0.25 * h2(vec2(floor(ang * 5.0 + inst.g * 50.0), inst.g));
+    float core = 1.0 - smoothstep(0.1, edge, r);
+    float streak = step(0.93, h2(vec2(floor(ang * 14.0 + inst.g * 90.0), 1.0))) * (1.0 - smoothstep(0.3, 1.6, r)) * 0.5;
+    ALBEDO = vec3(0.05, 0.045, 0.04);
+    ALPHA = clamp(core * 0.7 + streak, 0.0, 0.8) * inst.b;
 }";
 }

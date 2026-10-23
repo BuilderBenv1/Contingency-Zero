@@ -84,15 +84,9 @@ public partial class EditorTerrain : Node3D
         _pal = TerrainView.PaletteFor(map.Theme);
         _view.Build(map);
 
-        // Borrow the game's ground material and hide its single big ground mesh: the chunks replace it.
-        _groundMaterial = null;
-        foreach (Node child in _view.GetChildren())
-        {
-            if (child.IsQueuedForDeletion() || child is not MeshInstance3D { Mesh: ArrayMesh } ground) continue;
-            _groundMaterial = ground.MaterialOverride;
-            ground.Visible = false;
-            break;
-        }
+        // Borrow the game's ground material and hide its ground: the editor's chunks replace it.
+        _groundMaterial = _view.GroundMaterial;
+        _view.GroundVisible = false;
         _incremental = _groundMaterial is not null;
         if (!_incremental) GD.PushWarning("Map editor: couldn't find TerrainView's ground mesh; live preview falls back to full rebuilds.");
 

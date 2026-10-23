@@ -42,6 +42,7 @@ internal static class ProjectileSystem
             else
             {
                 CombatSystem.Splash(world, p.Position, p.Damage, Fix64.Max(p.Splash, MinSplash), p.SourceUnit, p.HitsAir);
+                Craters.FromImpact(world, p.Position, p.Kind, p.Splash);
             }
             world.Events.Add(new GameEvent(GameEventType.Impact, p.SourceUnit, p.TargetUnit, p.Splash.ToIntFloor(), (byte)p.Kind, p.Position));
         }
@@ -81,6 +82,7 @@ internal static class ProjectileSystem
         if (p.Position == p.Aim || p.TicksAlive >= p.FlightTicks)
         {
             p.Done = true;
+            Craters.FromImpact(world, p.Position, WeaponKind.DGun, p.Splash);
             world.Events.Add(new GameEvent(GameEventType.Impact, p.SourceUnit, -1, p.Splash.ToIntFloor(), (byte)WeaponKind.DGun, p.Position));
         }
     }

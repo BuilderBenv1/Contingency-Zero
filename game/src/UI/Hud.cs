@@ -237,6 +237,10 @@ public partial class Hud : CanvasLayer
         _selectionPanel.OnTick();
         _commandCard.OnTick();
         RefreshObjectives();
+
+        PlayerState p = World.Players[Math.Max(0, me)];
+        _metal.Sample(p.MetalIncome, p.MetalSpent, p.MetalWasted, p.BuildRatio, Fix64.Zero);
+        _energy.Sample(p.EnergyIncome, p.EnergySpent, p.EnergyWasted, p.BuildRatio, p.ConverterEnergy);
     }
 
     private string _objectivesKey = "";
@@ -301,14 +305,33 @@ public partial class BoxOverlay : Control
     }
 }
 
-/// <summary>One resource readout: name, stored / storage with a fill bar, income and spending.</summary>
+/// <summary>
+/// One resource readout: name, stored / storage with a fill bar, income and spending, and under
+/// the flow a one-line forecast of what those numbers mean ("Stall in 40s", "Full in 25s",
+/// "Stalling: builds at 60%"). The forecast averages the last two seconds of ticks so it reads
+/// steadily instead of flickering with every shot fired.
+/// </summary>
 public partial class ResourceMeter : HBoxContainer
 {
+    private const int SmoothTicks = 2 * World.TicksPerSecond;
+
     private readonly Label _value;
     private readonly Label _flow;
+    private readonly Label _forecast;
     private readonly ProgressBar _bar;
     private readonly Label _stall;
     private readonly Color _colour;
+
+    // Per-tick samples (per second units), averaged for the forecast.
+    private readonly float[] _income = new float[SmoothTicks];
+    private readonly float[] _spent = new float[SmoothTicks];
+    private readonly float[] _wasted = new float[SmoothTicks];
+    private readonly float[] _ratio = new float[SmoothTicks];
+    private readonly float[] _converter = new float[SmoothTicks];
+    private int _samples, _cursor;
+
+    /// <summary>The last forecast shown (for tests and dev checks).</summary>
+    public string ForecastText => _forecast.Text;
 
     public ResourceMeter(string name, Color colour)
     {
@@ -328,24 +351,91 @@ public partial class ResourceMeter : HBoxContainer
         col.AddChild(_bar);
         AddChild(col);
 
+        // Flow on top, forecast underneath; together they stay inside the bar's height.
+        var flowCol = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
+        flowCol.AddThemeConstantOverride("separation", 0);
         _flow = UiTheme.Label("", 14, UiTheme.Dim);
-        _flow.VerticalAlignment = VerticalAlignment.Center;
-        _flow.CustomMinimumSize = new Vector2(120, 0);
-        AddChild(_flow);
+        _flow.CustomMinimumSize = new Vector2(150, 0);
+        flowCol.AddChild(_flow);
+        _forecast = UiTheme.Label("", 12, UiTheme.Dim);
+        _forecast.CustomMinimumSize = new Vector2(150, 0);
+        flowCol.AddChild(_forecast);
+        AddChild(flowCol);
+
         _stall = UiTheme.Label("STALL", 13, UiTheme.Bad);
         _stall.VerticalAlignment = VerticalAlignment.Center;
         _stall.Visible = false;
         AddChild(_stall);
     }
 
+    /// <summary>Records one tick's flow (per-tick figures from the sim). Call once per sim tick.</summary>
+    public void Sample(Fix64 incomePerTick, Fix64 spentPerTick, Fix64 wastedPerTick, Fix64 buildRatio, Fix64 converterPerTick)
+    {
+        _income[_cursor] = PerSecond(incomePerTick);
+        _spent[_cursor] = PerSecond(spentPerTick);
+        _wasted[_cursor] = PerSecond(wastedPerTick);
+        _ratio[_cursor] = buildRatio.Raw / 65536f;
+        _converter[_cursor] = PerSecond(converterPerTick);
+        _cursor = (_cursor + 1) % SmoothTicks;
+        if (_samples < SmoothTicks) _samples++;
+    }
+
+    private static float PerSecond(Fix64 perTick) => perTick.Raw / 65536f * World.TicksPerSecond;
+
+    private float Average(float[] samples)
+    {
+        if (_samples == 0) return 0;
+        float sum = 0;
+        for (int i = 0; i < _samples; i++) sum += samples[i];
+        return sum / _samples;
+    }
+
     public void Show(Fix64 stored, Fix64 storage, Fix64 incomePerTick, Fix64 spentPerTick, bool stalling)
     {
         float s = stored.Raw / 65536f, cap = Math.Max(1, storage.Raw / 65536f);
-        float inc = incomePerTick.Raw / 65536f * World.TicksPerSecond, spend = spentPerTick.Raw / 65536f * World.TicksPerSecond;
+        float inc = PerSecond(incomePerTick), spend = PerSecond(spentPerTick);
         _value.Text = $"{s:0} / {cap:0}";
         _bar.Value = s / cap;
         _flow.Text = $"+{inc:0.#}  -{spend:0.#}";
         _flow.AddThemeColorOverride("font_color", inc >= spend ? UiTheme.Good : UiTheme.Bad);
         _stall.Visible = stalling && (Time.GetTicksMsec() / 400) % 2 == 0;
+
+        var (text, colour) = Forecast(s, cap, Average(_income), Average(_spent), Average(_wasted), Average(_ratio), Average(_converter), stalling);
+        if (_forecast.Text != text) _forecast.Text = text;
+        _forecast.AddThemeColorOverride("font_color", colour);
+    }
+
+    /// <summary>
+    /// What the (smoothed, per second) numbers add up to. Red while stalling, amber when a stall is
+    /// under 30 seconds away or the store is overflowing, dim otherwise.
+    /// </summary>
+    public static (string Text, Color Colour) Forecast(float stored, float storage, float income, float spent, float wasted,
+        float buildRatio, float converter, bool stalling)
+    {
+        float net = income - spent;
+        if (stalling || (buildRatio < 0.98f && stored < storage * 0.05f))
+            return ($"Stalling: builds at {Mathf.Clamp(buildRatio * 100, 0, 99):0}%", UiTheme.Bad);
+        if (net < -0.05f)
+        {
+            float t = stored / -net;
+            if (t < 30) return ($"Stall in {Duration(t)}", UiTheme.Amber);
+            if (t < 600) return ($"Stall in {Duration(t)}", UiTheme.Dim);
+        }
+        if (wasted > 0.05f && stored >= storage - 1)
+            return ($"Full: wasting {wasted:0.#}/s", UiTheme.Amber);
+        if (net > 0.05f && stored < storage - 1)
+        {
+            float t = (storage - stored) / net;
+            if (t < 120) return ($"Full in {Duration(t)}", UiTheme.Dim);
+        }
+        if (converter > 0.05f && spent > 0.05f && converter / spent >= 0.2f)
+            return ($"{Mathf.Clamp(converter / spent * 100, 0, 100):0}% to converters", UiTheme.Dim);
+        return ("Steady", UiTheme.Dim);
+    }
+
+    private static string Duration(float seconds)
+    {
+        int t = Math.Max(1, (int)Math.Round(seconds));
+        return t < 60 ? $"{t}s" : $"{t / 60}m{t % 60:00}s";
     }
 }

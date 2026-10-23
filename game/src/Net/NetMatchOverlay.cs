@@ -33,10 +33,85 @@ public static class NetGame
     public static MatchScene Launch(NetMatchStart start)
     {
         RouteLogs();
+        // A spectator's session has no local player (-1): it issues nothing and sees everything.
         var session = new SimSession(start.Scenario, GameData.Catalog, start.LocalPlayer, start.Channel) { IsMultiplayer = true };
-        MatchScene match = GameRoot.Instance.StartMatch(session, MatchKind.Multiplayer, "Multiplayer", restart: null);
+        MatchScene match = GameRoot.Instance.StartMatch(session, MatchKind.Multiplayer, start.Title, restart: null);
         match.AddChild(new NetMatchOverlay(match, start.Channel) { Name = "NetOverlay" });
+        if (start.IsSpectator)
+        {
+            match.SetViewer(-1);
+            match.AddChild(new SpectatorBar(match) { Name = "SpectatorBar" });
+        }
         return match;
+    }
+}
+
+/// <summary>
+/// What a spectator gets on top of the HUD: whose view to watch (everyone, or one player's fog
+/// and radar), and a switch for the casting overlay. Nothing here touches the sim.
+/// </summary>
+public partial class SpectatorBar : CanvasLayer
+{
+    private readonly MatchScene _match;
+    private OptionButton _view = null!;
+    private Button _cast = null!;
+
+    public SpectatorBar(MatchScene match) { _match = match; }
+
+    public override void _Ready()
+    {
+        Layer = 15;
+        var root = new Control { Theme = UiTheme.Theme, MouseFilter = Control.MouseFilterEnum.Ignore };
+        root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        AddChild(root);
+        var bar = new HBoxContainer();
+        bar.AddThemeConstantOverride("separation", 10);
+        var tag = UiTheme.Label("SPECTATING", 14, UiTheme.Amber);
+        tag.VerticalAlignment = VerticalAlignment.Center;
+        bar.AddChild(tag);
+        var viewLabel = UiTheme.Label("View", 14, UiTheme.Dim);
+        viewLabel.VerticalAlignment = VerticalAlignment.Center;
+        bar.AddChild(viewLabel);
+        _view = new OptionButton { CustomMinimumSize = new Vector2(170, 0) };
+        _view.AddItem("Everyone");
+        var players = _match.Session.World.Players;
+        foreach (var p in players) _view.AddItem(p.Name);
+        _view.ItemSelected += i => _match.SetViewer(i == 0 ? -1 : players[i - 1].Team);
+        bar.AddChild(_view);
+        _cast = UiTheme.Button("Casting overlay (C)", ToggleCasting, 0, 14);
+        _cast.TooltipText = "Show the caster's view: scores, income and army sizes for every player";
+        bar.AddChild(_cast);
+        var panel = UiTheme.Panel(bar, 8);
+        panel.AnchorLeft = 0.5f; panel.AnchorRight = 0.5f;
+        panel.OffsetLeft = -300; panel.OffsetRight = 300; panel.OffsetTop = 58; panel.OffsetBottom = 104;
+        panel.GrowHorizontal = Control.GrowDirection.Both;
+        root.AddChild(panel);
+    }
+
+    /// <summary>Cycles the watched view: Everyone, then each player in turn.</summary>
+    public void NextView()
+    {
+        int next = (_view.Selected + 1) % _view.ItemCount;
+        _view.Select(next);
+        _match.SetViewer(next == 0 ? -1 : _match.Session.World.Players[next - 1].Team);
+    }
+
+    /// <summary>
+    /// The casting overlay belongs to the HUD (UI/CastingOverlay.cs, key C). It's looked up by
+    /// node name so this bar works whether or not it's present in this build.
+    /// </summary>
+    public void ToggleCasting()
+    {
+        if (_match.GetNodeOrNull<CanvasItem>("CastingOverlay") is { } item) { item.Visible = !item.Visible; return; }
+        if (_match.GetNodeOrNull<CanvasLayer>("CastingOverlay") is { } layer) { layer.Visible = !layer.Visible; return; }
+        // Not in this build: the C key reaches the HUD's own handler if it has one.
+        _match.Hud?.Post("Casting overlay: press C.", UiTheme.Dim, 4);
+    }
+
+    public override void _UnhandledInput(InputEvent e)
+    {
+        if (e is not InputEventKey { Pressed: true, Echo: false } k) return;
+        if (k.Keycode == Key.V) { NextView(); GetViewport().SetInputAsHandled(); }
     }
 }
 
@@ -126,19 +201,34 @@ public partial class NetMatchOverlay : CanvasLayer
             _left.Add(p);
             _match.Hud?.Post($"{_channel.NameOf(p)} left the game", UiTheme.Amber, 10);
         };
+        _channel.SpectatorLeft += s =>
+        {
+            _gone++;
+            _match.Hud?.Post($"{_channel.NameOf(s)} stopped watching", UiTheme.Dim, 6);
+        };
         _channel.ChatReceived += OnChat;
         _channel.Desynced += OnDesync;
         _channel.Lost += _ => ShowLost();
         if (_channel.Desync is { } d) OnDesync(d);
         _match.Hud?.Post("Press Enter to chat.", UiTheme.Dim, 8);
+        if (_channel.IsSpectator) _match.Hud?.Post("You are spectating: V cycles whose view you watch.", UiTheme.Amber, 10);
     }
 
+    /// <param name="player">A player index, <see cref="NetProtocol.SpectatorChat"/> for a watcher, or <see cref="NetProtocol.SystemChat"/>.</param>
     private void OnChat(int player, string name, string text)
     {
+        if (player == NetProtocol.SpectatorChat)
+        {
+            _match.Hud?.Post($"{name} (spectator): {text}", UiTheme.Ink, 14);
+            Sfx.Play(SfxKind.Select, -6);
+            return;
+        }
         Color c = player >= 0 ? UiTheme.TeamColour(player) : UiTheme.Dim;
         _match.Hud?.Post(player >= 0 ? $"{name}: {text}" : text, c, 14);
         if (player != _channel.LocalPlayer) Sfx.Play(SfxKind.Select, -6);
     }
+
+    private int _gone;   // spectators who have left
 
     private void OnDesync(DesyncReport d)
     {
@@ -198,12 +288,14 @@ public partial class NetMatchOverlay : CanvasLayer
             int humans = _match.Session.Scenario.Players.Count(p => p.Ai == Sim.Match.AiDifficulty.None);
             int ais = _match.Session.Scenario.Players.Count - humans;
             string ping = _channel is LockstepHost host
-                ? string.Join("  ", Enumerable.Range(0, _channel.PlayerNames.Count)
+                ? string.Join("  ", Enumerable.Range(0, _channel.ParticipantCount)
                     .Where(p => p != host.LocalPlayer && host.IsConnected(p) && host.RoundTrip(p) > 0)
                     .Select(p => $"{_channel.NameOf(p)} {host.RoundTrip(p) * 1000:0} ms"))
                 : "";
             string people = _left.Count > 0 ? $"{humans - _left.Count} of {humans} humans" : $"{humans} humans";
-            _status.Text = $"Online · {people}{(ais > 0 ? $", {ais} AI" : "")} · input delay {_channel.Delay * 1000 / Sim.World.TicksPerSecond} ms" + (ping.Length > 0 ? $"\n{ping}" : "");
+            int watching = _channel.SpectatorNames.Count - _gone;
+            string watchers = watching > 0 ? $" · {watching} watching" : "";
+            _status.Text = $"Online · {people}{(ais > 0 ? $", {ais} AI" : "")}{watchers} · input delay {_channel.Delay * 1000 / Sim.World.TicksPerSecond} ms" + (ping.Length > 0 ? $"\n{ping}" : "");
         }
     }
 

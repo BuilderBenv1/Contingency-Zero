@@ -54,6 +54,12 @@ public enum Msg : byte
     Pong = 19,
     /// <summary>Either way: I'm leaving on purpose.</summary>
     Leave = 20,
+
+    // ---- Spectators (protocol 2) ----
+    /// <summary>Client to host: I want to watch instead of play (or the reverse).</summary>
+    RoleRequest = 21,
+    /// <summary>Host to clients: a spectator disconnected (nothing happens to the game).</summary>
+    SpectatorLeft = 22,
 }
 
 /// <summary>
@@ -64,9 +70,20 @@ public enum Msg : byte
 public static class NetProtocol
 {
     /// <summary>Bumped whenever the wire format changes; mismatched versions are refused at the door.</summary>
-    public const int Version = 1;
+    public const int Version = 2;
     public const int DefaultPort = 7777;
     public const int MaxSlots = 8;
+    /// <summary>People watching a game without playing. They hold no slot and the lockstep never waits on them.</summary>
+    public const int MaxSpectators = 8;
+    /// <summary>
+    /// The player index of a spectator on its own machine (<see cref="Match.SimSession.LocalPlayer"/>): it owns
+    /// nothing and issues no commands.
+    /// </summary>
+    public const int SpectatorPlayer = -1;
+    /// <summary>In chat messages the sender is a player index, or this for a system note...</summary>
+    public const int SystemChat = -1;
+    /// <summary>...or this for a line from a spectator (the name says who).</summary>
+    public const int SpectatorChat = -2;
     /// <summary>A single player can't flood a tick with more than this many commands.</summary>
     public const int MaxCommandsPerInput = 1000;
 

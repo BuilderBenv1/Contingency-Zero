@@ -8,15 +8,19 @@ namespace ContingencyZero.Game.Net;
 /// <summary>
 /// The host's end of the lockstep: collects every human's input, builds and broadcasts a bundle
 /// per tick, compares state hashes, resigns players who drop, and picks the input delay from the
-/// measured round-trip times.
+/// measured round-trip times. Spectators get every broadcast and may send hashes, pongs and chat;
+/// any input from them is dropped, and nothing here ever waits for one.
 /// </summary>
 public sealed class LockstepHost : LockstepChannel
 {
     private readonly Dictionary<int, int> _peerToPlayer;
     private readonly Dictionary<int, int> _playerToPeer = new();
+    private readonly Dictionary<int, int> _peerToSpectator = new();   // peer id -> participant index
+    private readonly Dictionary<int, int> _spectatorToPeer = new();
     private readonly int[] _humans;                       // every human player index, ascending
     private readonly int _playerCount;
     private readonly HashSet<int> _active = new();        // humans still connected
+    private readonly HashSet<int> _watching = new();      // spectators (participant index) still connected
     private readonly HashSet<int> _loaded = new();
     private readonly Dictionary<int, int> _inputThrough = new();
     private readonly Dictionary<int, Dictionary<int, (int Through, List<Command> Commands)>> _segments = new();
@@ -34,9 +38,10 @@ public sealed class LockstepHost : LockstepChannel
     private bool _waitingAnnounced;
 
     /// <param name="peerToPlayer">Each remote human's transport peer id and player index.</param>
+    /// <param name="spectators">Each spectator's transport peer id and name, in the order they are numbered (after the players).</param>
     public LockstepHost(INetTransport transport, Func<double> clock, int localPlayer, IReadOnlyList<string> names,
-        IReadOnlyDictionary<int, int> peerToPlayer, int delay = InitialDelay)
-        : base(transport, clock, localPlayer, names, delay)
+        IReadOnlyDictionary<int, int> peerToPlayer, int delay = InitialDelay, IReadOnlyList<(int Peer, string Name)>? spectators = null)
+        : base(transport, clock, localPlayer, names, delay, spectators?.Select(s => s.Name).ToList())
     {
         _playerCount = names.Count;
         _peerToPlayer = new Dictionary<int, int>(peerToPlayer);
@@ -48,8 +53,21 @@ public sealed class LockstepHost : LockstepChannel
             _inputThrough[p] = Delay - 1;
             _segments[p] = new Dictionary<int, (int, List<Command>)>();
         }
+        if (spectators is not null)
+        {
+            for (int i = 0; i < spectators.Count; i++)
+            {
+                int participant = _playerCount + i;
+                _peerToSpectator[spectators[i].Peer] = participant;
+                _spectatorToPeer[participant] = spectators[i].Peer;
+                _watching.Add(participant);
+            }
+        }
         _formedThrough = Delay - 1;
     }
+
+    /// <summary>Spectators still connected, by participant index, ascending.</summary>
+    public IReadOnlyList<int> Watching => _watching.OrderBy(s => s).ToList();
 
     /// <summary>
     /// Typical round-trip time to a player in seconds, or 0 for the host / unknown: the 60th
@@ -63,7 +81,8 @@ public sealed class LockstepHost : LockstepChannel
         return sorted[Math.Min(sorted.Count - 1, (int)(sorted.Count * 0.6))];
     }
 
-    public bool IsConnected(int player) => _active.Contains(player);
+    /// <summary>Whether a player or spectator (participant index) is still connected.</summary>
+    public bool IsConnected(int participant) => _active.Contains(participant) || _watching.Contains(participant);
 
     public override IReadOnlyList<int> WaitingOn
     {
@@ -90,10 +109,17 @@ public sealed class LockstepHost : LockstepChannel
                 return;
             case NetEventKind.Disconnected:
                 if (_peerToPlayer.TryGetValue(e.Peer, out int gone)) MarkLeft(gone);
+                else if (_peerToSpectator.TryGetValue(e.Peer, out int watcher)) MarkSpectatorLeft(watcher);
                 return;
         }
 
-        if (e.Data is null || !_peerToPlayer.TryGetValue(e.Peer, out int player) || !_active.Contains(player)) return;
+        if (e.Data is null) return;
+        if (_peerToSpectator.TryGetValue(e.Peer, out int spectator))
+        {
+            if (_watching.Contains(spectator)) HandleSpectator(spectator, e.Data);
+            return;
+        }
+        if (!_peerToPlayer.TryGetValue(e.Peer, out int player) || !_active.Contains(player)) return;
         using var r = NetProtocol.Open(e.Data, out Msg type);
         switch (type)
         {
@@ -131,6 +157,49 @@ public sealed class LockstepHost : LockstepChannel
                 MarkLeft(player);
                 break;
         }
+    }
+
+    /// <summary>
+    /// What a spectator may say: hashes (so drift shows up), pongs, chat and goodbye. Input and
+    /// Loaded are ignored on purpose: a spectator can't act and can't hold the start up.
+    /// </summary>
+    private void HandleSpectator(int participant, byte[] data)
+    {
+        using var r = NetProtocol.Open(data, out Msg type);
+        switch (type)
+        {
+            case Msg.Hash:
+            {
+                int tick = r.ReadInt32();
+                ulong hash = r.ReadUInt64();
+                if (_localHashes.TryGetValue(tick, out ulong mine)) Compare(tick, participant, mine, hash);
+                else if (tick >= NextTick - 1) _peerHashes[(tick, participant)] = hash;
+                break;
+            }
+            case Msg.Pong:
+            {
+                double sent = r.ReadDouble();
+                if (!_rtt.TryGetValue(participant, out var q)) _rtt[participant] = q = new Queue<double>();
+                q.Enqueue(Math.Max(0, Clock() - sent));
+                while (q.Count > 20) q.Dequeue();
+                break;
+            }
+            case Msg.Chat:
+                SendChatFrom(participant, NetProtocol.Clean(r.ReadString(), 200));
+                break;
+            case Msg.Leave:
+                MarkSpectatorLeft(participant);
+                break;
+        }
+    }
+
+    private void MarkSpectatorLeft(int participant)
+    {
+        if (!_watching.Remove(participant)) return;
+        if (_spectatorToPeer.TryGetValue(participant, out int peer)) Transport.Kick(peer);
+        Log($"{NameOf(participant)} stopped watching");
+        Broadcast(NetProtocol.Build(Msg.SpectatorLeft, w => w.Write(participant)));
+        RaiseSpectatorLeft(participant);
     }
 
     private void AddInput(int player, int from, int through, List<Command> commands)
@@ -184,6 +253,9 @@ public sealed class LockstepHost : LockstepChannel
         foreach (int p in _humans)
             if (_peerHashes.Remove((tick, p), out ulong theirs))
                 Compare(tick, p, hash, theirs);
+        for (int s = _playerCount; s < ParticipantCount; s++)
+            if (_peerHashes.Remove((tick, s), out ulong theirs))
+                Compare(tick, s, hash, theirs);
         // Keep a couple of minutes of history; clients are never further behind than that.
         int oldest = tick - 120 * Sim.World.TicksPerSecond;
         if (tick % (60 * Sim.World.TicksPerSecond) == 0)
@@ -209,17 +281,19 @@ public sealed class LockstepHost : LockstepChannel
 
     public override void SendChat(string text) => SendChatFrom(LocalPlayer, NetProtocol.Clean(text, 200));
 
-    private void SendChatFrom(int player, string text)
+    /// <param name="participant">A player index, or a spectator's participant index (sent on as <see cref="NetProtocol.SpectatorChat"/>).</param>
+    private void SendChatFrom(int participant, string text)
     {
         if (text.Length == 0) return;
-        string name = NameOf(player);
+        string name = NameOf(participant);
+        int sender = IsSpectatorIndex(participant) ? NetProtocol.SpectatorChat : participant;
         Broadcast(NetProtocol.Build(Msg.Chat, w =>
         {
-            w.Write(player);
+            w.Write(sender);
             w.Write(name);
             w.Write(text);
         }));
-        RaiseChat(player, name, text);
+        RaiseChat(sender, name, text);
     }
 
     // ---- Bundles and housekeeping ----------------------------------------------------------------
@@ -332,10 +406,13 @@ public sealed class LockstepHost : LockstepChannel
         }
     }
 
+    /// <summary>To every connected player and spectator. Order doesn't matter: nothing here is sim state.</summary>
     private void Broadcast(byte[] message)
     {
         foreach (var (peer, player) in _peerToPlayer)
             if (_active.Contains(player)) Transport.Send(peer, message);
+        foreach (var (peer, spectator) in _peerToSpectator)
+            if (_watching.Contains(spectator)) Transport.Send(peer, message);
     }
 
     public override void Dispose()

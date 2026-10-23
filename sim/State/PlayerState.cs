@@ -26,6 +26,8 @@ public sealed class PlayerState
     public Fix64 EnergySpent;
     public Fix64 MetalWasted;
     public Fix64 EnergyWasted;
+    /// <summary>Energy the metal makers drew last tick (already included in <see cref="EnergySpent"/>). Display only; not hashed.</summary>
+    public Fix64 ConverterEnergy;
     /// <summary>Share of requested build spending that was actually funded last tick, 0 to 1. Below 1 means a stall.</summary>
     public Fix64 BuildRatio = Fix64.One;
     /// <summary>Metal makers run only while this is true.</summary>
@@ -33,6 +35,12 @@ public sealed class PlayerState
 
     public bool Defeated;
     public int DefeatedTick = -1;
+
+    /// <summary>
+    /// Salvage: enemy wrecks fully reclaimed, per unit type. Reclaiming enough of a type (see
+    /// <see cref="World.SalvageWrecksNeeded"/>) lets this player's factories build it.
+    /// </summary>
+    public int[] SalvageProgress = System.Array.Empty<int>();
 
     // Match statistics for the score screen
     public int UnitsBuilt;

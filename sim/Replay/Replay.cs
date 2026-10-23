@@ -31,15 +31,46 @@ public sealed record Scenario(
     }
 }
 
+/// <summary>What a replay bookmark marks. Stored as a byte in the file; add new kinds at the end.</summary>
+public enum ReplayBookmarkKind : byte
+{
+    /// <summary>Anything else (user notes, dev markers).</summary>
+    Note = 0,
+    CommanderAttacked = 1,
+    CommanderKilled = 2,
+    FactoryDestroyed = 3,
+    /// <summary>An enemy force arrived at somebody's base.</summary>
+    Wave = 4,
+    PlayerDefeated = 5,
+    GameOver = 6,
+}
+
+/// <summary>
+/// A moment worth jumping to in a replay. <see cref="Player"/> is who it concerns (-1 if nobody
+/// in particular); it is advisory only and never affects playback.
+/// </summary>
+public readonly record struct ReplayBookmark(int Tick, ReplayBookmarkKind Kind, string Text, int Player = -1)
+{
+    /// <summary>The kind as stored in the file.</summary>
+    public byte KindByte => (byte)Kind;
+}
+
 /// <summary>
 /// A recorded match: a scenario, every human command, and how many ticks were played. Computer
 /// players run inside the sim, so they replay by themselves. Because the sim is deterministic this
 /// is all it takes to reproduce the match exactly.
 /// </summary>
+/// <remarks>
+/// File format: magic, version, body length, deflated body. Version 2 bodies end after the command
+/// list; version 3 adds a list of bookmarks after it. Readers accept both. Bookmarks are notes for
+/// the replay browser and never influence <see cref="Play"/>.
+/// </remarks>
 public sealed class MatchReplay
 {
     private const uint Magic = 0x5A4E_4F43; // file marker, "CONZ" in little-endian bytes
-    private const int FormatVersion = 2;
+    private const int FormatVersion = 3;
+    /// <summary>Oldest version <see cref="Read"/> still understands.</summary>
+    private const int OldestReadableVersion = 2;
 
     public Scenario Scenario { get; }
     public IReadOnlyList<Command> Commands { get; }
@@ -48,6 +79,8 @@ public sealed class MatchReplay
     /// <summary>State hash at the end, so a replay can check it played back correctly.</summary>
     public ulong FinalHash { get; set; }
     public string Title { get; set; } = "";
+    /// <summary>Moments worth jumping to, in tick order. Empty for files written before version 3.</summary>
+    public List<ReplayBookmark> Bookmarks { get; } = new();
 
     public MatchReplay(Scenario scenario, IEnumerable<Command> commands, int tickCount)
     {
@@ -69,11 +102,19 @@ public sealed class MatchReplay
         return world;
     }
 
-    public void Write(Stream stream)
+    public void Write(Stream stream) => Write(stream, FormatVersion);
+
+    /// <summary>
+    /// Writes the replay in an older format (tests, and tools that want a file an older build can
+    /// read). Version 2 drops the bookmarks.
+    /// </summary>
+    internal void Write(Stream stream, int formatVersion)
     {
+        if (formatVersion < OldestReadableVersion || formatVersion > FormatVersion)
+            throw new ArgumentOutOfRangeException(nameof(formatVersion), $"Can write replay versions {OldestReadableVersion} to {FormatVersion}");
         using var w = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
         w.Write(Magic);
-        w.Write(FormatVersion);
+        w.Write(formatVersion);
         using var body = new MemoryStream();
         using (var z = new DeflateStream(body, CompressionLevel.Optimal, leaveOpen: true))
         using (var bw = new BinaryWriter(z, Encoding.UTF8))
@@ -126,6 +167,20 @@ public sealed class MatchReplay
                 bw.Write(c.Queue);
                 bw.Write(c.Arg);
             }
+
+            if (formatVersion >= 3)
+            {
+                // Bookmarks go after everything a version 2 reader knows about, in tick order.
+                var marks = Bookmarks.OrderBy(b => b.Tick).ToList();
+                bw.Write(marks.Count);
+                foreach (ReplayBookmark b in marks)
+                {
+                    bw.Write(b.Tick);
+                    bw.Write(b.KindByte);
+                    bw.Write(b.Text);
+                    bw.Write(b.Player);
+                }
+            }
         }
         w.Write((int)body.Length);
         w.Write(body.ToArray());
@@ -136,7 +191,8 @@ public sealed class MatchReplay
         using var r0 = new BinaryReader(stream, Encoding.UTF8, leaveOpen: true);
         if (r0.ReadUInt32() != Magic) throw new InvalidDataException("Not a Contingency Zero replay");
         int version = r0.ReadInt32();
-        if (version != FormatVersion) throw new InvalidDataException($"Unsupported replay version {version}");
+        if (version < OldestReadableVersion || version > FormatVersion)
+            throw new InvalidDataException($"Unsupported replay version {version} (this build reads {OldestReadableVersion} to {FormatVersion})");
         int length = r0.ReadInt32();
         byte[] compressed = r0.ReadBytes(length);
 
@@ -182,11 +238,25 @@ public sealed class MatchReplay
         }
 
         var scenario = new Scenario(map, seed, players, options, spawns, mission);
-        return new MatchReplay(scenario, commands, tickCount)
+        var replay = new MatchReplay(scenario, commands, tickCount)
         {
             Title = title,
             CatalogFingerprint = fingerprint,
             FinalHash = finalHash,
         };
+
+        if (version >= 3)
+        {
+            int marks = r.ReadInt32();
+            for (int i = 0; i < marks; i++)
+            {
+                int tick = r.ReadInt32();
+                var kind = (ReplayBookmarkKind)r.ReadByte();
+                string text = r.ReadString();
+                int who = r.ReadInt32();
+                replay.Bookmarks.Add(new ReplayBookmark(tick, kind, text, who));
+            }
+        }
+        return replay;
     }
 }

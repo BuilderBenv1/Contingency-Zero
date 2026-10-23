@@ -12,8 +12,10 @@ using Godot;
 namespace ContingencyZero.Game.UI;
 
 /// <summary>
-/// Orders and the build menu for the selection. Builders show what they can construct; factories
-/// show their units with queue counts (left click +1, shift +5, right click -1).
+/// Orders and the build menu for the selection. Builders show what they can construct (and the
+/// saved build templates); factories show their units with queue counts (left click +1, shift +5,
+/// right click -1) plus the ferry rally setting. Structures can be saved as a template. The
+/// gamepad walks the buttons with the d-pad (<see cref="NavMove"/>, <see cref="NavPress"/>).
 /// </summary>
 public partial class CommandCard : VBoxContainer
 {
@@ -21,11 +23,19 @@ public partial class CommandCard : VBoxContainer
     private Selection _selection = null!;
     private InputController _input = null!;
     private HFlowContainer _orders = null!;
+    private HFlowContainer _templates = null!;
     private GridContainer _build = null!;
     private Label _title = null!;
     private readonly Dictionary<int, (Button Button, Label Count)> _factoryButtons = new();
     private Button? _fireButton;
     private Button? _repeatButton;
+    private Button? _ferryButton;
+
+    // D-pad navigation: rows of buttons, top to bottom.
+    private readonly List<List<Button>> _navRows = new();
+    private (int Row, int Col) _nav = (-1, -1);
+    private Button? _navButton;
+    private static readonly StyleBoxFlat NavBox = UiTheme.Box(new Color(0.3f, 0.28f, 0.14f), UiTheme.Amber, 2, 1, 6);
 
     private World World => _session.World;
     private int Me => _session.LocalPlayer;
@@ -40,6 +50,10 @@ public partial class CommandCard : VBoxContainer
         _orders.AddThemeConstantOverride("h_separation", 4);
         _orders.AddThemeConstantOverride("v_separation", 4);
         AddChild(_orders);
+        _templates = new HFlowContainer();
+        _templates.AddThemeConstantOverride("h_separation", 4);
+        _templates.AddThemeConstantOverride("v_separation", 4);
+        AddChild(_templates);
         _title = UiTheme.Label("", 13, UiTheme.Dim);
         AddChild(_title);
         var scroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
@@ -48,6 +62,9 @@ public partial class CommandCard : VBoxContainer
         _build.AddThemeConstantOverride("v_separation", 4);
         scroll.AddChild(_build);
         AddChild(scroll);
+        input.TemplateSaveRequested += AskTemplateName;
+        TemplateStore.Changed += Refresh;
+        TreeExiting += () => TemplateStore.Changed -= Refresh;
         Refresh();
     }
 
@@ -66,11 +83,16 @@ public partial class CommandCard : VBoxContainer
     public void Refresh()
     {
         foreach (Node c in _orders.GetChildren()) c.QueueFree();
+        foreach (Node c in _templates.GetChildren()) c.QueueFree();
         foreach (Node c in _build.GetChildren()) c.QueueFree();
         _factoryButtons.Clear();
         _fireButton = null;
         _repeatButton = null;
+        _ferryButton = null;
         _title.Text = "";
+        _navRows.Clear();
+        _navButton = null;
+        _nav = (-1, -1);
 
         var mine = Mine();
         bool show = mine.Count > 0 && !_session.IsReplay;
@@ -84,44 +106,105 @@ public partial class CommandCard : VBoxContainer
         bool anyAssist = defs.Any(d => d.CanAssist || d.CanMove);
         bool anyDGun = defs.Any(d => d.HasDGun);
         bool anyFactory = defs.Any(d => d.IsFactory);
+        bool anyStructure = defs.Any(d => d.IsStructure);
 
-        if (anyMobile) OrderButton("Move", "Move (M)", () => _input.SetMode(ClickMode.Move));
-        if (anyArmed && anyMobile) OrderButton("Attack", "Attack a unit, or attack-move to a point (A). Ctrl-click fires at the ground.", () => _input.SetMode(ClickMode.Fight));
-        OrderButton("Stop", "Stop (S)", () => _input.IssueToSelection(CommandType.Stop));
-        if (anyMobile) OrderButton("Patrol", "Patrol (P)", () => _input.SetMode(ClickMode.Patrol));
-        if (anyAssist && anyMobile) OrderButton("Guard", "Guard / help build / repair a friendly unit (G)", () => _input.SetMode(ClickMode.Assist));
-        if (anyReclaim) OrderButton("Reclaim", "Reclaim a wreck, rock or tree (R)", () => _input.SetMode(ClickMode.Reclaim));
-        if (anyDGun) OrderButton("D-Gun", "Breach Cannon: destroys almost anything in its path. 500 energy. (D)", () => _input.SetMode(ClickMode.DGun));
-        if (anyArmed) _fireButton = OrderButton(FireText(mine), "Cycle fire state: fire at will / return fire / hold fire (F)", () => _input.CycleFireState(mine));
+        var orderRow = new List<Button>();
+        if (anyMobile) orderRow.Add(OrderButton("Move", "Move (M)", () => _input.SetMode(ClickMode.Move)));
+        if (anyArmed && anyMobile) orderRow.Add(OrderButton("Attack", "Attack a unit, or attack-move to a point (A). Ctrl-click fires at the ground.", () => _input.SetMode(ClickMode.Fight)));
+        orderRow.Add(OrderButton("Stop", "Stop (S)", () => _input.IssueToSelection(CommandType.Stop)));
+        if (anyMobile) orderRow.Add(OrderButton("Patrol", "Patrol (P)", () => _input.SetMode(ClickMode.Patrol)));
+        if (anyAssist && anyMobile) orderRow.Add(OrderButton("Guard", "Guard / help build / repair a friendly unit (G). Drag a circle to repair everything in an area.", () => _input.SetMode(ClickMode.Assist)));
+        if (anyReclaim) orderRow.Add(OrderButton("Reclaim", "Reclaim a wreck, rock or tree (R). Drag a circle to clear an area.", () => _input.SetMode(ClickMode.Reclaim)));
+        if (anyDGun) orderRow.Add(OrderButton("D-Gun", "Breach Cannon: destroys almost anything in its path. 500 energy. (D)", () => _input.SetMode(ClickMode.DGun)));
+        if (anyArmed) orderRow.Add(_fireButton = OrderButton(FireText(mine), "Cycle fire state: fire at will / return fire / hold fire (F)", () => _input.CycleFireState(mine)));
         if (anyFactory)
         {
             int factory = mine.First(id => World.Catalog[World.Units.TypeIndex[id]].IsFactory);
-            _repeatButton = OrderButton(World.Units.FactoryRepeat[factory] ? "Repeat: on" : "Repeat: off", "Loop the build queue", () =>
+            orderRow.Add(_repeatButton = OrderButton(World.Units.FactoryRepeat[factory] ? "Repeat: on" : "Repeat: off", "Loop the build queue", () =>
             {
                 bool on = !World.Units.FactoryRepeat[factory];
                 foreach (int id in Mine())
                     if (World.Catalog[World.Units.TypeIndex[id]].IsFactory)
                         _input.Issue(new Command(0, Me, CommandType.FactoryRepeat, id, Arg: on ? 1 : 0));
-            });
+            }));
+            orderRow.Add(_ferryButton = OrderButton(FerryText(factory),
+                "Ferry: send every 2nd / 3rd / 4th new unit to the secondary rally point (Shift+right click on the ground to set it)",
+                () => _input.SetFerryEvery(NextFerry(World.Units.RallyEvery[factory]))));
         }
+        if (anyStructure)
+            orderRow.Add(OrderButton("Save as template", "Save the selected structures and their layout as a build template (Ctrl+T)", _input.RequestTemplateSave));
+        _navRows.Add(orderRow);
 
         // Build options: factories first, else builders (options shared by the first builder).
         int fid = mine.FirstOrDefault(id => World.Catalog[World.Units.TypeIndex[id]].IsFactory, -1);
         int bid = mine.FirstOrDefault(id => World.Catalog[World.Units.TypeIndex[id]].CanBuild, -1);
+        var buildButtons = new List<Button>();
         if (fid >= 0)
         {
             UnitDef fdef = World.Catalog[World.Units.TypeIndex[fid]];
             _title.Text = $"{fdef.Name.ToUpperInvariant()}: left click +1 (shift +5), right click -1";
-            foreach (int t in fdef.BuildOptions) AddFactoryButton(t);
+            foreach (int t in fdef.BuildOptions) buildButtons.Add(AddFactoryButton(t));
         }
         else if (bid >= 0)
         {
             UnitDef bdef = World.Catalog[World.Units.TypeIndex[bid]];
             _title.Text = "BUILD: pick a structure, then click the map";
+            BuildTemplateRow();
             foreach (int t in bdef.BuildOptions.OrderBy(t => Category(World.Catalog[t])).ThenBy(t => World.Catalog[t].MetalCost.Raw))
-                AddBuildButton(t);
+                buildButtons.Add(AddBuildButton(t));
         }
+        for (int i = 0; i < buildButtons.Count; i += _build.Columns)
+            _navRows.Add(buildButtons.Skip(i).Take(_build.Columns).ToList());
     }
+
+    private void BuildTemplateRow()
+    {
+        var row = new List<Button>();
+        var label = UiTheme.Label("TEMPLATES", 12, UiTheme.Dim);
+        label.VerticalAlignment = VerticalAlignment.Center;
+        label.CustomMinimumSize = new Vector2(0, 28);
+        _templates.AddChild(label);
+        foreach (BuildTemplate t in TemplateStore.All)
+        {
+            BuildTemplate template = t;
+            var b = UiTheme.Button(t.Name, () => _input.BeginTemplatePlacement(template), 0, 13);
+            b.CustomMinimumSize = new Vector2(0, 28);
+            b.TooltipText = $"{t.Name}: {t.Items.Count} structures\n{string.Join(", ", t.Items.GroupBy(i => i.Type).Select(g => $"{g.Count()}x {NameOf(g.Key)}"))}\nClick, then click the map to stamp it. R turns it.";
+            b.Name = "Template_" + t.Name;
+            _templates.AddChild(b);
+            row.Add(b);
+        }
+        var manage = UiTheme.Button(TemplateStore.All.Count == 0 ? "No templates yet" : "Manage", () => GetTree().Root.AddChild(TemplateDialogs.ManageDialog()), 0, 13);
+        manage.CustomMinimumSize = new Vector2(0, 28);
+        manage.TooltipText = "Rename or delete templates. Select structures and press Ctrl+T to make one.";
+        _templates.AddChild(manage);
+        row.Add(manage);
+        _navRows.Add(row);
+    }
+
+    private string NameOf(string typeId) => World.Catalog.TryIndexOf(typeId, out int i) ? World.Catalog[i].Name : typeId;
+
+    private void AskTemplateName(IReadOnlyList<int> structures)
+    {
+        var ids = structures.ToList();
+        GetTree().Root.AddChild(TemplateDialogs.SaveDialog(ids.Count, name =>
+        {
+            BuildTemplate? t = BuildTemplate.FromStructures(World, ids, Me, name);
+            if (t is null) return;
+            TemplateStore.Add(t);
+            Audio.Sfx.Play(Audio.SfxKind.Click);
+        }));
+    }
+
+    private static int NextFerry(int every) => every switch { 0 => 2, 2 => 3, 3 => 4, _ => 0 };
+
+    private string FerryText(int factory) => World.Units.RallyEvery[factory] switch
+    {
+        0 => "Ferry: off",
+        2 => "Ferry: every 2nd",
+        3 => "Ferry: every 3rd",
+        int n => $"Ferry: every {n}th",
+    };
 
     private static int Category(UnitDef d) =>
         d.ExtractorMultiplier.Raw > 0 || d.EnergyIncomePerTick.Raw > 0 || d.UsesWind || d.MetalStorage.Raw > 0 || d.EnergyStorage.Raw > 0 || d.ConvertMetalPerTick.Raw > 0 ? 0
@@ -164,6 +247,7 @@ public partial class CommandCard : VBoxContainer
         {
             CustomMinimumSize = new Vector2(68, 88),
             TooltipText = Tooltip(d),
+            Name = "Build_" + d.Id,
         };
         var icon = new TextureRect
         {
@@ -194,7 +278,7 @@ public partial class CommandCard : VBoxContainer
         return b;
     }
 
-    private void AddBuildButton(int type)
+    private Button AddBuildButton(int type)
     {
         Button b = IconButton(type);
         b.Pressed += () =>
@@ -202,9 +286,10 @@ public partial class CommandCard : VBoxContainer
             Audio.Sfx.Play(Audio.SfxKind.Click);
             _input.BeginPlacement(type);
         };
+        return b;
     }
 
-    private void AddFactoryButton(int type)
+    private Button AddFactoryButton(int type)
     {
         Button b = IconButton(type);
         var count = UiTheme.Label("", 16, UiTheme.Amber);
@@ -222,7 +307,58 @@ public partial class CommandCard : VBoxContainer
                 b.AcceptEvent();
             }
         };
+        // The gamepad's A press arrives as Pressed (no GuiInput): queue one.
+        b.Pressed += () => { if (_navButton == b) _input.FactoryQueue(type, 1); };
         _factoryButtons[type] = (b, count);
+        return b;
+    }
+
+    // ---- Gamepad navigation ----------------------------------------------------------------------
+
+    /// <summary>Index of the highlighted button (row * 100 + column), or -1 while the cursor is in charge.</summary>
+    public int NavIndex => _navButton is null ? -1 : _nav.Row * 100 + _nav.Col;
+    public Button? NavButton => _navButton;
+
+    /// <summary>Moves the highlight; returns false when there is nothing to walk.</summary>
+    public bool NavMove(int dx, int dy)
+    {
+        var rows = _navRows.Where(r => r.Count > 0).ToList();
+        if (rows.Count == 0 || !IsVisibleInTree()) return false;
+        int row = _nav.Row, col = _nav.Col;
+        if (_navButton is null) { row = 0; col = 0; }
+        else
+        {
+            row = Math.Clamp(row + dy, 0, rows.Count - 1);
+            col = dx == 0 ? Math.Clamp(col, 0, rows[row].Count - 1) : ((col + dx) % rows[row].Count + rows[row].Count) % rows[row].Count;
+        }
+        Highlight(rows[row][col], row, col);
+        return true;
+    }
+
+    /// <summary>Presses the highlighted button.</summary>
+    public bool NavPress()
+    {
+        if (_navButton is null || !IsInstanceValid(_navButton)) return false;
+        Audio.Sfx.Play(Audio.SfxKind.Click);
+        _navButton.EmitSignal(BaseButton.SignalName.Pressed);
+        return true;
+    }
+
+    public void NavClear() => Highlight(null, -1, -1);
+
+    private void Highlight(Button? b, int row, int col)
+    {
+        if (_navButton is not null && IsInstanceValid(_navButton))
+        {
+            _navButton.RemoveThemeStyleboxOverride("normal");
+            _navButton.RemoveThemeStyleboxOverride("hover");
+        }
+        _navButton = b;
+        _nav = (row, col);
+        if (b is null) return;
+        b.AddThemeStyleboxOverride("normal", NavBox);
+        b.AddThemeStyleboxOverride("hover", NavBox);
+        if (b.GetParent() == _build && _build.GetParent() is ScrollContainer sc) sc.EnsureControlVisible(b);
     }
 
     public void OnTick()
@@ -233,6 +369,7 @@ public partial class CommandCard : VBoxContainer
         int fid = mine.FirstOrDefault(id => World.Catalog[World.Units.TypeIndex[id]].IsFactory, -1);
         if (fid < 0) return;
         if (_repeatButton is not null) _repeatButton.Text = World.Units.FactoryRepeat[fid] ? "Repeat: on" : "Repeat: off";
+        if (_ferryButton is not null) _ferryButton.Text = FerryText(fid);
         foreach (var (type, (_, label)) in _factoryButtons)
         {
             int n = 0;
