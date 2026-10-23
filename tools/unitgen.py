@@ -335,6 +335,10 @@ EXPERIMENTALS = {
 ENERGY_SCALE = 0.55
 
 
+# Salvage: higher-tier designs take more wrecks to reverse-engineer.
+SALVAGE_WRECKS = {1: 3, 2: 4, 3: 6}
+
+
 def unit_id(faction, key):
     return ID_OVERRIDES.get((faction, key), f"{faction}_{key}")
 
@@ -366,6 +370,9 @@ def build_unit(faction, key, base):
             w["range"] = scaled(w["range"], mod["range"])
     if "buildOptions" in out:
         out["buildOptions"] = [unit_id(faction, k) for k in out["buildOptions"]]
+    if out.get("moveClass") not in (None, "air") and key != "commander":  # aircraft leave no wrecks
+        # Enemy wrecks of this design to reclaim before your factories can copy it.
+        out["salvageWrecks"] = SALVAGE_WRECKS[out.get("tier", 1)]
     return out
 
 

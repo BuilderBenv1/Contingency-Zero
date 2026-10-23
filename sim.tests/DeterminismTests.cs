@@ -21,10 +21,10 @@ public class DeterminismTests
     /// update it in the same commit and say why. If it changes by accident, something in the sim
     /// has stopped being deterministic or has changed behaviour.
     /// </summary>
-    private const ulong GoldenBattleHash = 0xD034F133F55997CDUL;
+    private const ulong GoldenBattleHash = 0x2B85BE6EAC3515A5UL;
 
     /// <summary>Final hash of a 6-minute Hard-vs-Normal AI game on Proving Grounds.</summary>
-    private const ulong GoldenAiHash = 0xEC43F58B3D155E1CUL;
+    private const ulong GoldenAiHash = 0x8FF93BEEA31AD95FUL;
 
     private static List<ulong> HashTrace(MatchReplay replay)
     {

@@ -120,8 +120,29 @@ public sealed partial class World
                 Units.FactoryRepeat[id] = c.Arg != 0;
                 return;
             case CommandType.SetRally:
-                Units.Rally[id] = ClampToMap(c.Position);
-                Units.HasRally[id] = true;
+                if ((c.Arg == 1 || c.Queue) && Units.HasRally[id])
+                {
+                    // Add a stop to the rotation; once full, the newest replaces the last.
+                    var extra = Units.RallyExtra[id];
+                    if (extra.Count >= UnitStore.MaxRallyPoints - 1) extra.RemoveAt(extra.Count - 1);
+                    extra.Add(ClampToMap(c.Position));
+                }
+                else
+                {
+                    Units.Rally[id] = ClampToMap(c.Position);
+                    Units.HasRally[id] = true;
+                    Units.RallyExtra[id].Clear();
+                    Units.RallyCount[id] = 0;
+                }
+                return;
+            case CommandType.ClearRally:
+                Units.HasRally[id] = false;
+                Units.Rally[id] = Units.Position[id];
+                Units.RallyExtra[id].Clear();
+                Units.RallyCount[id] = 0;
+                return;
+            case CommandType.FactoryRallyEvery:
+                if (def.IsFactory) Units.RallyEvery[id] = Math2.Clamp(c.Arg, 0, 10);
                 return;
             case CommandType.SetFireState:
                 if (c.Arg >= 0 && c.Arg <= 2) Units.Fire[id] = (FireState)c.Arg;
@@ -160,7 +181,7 @@ public sealed partial class World
 
             case CommandType.Build:
                 if (!def.CanBuild || c.TypeIndex < 0 || c.TypeIndex >= Catalog.Count) return;
-                if (!CanBuildType(def, c.TypeIndex)) return;
+                if (!CanBuildType(def, c.TypeIndex, c.Player)) return;
                 if (CanPlace(c.TypeIndex, c.Player, c.Position, out int tx, out int ty) != PlacementResult.Ok) return;
                 order = new Order(OrderType.Build, Terrain.FootprintCentre(tx, ty, Catalog[c.TypeIndex].Footprint),
                     target: -1, typeIndex: c.TypeIndex);
@@ -169,6 +190,21 @@ public sealed partial class World
             case CommandType.Reclaim:
                 if (!def.CanReclaim || c.TargetId < 0 || c.TargetId >= Features.Count || Features[c.TargetId].Gone) return;
                 order = new Order(OrderType.Reclaim, Features[c.TargetId].Position, c.TargetId);
+                break;
+
+            case CommandType.ReclaimArea:
+                if (!def.CanReclaim || !def.CanMove) return;
+                order = new Order(OrderType.ReclaimArea, ClampToMap(c.Position), target: -1, typeIndex: Math2.Clamp(c.Arg, 4, 200));
+                break;
+
+            case CommandType.AttackArea:
+                if (!def.IsArmed || !def.CanMove) return;
+                order = new Order(OrderType.AttackArea, ClampToMap(c.Position), target: -1, typeIndex: Math2.Clamp(c.Arg, 4, 200));
+                break;
+
+            case CommandType.RepairArea:
+                if (!def.CanAssist || !def.CanMove) return;
+                order = new Order(OrderType.RepairArea, ClampToMap(c.Position), target: -1, typeIndex: Math2.Clamp(c.Arg, 4, 200));
                 break;
 
             case CommandType.Assist:
@@ -201,15 +237,17 @@ public sealed partial class World
         Units.Orders[id].Add(order);
     }
 
-    private static bool CanBuildType(UnitDef builder, int typeIndex)
+    private bool CanBuildType(UnitDef builder, int typeIndex, int player)
     {
         foreach (int o in builder.BuildOptions) if (o == typeIndex) return true;
+        // Salvaged enemy designs can be built at a factory that makes that kind of unit.
+        if (builder.IsFactory && HasSalvaged(player, typeIndex) && FactoryTakesRole(builder, Catalog[typeIndex].Role)) return true;
         return false;
     }
 
     private void ApplyFactoryQueue(int id, UnitDef def, Command c)
     {
-        if (!def.IsFactory || !CanBuildType(def, c.TypeIndex)) return;
+        if (!def.IsFactory || !CanBuildType(def, c.TypeIndex, c.Player)) return;
         var queue = Units.FactoryQueue[id];
         if (c.Arg > 0)
         {

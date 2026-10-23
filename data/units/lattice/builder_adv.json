@@ -27,5 +27,6 @@
     "lattice_metal_maker"
   ],
   "description": "Builds fusion, deep extractors, heavy defences and gantries.",
-  "reclaimMultiplier": 1.0
+  "reclaimMultiplier": 1.0,
+  "salvageWrecks": 4
 }

@@ -33,6 +33,20 @@ public partial class OverlayView : Node3D
     private int _ghostType = -1;
 
     public int HoverUnit { get; set; } = -1;
+    /// <summary>The wreck, rock or tree under the cursor (-1 for none): ringed and labelled with what it's worth.</summary>
+    public int HoverFeature { get; set; } = -1;
+    private readonly Label3D _featureLabel = new()
+    {
+        Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+        NoDepthTest = true,
+        FixedSize = true,
+        PixelSize = 0.0011f,
+        FontSize = 26,
+        OutlineSize = 8,
+        Visible = false,
+        RenderPriority = 3,
+        OutlineRenderPriority = 2,
+    };
     public bool ShowAllHealth { get; set; }
     private readonly HashSet<int> _shown = new();
 
@@ -42,6 +56,8 @@ public partial class OverlayView : Node3D
     public readonly List<(int Type, Vector3 Centre)> QueuedGhosts = new();
     /// <summary>A rubber-band line for line-building or a fight/attack drag, in world space.</summary>
     public (Vector3 A, Vector3 B, Color C)? DragLine { get; set; }
+    /// <summary>An area order being dragged out: centre, radius and colour, in world space.</summary>
+    public (Vector3 Centre, float Radius, Color C)? DragCircle { get; set; }
 
     private struct Marker { public Vector3 P; public Color C; public float Life; }
     private readonly List<Marker> _markers = new();
@@ -64,6 +80,7 @@ public partial class OverlayView : Node3D
         _ghost.MaterialOverride = _ghostMaterial;
         _ghost.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
         AddChild(_ghost);
+        AddChild(_featureLabel);
     }
 
     public void SetViewerTeam(int team) => _viewerTeam = team;
@@ -87,6 +104,9 @@ public partial class OverlayView : Node3D
         OrderType.Assist => new Color(1f, 0.95f, 0.4f),
         OrderType.Patrol => new Color(0.4f, 0.6f, 1f),
         OrderType.DGun => new Color(1f, 0.5f, 0.1f),
+        OrderType.ReclaimArea => new Color(0.8f, 0.5f, 1f),
+        OrderType.RepairArea => new Color(1f, 0.95f, 0.4f),
+        OrderType.AttackArea => new Color(1f, 0.35f, 0.25f),
         _ => new Color(0.8f, 0.8f, 0.8f),
     };
 
@@ -167,6 +187,8 @@ public partial class OverlayView : Node3D
                         UnitDef bd = _world.Catalog[o.TypeIndex];
                         groundVerts += Square(_ground, to, bd.Footprint * MapData.TileSize / 2f - 0.3f, 0.35f, new Color(0.4f, 0.9f, 1f, 0.7f));
                     }
+                    if (o.Type is OrderType.ReclaimArea or OrderType.RepairArea or OrderType.AttackArea)
+                        groundVerts += Ring(_ground, to, o.TypeIndex - 0.3f, o.TypeIndex, new Color(oc, shift ? 0.7f : 0.4f), 48);
                     if (o.Type == OrderType.Patrol)
                         groundVerts += Line(_ground, to, Ground(o.Origin), 0.2f, new Color(oc, 0.35f));
                     from = to;
@@ -176,9 +198,18 @@ public partial class OverlayView : Node3D
             // Rally points for selected factories.
             if (selected && mine && def.IsFactory && u.HasRally[id])
             {
-                Vector3 rp = Ground(u.Rally[id]);
-                groundVerts += Line(_ground, g + new Vector3(0, 0.3f, 0), rp, 0.25f, new Color(1f, 1f, 0.5f, 0.6f));
-                groundVerts += Ring(_ground, rp, 1f, 2f, new Color(1f, 1f, 0.5f, 0.9f), 12);
+                // The primary stop in yellow, the extra (ferry) stops in cyan, each with a pip per position in the rotation.
+                int n = 0;
+                foreach (FixVec2 point in u.RallyPoints(id))
+                {
+                    Vector3 rp = Ground(point);
+                    Color rc = n == 0 ? new Color(1f, 1f, 0.5f, 0.9f) : new Color(0.4f, 0.9f, 1f, 0.9f);
+                    groundVerts += Line(_ground, g + new Vector3(0, 0.3f, 0), rp, n == 0 ? 0.25f : 0.2f, new Color(rc, 0.55f));
+                    groundVerts += Ring(_ground, rp, 1f, 2f, rc, 12);
+                    for (int k = 0; k <= n && n > 0; k++)
+                        groundVerts += Ring(_ground, rp + new Vector3(-1.2f * n / 2f + k * 1.2f, 0, -3.2f), 0f, 0.45f, rc, 6);
+                    n++;
+                }
             }
         }
 
@@ -213,6 +244,16 @@ public partial class OverlayView : Node3D
             groundVerts += Square(_ground, centre + new Vector3(0, 0.3f, 0), bd.Footprint * MapData.TileSize / 2f - 0.3f, 0.35f, new Color(0.4f, 0.9f, 1f, 0.6f));
         }
 
+        groundVerts += DrawHoverFeature();
+
+        if (DragCircle is { } dc)
+        {
+            Vector3 c = dc.Centre + new Vector3(0, 0.4f, 0);
+            groundVerts += Ring(_ground, c, dc.Radius - 0.45f, dc.Radius, dc.C, 64);
+            groundVerts += Ring(_ground, c, 0f, dc.Radius, new Color(dc.C, 0.12f), 48);
+            groundVerts += Ring(_ground, c, 0.6f, 1.2f, dc.C, 12);
+        }
+
         if (DragLine is { } dl)
             groundVerts += Line(_ground, dl.A + new Vector3(0, 0.4f, 0), dl.B + new Vector3(0, 0.4f, 0), 0.4f, dl.C);
 
@@ -243,6 +284,50 @@ public partial class OverlayView : Node3D
 
         if (groundVerts > 0) _ground.SurfaceEnd(); else _ground.ClearSurfaces();
         if (barVerts > 0) _bars.SurfaceEnd(); else _bars.ClearSurfaces();
+    }
+
+    /// <summary>Rings the hovered feature and labels it: what it is, what's left on it, and salvage progress for enemy wrecks.</summary>
+    private int DrawHoverFeature()
+    {
+        int fid = HoverFeature;
+        if (fid < 0 || fid >= _world.Features.Count || _world.Features[fid].Gone
+            || (_viewerTeam >= 0 && !_world.Vision.IsExplored(_viewerTeam, MapData.TileOf(_world.Features[fid].Position.X), MapData.TileOf(_world.Features[fid].Position.Y))))
+        {
+            _featureLabel.Visible = false;
+            return 0;
+        }
+        Feature f = _world.Features[fid];
+        float r = f.Radius.Raw / 65536f + 0.8f;
+        Vector3 p = Ground(f.Position);
+        int verts = Ring(_ground, p, r, r + 0.35f, new Color(0.8f, 0.5f, 1f, 0.8f), 20);
+
+        var lines = new List<string>();
+        string name = f.SourceTypeIndex >= 0 ? _world.Catalog[f.SourceTypeIndex].Name : "";
+        lines.Add(f.Kind switch
+        {
+            FeatureKind.Wreck => $"Wreck: {name}",
+            FeatureKind.Rubble => $"Rubble: {name}",
+            FeatureKind.Tree => "Tree",
+            _ => "Rock",
+        });
+        string worth = (f.Metal.Raw > 0 ? $"{f.Metal.Raw / 65536f:0} metal" : "") + (f.Metal.Raw > 0 && f.Energy.Raw > 0 ? ", " : "")
+                       + (f.Energy.Raw > 0 ? $"{f.Energy.Raw / 65536f:0} energy" : "");
+        if (worth.Length > 0) lines.Add(worth);
+        Color colour = new(0.9f, 0.85f, 1f);
+        if (f.Kind == FeatureKind.Wreck && f.SourceTypeIndex >= 0 && _localPlayer >= 0
+            && _world.IsSalvageable(_localPlayer, _world.Catalog[f.SourceTypeIndex]))
+        {
+            int have = _world.Players[_localPlayer].SalvageProgress[f.SourceTypeIndex];
+            int need = _world.SalvageNeeded(f.SourceTypeIndex);
+            lines.Add(have >= need ? "Salvaged: your factories can build it" : $"Salvage progress {have}/{need}");
+            colour = new Color(0.55f, 0.95f, 1f);
+        }
+        _featureLabel.Text = string.Join("\n", lines);
+        _featureLabel.Modulate = colour;
+        _featureLabel.OutlineModulate = new Color(0, 0, 0, 0.9f);
+        _featureLabel.Position = p + new Vector3(0, 4f + r * 0.5f, 0);
+        _featureLabel.Visible = true;
+        return verts;
     }
 
     private static int Ring(ImmediateMesh m, Vector3 c, float r0, float r1, Color col, int segments)

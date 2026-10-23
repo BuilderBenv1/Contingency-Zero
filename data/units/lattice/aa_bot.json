@@ -24,5 +24,6 @@
       "targetsGround": false
     }
   ],
-  "description": "Anti-air missiles. Can't hit the ground."
+  "description": "Anti-air missiles. Can't hit the ground.",
+  "salvageWrecks": 3
 }

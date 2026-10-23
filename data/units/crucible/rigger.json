@@ -31,5 +31,6 @@
     "crucible_advanced_assembly"
   ],
   "description": "Walking constructor. Climbs hills vehicles can't.",
-  "reclaimMultiplier": 1.4
+  "reclaimMultiplier": 1.4,
+  "salvageWrecks": 3
 }

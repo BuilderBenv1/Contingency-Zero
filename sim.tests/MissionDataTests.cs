@@ -26,9 +26,9 @@ public class MissionDataTests
 
     // Mission script vocabulary, as sim/Missions/MissionScript.cs reads it.
     private static readonly HashSet<string> Conditions = new()
-        { "time", "destroyed", "count", "noStructures", "area", "fired", "metal", "objectivesDone", "all", "any" };
+        { "time", "destroyed", "count", "noStructures", "area", "fired", "metal", "defeated", "wave", "objectivesDone", "not", "all", "any" };
     private static readonly HashSet<string> Actions = new()
-        { "message", "objective", "spawn", "attack", "reveal", "give", "victory", "defeat" };
+        { "message", "objective", "spawn", "attack", "hunt", "reveal", "give", "bounty", "wave", "victory", "defeat" };
     private static readonly HashSet<string> ObjectiveStates = new() { "active", "complete", "failed", "hidden" };
 
     /// <summary>
@@ -37,7 +37,7 @@ public class MissionDataTests
     /// </summary>
     private sealed record MissionFile(
         string Key, string Json, string Campaign, int Order, string Title, string Briefing, string MapKey,
-        List<PlayerSetup> Players, int HumanPlayer, int StartMetal, int StartEnergy, bool SpawnCommanders)
+        List<PlayerSetup> Players, int HumanPlayer, int StartMetal, int StartEnergy, bool SpawnCommanders, List<int> HumanPlayers)
     {
         public MatchOptions Options => new(StartMetal, StartEnergy, WinCondition.Commander, SpawnCommanders);
 
@@ -76,7 +76,9 @@ public class MissionDataTests
                 r.TryGetProperty("humanPlayer", out var hp) ? hp.GetInt32() : 0,
                 r.TryGetProperty("startMetal", out var sm) ? sm.GetInt32() : 1000,
                 r.TryGetProperty("startEnergy", out var se) ? se.GetInt32() : 1000,
-                !r.TryGetProperty("spawnCommanders", out var sc) || sc.GetBoolean()));
+                !r.TryGetProperty("spawnCommanders", out var sc) || sc.GetBoolean(),
+                r.TryGetProperty("humanPlayers", out var hps) ? hps.EnumerateArray().Select(e => e.GetInt32()).ToList()
+                    : new List<int> { r.TryGetProperty("humanPlayer", out var hp1) ? hp1.GetInt32() : 0 }));
         }
         return list;
     }
@@ -103,6 +105,27 @@ public class MissionDataTests
     }
 
     [Fact]
+    public void The_coop_campaign_has_missions_for_two_players()
+    {
+        var coop = LoadAll().Where(m => m.Campaign == "coop").OrderBy(m => m.Order).ToList();
+        Assert.True(coop.Count >= 3, $"co-op has {coop.Count} missions");
+        Assert.Equal(Enumerable.Range(1, coop.Count).ToList(), coop.Select(m => m.Order).ToList());
+        foreach (MissionFile m in coop)
+        {
+            Assert.True(m.HumanPlayers.Count == 2, $"{m.Key}: a co-op mission has two human seats");
+            Assert.Equal(m.HumanPlayers.Count, m.HumanPlayers.Distinct().Count());
+            // With a computer in the second seat (playing alone), the match still builds and runs.
+            var players = m.Players.Select((p, i) => i == m.HumanPlayers[1] ? p with { Ai = AiDifficulty.Hard } : p).ToList();
+            World world = new Scenario(TestData.LoadMap(m.MapKey), 1, players, m.Options, new List<Spawn>(), m.Json).CreateWorld(TestData.Catalog);
+            for (int i = 0; i < 60 * World.TicksPerSecond; i++) world.Step();
+            Assert.False(world.IsOver, $"{m.Key} ended within a minute with a computer ally");
+            Assert.True(world.Ais.Any(a => a.Player == m.HumanPlayers[1]), $"{m.Key}: no computer ally in the second seat");
+        }
+        foreach (MissionFile m in LoadAll().Where(m => m.Campaign != "coop"))
+            Assert.True(m.HumanPlayers.Count == 1, $"{m.Key}: single-player missions have one human");
+    }
+
+    [Fact]
     public void Every_mission_names_only_things_that_exist()
     {
         UnitCatalog catalog = TestData.Catalog;
@@ -116,6 +139,14 @@ public class MissionDataTests
             Assert.InRange(m.HumanPlayer, 0, m.Players.Count - 1);
             Assert.Equal(m.HumanPlayer, script.HumanPlayer);
             Assert.True(m.Players[m.HumanPlayer].Ai == AiDifficulty.None, $"{where}: the human's slot must have ai None");
+            Assert.Equal(m.HumanPlayers, script.HumanPlayers);
+            Assert.Equal(m.HumanPlayer, m.HumanPlayers[0]);
+            foreach (int h in m.HumanPlayers)
+            {
+                Assert.InRange(h, 0, m.Players.Count - 1);
+                Assert.True(m.Players[h].Ai == AiDifficulty.None, $"{where}: human seat {h} must have ai None");
+                Assert.True(m.Players[h].Team == m.Players[m.HumanPlayer].Team, $"{where}: human seats must share a team");
+            }
             Assert.True(m.Players.Any(p => p.Team != m.Players[m.HumanPlayer].Team), $"{where}: nobody to fight");
             foreach (PlayerSetup p in m.Players)
             {
@@ -173,6 +204,7 @@ public class MissionDataTests
                                 Assert.True(spawnedTags.Contains(at.GetString()!), $"{id}: attack with tag '{at}' that nothing spawns");
                             break;
                         case "give":
+                        case "hunt":
                             Assert.InRange(a.GetProperty("player").GetInt32(), 0, m.Players.Count - 1);
                             break;
                     }
@@ -208,8 +240,13 @@ public class MissionDataTests
                             Assert.True(catalog.TryIndexOf(unit.GetString()!, out _), $"{context}: unknown unit '{unit}'");
                         if (c.TryGetProperty("role", out var role))
                             Assert.True(catalog.All.Any(d => d.Role == role.GetString()), $"{context}: no unit has role '{role}'");
-                        Assert.InRange(c.GetProperty("player").GetInt32(), 0, m.Players.Count - 1);
+                        if (c.TryGetProperty("team", out var team)) Assert.True(m.Players.Any(p => p.Team == team.GetInt32()), $"{context}: nobody on team {team}");
+                        else Assert.InRange(c.GetProperty("player").GetInt32(), 0, m.Players.Count - 1);
                         break;
+                    case "not":
+                        CheckCondition(context, c.GetProperty("of"));
+                        break;
+                    case "defeated":
                     case "noStructures":
                     case "area":
                     case "metal":

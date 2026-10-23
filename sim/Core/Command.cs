@@ -22,7 +22,7 @@ public enum CommandType : byte
     FactoryQueue = 9,
     /// <summary>Factory: Arg 1 turns repeat on, 0 off.</summary>
     FactoryRepeat = 10,
-    /// <summary>Factory: new units head to Position.</summary>
+    /// <summary>Factory: new units head to Position, replacing every rally point. With Queue (or Arg 1) it adds Position as another stop in the rotation instead (up to four).</summary>
     SetRally = 11,
     /// <summary>Arg is a FireState.</summary>
     SetFireState = 12,
@@ -34,6 +34,16 @@ public enum CommandType : byte
     SetConverters = 15,
     /// <summary>Attack-move to Position: fight anything met on the way.</summary>
     Fight = 16,
+    /// <summary>Reclaim everything within Arg world units of Position, one thing after another.</summary>
+    ReclaimArea = 17,
+    /// <summary>Repair and help build everything friendly within Arg world units of Position.</summary>
+    RepairArea = 18,
+    /// <summary>Factory: 0 sends finished units round the rally points in turn; N &gt; 0 sends every Nth unit to the next extra point and the rest to the primary.</summary>
+    FactoryRallyEvery = 19,
+    /// <summary>Attack-move into a circle of Arg world units round Position and fight every enemy inside it.</summary>
+    AttackArea = 20,
+    /// <summary>Factory: forget every rally point.</summary>
+    ClearRally = 21,
 }
 
 /// <summary>

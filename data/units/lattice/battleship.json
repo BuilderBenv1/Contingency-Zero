@@ -33,5 +33,6 @@
       "targetsGround": true
     }
   ],
-  "description": "Floating fortress with long-range guns."
+  "description": "Floating fortress with long-range guns.",
+  "salvageWrecks": 4
 }

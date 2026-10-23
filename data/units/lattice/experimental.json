@@ -34,5 +34,6 @@
   "deathExplosionDamage": 4000,
   "deathExplosionRadius": 36,
   "wreckFraction": 0.5,
-  "description": "Skywarden: a towering walker whose beam cuts a lane across the battlefield."
+  "description": "Skywarden: a towering walker whose beam cuts a lane across the battlefield.",
+  "salvageWrecks": 6
 }

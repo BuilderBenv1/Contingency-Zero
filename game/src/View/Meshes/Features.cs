@@ -4,7 +4,7 @@ using Godot;
 namespace ContingencyZero.Game.View.Meshes;
 
 /// <summary>
-/// Map features: wreck debris piles and themed trees and rocks. Plain and glow materials only
+/// Map features: wreck debris piles, fallen-structure foundations and rubble, and themed trees and rocks. Plain and glow materials only
 /// (no team colour). Shapes are jittered with a small seeded generator, so a given
 /// (kind, theme, variant) or wreck size always produces the same mesh.
 /// </summary>
@@ -67,6 +67,103 @@ internal static class Features
             float a = rng.Range(0, Mathf.Tau), d = rng.Range(0.2f, 0.6f);
             k.Box(V(Mathf.Cos(a) * d, 0.07f, Mathf.Sin(a) * d), V(0.12f, 0.04f, 0.1f), ember);
         }
+        return k.ToMesh();
+    }
+
+    // ---- Fallen structures ------------------------------------------------------------------------
+
+    /// <summary>
+    /// What's left of a structure: its cracked, scorched foundation slab broken into tilted plates,
+    /// stumps of wall round the edge, twisted rebar and a few embers. About
+    /// <paramref name="width"/> units square (the footprint), centred on the origin.
+    /// </summary>
+    public static ArrayMesh Foundation(int width, int variant)
+    {
+        var rng = new Jitter(width * 4241 + variant * 613 + 5);
+        var k = new MeshKit();
+        Paint concrete = P(0.42f, 0.41f, 0.38f), cracked = P(0.3f, 0.29f, 0.27f), soot = P(0.12f, 0.115f, 0.11f);
+        Paint wall = P(0.36f, 0.35f, 0.33f), rebar = P(0.33f, 0.2f, 0.12f), steel = P(0.27f, 0.27f, 0.28f);
+        Paint ember = Paint.Glow(0.7f, 0.22f, 0.04f);
+        float half = width * 0.46f;
+
+        // The slab, split into plates that cracked and settled at slightly different angles.
+        int cells = width >= 24 ? 3 : 2;
+        float cell = half * 2 / cells;
+        for (int cy = 0; cy < cells; cy++)
+        for (int cx = 0; cx < cells; cx++)
+        {
+            var centre = V(-half + cell * (cx + 0.5f), 0.22f + rng.Range(-0.08f, 0.1f), -half + cell * (cy + 0.5f));
+            var tilt = V(rng.Range(-0.06f, 0.06f), rng.Range(-0.03f, 0.03f), rng.Range(-0.06f, 0.06f));
+            float gap = rng.Range(0.25f, 0.6f);
+            Paint face = rng.Next() < 0.35f ? soot : rng.Next() < 0.5f ? cracked : concrete;
+            using (k.Push(centre, tilt))
+                k.Box(Vector3.Zero, V(cell - gap, 0.5f, cell - gap), cracked, face);
+        }
+        // A blackened burn across the middle.
+        k.Cylinder(V(rng.Range(-1f, 1f), 0.48f, rng.Range(-1f, 1f)), half * 0.55f, half * 0.5f, 0.04f, 9, soot, phase: rng.Range(0, 1));
+
+        // Wall stumps round the edge: broken to different heights, some knocked over.
+        int perSide = Math.Clamp(width / 6, 2, 5);
+        for (int side = 0; side < 4; side++)
+        for (int i = 0; i < perSide; i++)
+        {
+            if (rng.Next() < 0.3f) continue; // a gap blown through
+            float along = -half + (i + 0.5f) * (half * 2 / perSide);
+            float h = rng.Range(0.6f, 2.6f) * Math.Min(1.6f, width / 16f + 0.4f);
+            float len = half * 2 / perSide * rng.Range(0.55f, 0.95f);
+            Vector3 pos = side switch
+            {
+                0 => V(along, 0.45f + h / 2, -half),
+                1 => V(along, 0.45f + h / 2, half),
+                2 => V(-half, 0.45f + h / 2, along),
+                _ => V(half, 0.45f + h / 2, along),
+            };
+            bool alongX = side < 2;
+            Vector3 lean = V(alongX ? rng.Range(-0.25f, 0.25f) : 0, 0, alongX ? 0 : rng.Range(-0.25f, 0.25f));
+            using (k.Push(pos, lean))
+                k.Box(Vector3.Zero, alongX ? V(len, h, 0.7f) : V(0.7f, h, len), wall, rng.Next() < 0.5f ? soot : cracked);
+        }
+
+        // Twisted rebar and a buckled girder.
+        int rods = Math.Clamp(width / 3, 3, 10);
+        for (int i = 0; i < rods; i++)
+        {
+            var a = V(rng.Range(-half, half), 0.45f, rng.Range(-half, half));
+            var b = a + V(rng.Range(-1.4f, 1.4f), rng.Range(1.2f, 3.2f), rng.Range(-1.4f, 1.4f));
+            k.Rod(a, b, 0.09f, 0.07f, 4, rebar);
+        }
+        var g0 = V(rng.Range(-half, 0), 0.6f, rng.Range(-half, half) * 0.5f);
+        k.Beam(g0, g0 + V(half * rng.Range(0.6f, 1.1f), rng.Range(0.6f, 1.8f), rng.Range(-2f, 2f)), 0.5f, 0.35f, steel, soot);
+
+        // Loose blocks and a few embers still glowing in the ash.
+        for (int i = 0; i < Math.Clamp(width / 3, 4, 12); i++)
+        {
+            var pos = V(rng.Range(-half, half), 0.55f, rng.Range(-half, half));
+            using (k.Push(pos, V(rng.Range(-0.5f, 0.5f), rng.Range(0, Mathf.Tau), rng.Range(-0.5f, 0.5f))))
+                k.Box(Vector3.Zero, V(rng.Range(0.4f, 1.1f), rng.Range(0.3f, 0.7f), rng.Range(0.4f, 1.1f)), i % 3 == 0 ? soot : concrete);
+        }
+        for (int i = 0; i < 3; i++)
+            k.Box(V(rng.Range(-half, half) * 0.6f, 0.5f, rng.Range(-half, half) * 0.6f), V(0.35f, 0.08f, 0.3f), ember);
+        return k.ToMesh();
+    }
+
+    /// <summary>A small heap of broken concrete and rebar, about three units across (scattered round a fallen structure).</summary>
+    public static ArrayMesh Rubble(int variant)
+    {
+        var rng = new Jitter(variant * 977 + 31);
+        var k = new MeshKit();
+        Paint concrete = P(0.4f, 0.39f, 0.36f), dusty = P(0.47f, 0.45f, 0.4f), soot = P(0.15f, 0.14f, 0.13f), rebar = P(0.33f, 0.2f, 0.12f);
+        k.Cylinder(V(0, 0, 0), 1.6f, 1.2f, 0.18f, 6, soot, phase: rng.Range(0, 1));
+        int blocks = 5 + variant;
+        for (int i = 0; i < blocks; i++)
+        {
+            float a = rng.Range(0, Mathf.Tau), d = rng.Range(0f, 1.1f);
+            var pos = V(Mathf.Cos(a) * d, 0.25f + rng.Range(0, 0.35f) * (1.2f - d), Mathf.Sin(a) * d);
+            using (k.Push(pos, V(rng.Range(-0.7f, 0.7f), rng.Range(0, Mathf.Tau), rng.Range(-0.7f, 0.7f))))
+                k.Box(Vector3.Zero, V(rng.Range(0.35f, 0.8f), rng.Range(0.25f, 0.55f), rng.Range(0.35f, 0.8f)), i % 3 == 0 ? dusty : concrete, i % 4 == 1 ? soot : null);
+        }
+        var r0 = V(rng.Range(-0.4f, 0.4f), 0.4f, rng.Range(-0.4f, 0.4f));
+        k.Rod(r0, r0 + V(rng.Range(-0.8f, 0.8f), rng.Range(0.8f, 1.5f), rng.Range(-0.8f, 0.8f)), 0.06f, 0.05f, 4, rebar);
         return k.ToMesh();
     }
 

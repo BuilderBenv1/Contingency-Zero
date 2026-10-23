@@ -24,5 +24,6 @@
       "projectileSpeed": 45
     }
   ],
-  "description": "Shells bases from across the map. Needs radar or spotters."
+  "description": "Shells bases from across the map. Needs radar or spotters.",
+  "salvageWrecks": 4
 }

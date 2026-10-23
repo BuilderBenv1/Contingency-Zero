@@ -36,6 +36,8 @@ public partial class MatchScene : Node3D
     public InputController Input { get; private set; } = null!;
     public Hud? Hud { get; private set; }
     public Selection Selection { get; } = new();
+    /// <summary>Moments worth jumping to, saved into the replay (see <see cref="ReplayBookmarks"/>).</summary>
+    public ReplayBookmarks Bookmarks { get; } = new();
 
     /// <summary>Raised when the player quits back to the menu.</summary>
     public event Action? Exited;
@@ -117,11 +119,14 @@ public partial class MatchScene : Node3D
             AddChild(Hud);
             Hud.Init(session, Input, Selection, Rig, Terrain);
             Hud.MenuRequested += TogglePause;
+            if (session.LocalPlayer < 0) AddChild(new CastingOverlay(this) { Name = "Casting" }); // replays and spectators: broadcast panel (key C)
+            // Watching a local AI-vs-AI skirmish: the spectator bar (speed, vision, casting). Replays add their own.
+            if (session.LocalPlayer < 0 && kind != MatchKind.Replay && !session.IsMultiplayer) AddChild(new ReplayControls(this) { Name = "SpectatorControls" });
             if (world.Mission is { } m)
             {
                 Hud.Post(m.Title, UiTheme.Amber, 8);
             }
-            else if ((kind == MatchKind.Skirmish || kind == MatchKind.Multiplayer) && !SuppressHints)
+            else if ((kind == MatchKind.Skirmish || kind == MatchKind.Multiplayer) && !SuppressHints && session.LocalPlayer >= 0)
             {
                 Hud.Post("Build metal extractors on the glowing spots, then energy, then a factory.", UiTheme.Accent, 12);
                 Hud.Post("Destroy the enemy Commander to win. Keep yours alive.", UiTheme.Accent, 12);
@@ -174,6 +179,7 @@ public partial class MatchScene : Node3D
         Units.Snapshot();
         Effects.OnTick();
         Hud?.OnTick();
+        Bookmarks.OnTick(Session.World);
         if (Session.World.Tick % 5 == 0) Selection.Prune(Session.World);
         if (Session.World.IsOver && !_endHandled) OnGameOver();
     }
@@ -312,6 +318,7 @@ public partial class MatchScene : Node3D
             string map = GameData.SafeFileName(Session.World.Map.Name).Replace(".json", "");
             string file = $"{stamp}_{map}.czr";
             MatchReplay replay = Session.BuildReplay($"{Title} · {Session.World.Map.Name}");
+            Bookmarks.AttachTo(replay);
             using var ms = new MemoryStream();
             replay.Write(ms);
             using var f = Godot.FileAccess.Open($"{GameData.ReplaysDir}/{file}", Godot.FileAccess.ModeFlags.Write);

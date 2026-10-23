@@ -2,9 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using ContingencyZero.Game.App;
+using ContingencyZero.Game.Match;
+using ContingencyZero.Game.Missions;
 using ContingencyZero.Game.Net;
 using ContingencyZero.Sim.Map;
 using ContingencyZero.Sim.Match;
+using ContingencyZero.Sim.Missions;
 using Godot;
 
 namespace ContingencyZero.Game.UI;
@@ -18,6 +21,10 @@ public partial class MultiplayerLobby : CanvasLayer
     private const double ConnectTimeout = 10;
     private static readonly string[] SlotChoices = { "Open", "Closed", "Easy AI", "Normal AI", "Hard AI", "Brutal AI" };
     private static readonly int[] ResourceChoices = { 1000, 2500, 5000 };
+    private static readonly AiDifficulty[] DifficultyChoices = { AiDifficulty.Easy, AiDifficulty.Normal, AiDifficulty.Hard, AiDifficulty.Brutal };
+
+    /// <summary>A co-op mission key to pick as soon as the next lobby is hosted (the campaign screen's "Host co-op game").</summary>
+    public static string PendingCoopMission = "";
 
     private Control _root = null!;
     private Control? _page;
@@ -40,6 +47,16 @@ public partial class MultiplayerLobby : CanvasLayer
     private OptionButton _resources = null!;
     private OptionButton _win = null!;
     private OptionButton _starts = null!;
+    // Game modes: skirmish, co-op mission, survival.
+    private OptionButton? _mode;
+    private Label _modeInfo = null!;
+    private Label _listTitle = null!;
+    private OptionButton _difficulty = null!;
+    private readonly List<Control> _skirmishOnly = new();
+    private readonly List<Control> _survivalOnly = new();
+    private Control _resourcesRow = null!;
+    private List<MissionInfo> _coopMissions = new();
+    private bool _listingMissions;
     private RichTextLabel _chatLog = null!;
     private LineEdit _chatInput = null!;
     private Button? _readyButton;
@@ -224,8 +241,13 @@ public partial class MultiplayerLobby : CanvasLayer
         _maps = GameData.Maps();
         int initial = Math.Max(0, _maps.FindIndex(m => m.Key == Settings.Current.LastMap));
         _host.SetMap(_maps[initial].Key, _maps[initial].Load());
+        _host.Survival = NetModes.SurvivalRules();
         _mapIndex = initial;
         _status = "";
+        _coopMissions = NetModes.CoopMissions();
+        if (PendingCoopMission.Length > 0 && _coopMissions.FirstOrDefault(m => m.Key == PendingCoopMission) is { } pending)
+            _host.SetCoop(NetModes.ToCoop(pending));
+        PendingCoopMission = "";
         ShowLobbyPage();
         AddChat(-1, "", $"Hosting on port {port}. Waiting for players to join.");
         return null;
@@ -253,7 +275,11 @@ public partial class MultiplayerLobby : CanvasLayer
         };
         _client.Chat += AddChat;
         _client.Failed += reason => Fail(reason);
-        _client.Started += start => NetGame.Launch(start);
+        _client.Started += start =>
+        {
+            LobbyState? s = _client?.State;
+            Launch(start, s?.Mode ?? LobbyMode.Skirmish, s?.MissionKey ?? "", s?.Slots.Count(x => x.Kind == SlotKind.Human) ?? 1);
+        };
         _connectStarted = NetGame.Now();
         ShowConnectingPage();
     }
@@ -322,13 +348,27 @@ public partial class MultiplayerLobby : CanvasLayer
         // Map.
         var left = new VBoxContainer { CustomMinimumSize = new Vector2(290, 0) };
         left.AddThemeConstantOverride("separation", 8);
-        left.AddChild(UiTheme.Label("MAP", 15, UiTheme.Dim));
+        left.AddChild(UiTheme.Label("MODE", 15, UiTheme.Dim));
+        _mode = null;
+        if (IsHost)
+        {
+            _mode = new OptionButton();
+            foreach (LobbyMode m in new[] { LobbyMode.Skirmish, LobbyMode.Coop, LobbyMode.Survival }) _mode.AddItem(LobbyState.ModeName(m));
+            if (_coopMissions.Count == 0) _mode.SetItemDisabled(1, true);
+            _mode.ItemSelected += i => ModeChosen((LobbyMode)(int)i);
+            left.AddChild(_mode);
+        }
+        _modeInfo = Wrapped(UiTheme.Label("", 14, UiTheme.Ink));
+        _modeInfo.CustomMinimumSize = new Vector2(270, 0);
+        left.AddChild(_modeInfo);
+        _listTitle = UiTheme.Label("MAP", 15, UiTheme.Dim);
+        left.AddChild(_listTitle);
         if (IsHost)
         {
             _mapList = new ItemList { CustomMinimumSize = new Vector2(0, 150), SizeFlagsVertical = Control.SizeFlags.ExpandFill };
             _mapList.AddThemeFontSizeOverride("font_size", 16);
-            foreach (MapEntry m in _maps) _mapList.AddItem(m.Name);
-            if (_mapIndex >= 0) _mapList.Select(_mapIndex);
+            _listingMissions = State?.Mode == LobbyMode.Coop;
+            FillList();
             _mapList.ItemSelected += i => PickMap((int)i);
             left.AddChild(_mapList);
         }
@@ -363,23 +403,38 @@ public partial class MultiplayerLobby : CanvasLayer
         var opts = new GridContainer { Columns = 2 };
         opts.AddThemeConstantOverride("h_separation", 14);
         opts.AddThemeConstantOverride("v_separation", 6);
-        opts.AddChild(UiTheme.Label("Starting resources", 16));
+        _skirmishOnly.Clear();
+        _survivalOnly.Clear();
+        var resourcesLabel = UiTheme.Label("Starting resources", 16);
+        opts.AddChild(resourcesLabel);
         _resources = new OptionButton { CustomMinimumSize = new Vector2(300, 0) };
         foreach (string r in new[] { "Standard (1,000)", "Boosted (2,500)", "Rich (5,000)" }) _resources.AddItem(r);
         _resources.ItemSelected += _ => OptionsChanged();
         opts.AddChild(_resources);
-        opts.AddChild(UiTheme.Label("Victory", 16));
+        _resourcesRow = resourcesLabel;
+        var difficultyLabel = UiTheme.Label("Wave difficulty", 16);
+        opts.AddChild(difficultyLabel);
+        _difficulty = new OptionButton();
+        foreach (AiDifficulty d in DifficultyChoices) _difficulty.AddItem($"{d} (a wave every {SurvivalMode.WaveSeconds(d)} s)");
+        _difficulty.ItemSelected += i => { if (!_refreshing) _host?.SetDifficulty(DifficultyChoices[(int)i]); };
+        opts.AddChild(_difficulty);
+        _survivalOnly.Add(difficultyLabel);
+        _survivalOnly.Add(_difficulty);
+        var winLabel = UiTheme.Label("Victory", 16);
+        opts.AddChild(winLabel);
         _win = new OptionButton();
         _win.AddItem("Destroy the Commander");
         _win.AddItem("Annihilation (destroy everything)");
         _win.ItemSelected += _ => OptionsChanged();
         opts.AddChild(_win);
-        opts.AddChild(UiTheme.Label("Start positions", 16));
+        var startsLabel = UiTheme.Label("Start positions", 16);
+        opts.AddChild(startsLabel);
         _starts = new OptionButton();
         _starts.AddItem("By slot (slot 1 at start 1...)");
         _starts.AddItem("Random");
         _starts.ItemSelected += _ => OptionsChanged();
         opts.AddChild(_starts);
+        _skirmishOnly.AddRange(new Control[] { winLabel, _win, startsLabel, _starts });
         middle.AddChild(opts);
         middle.AddChild(new Control { SizeFlagsVertical = Control.SizeFlags.ExpandFill });
         middle.AddChild(UiTheme.Label("Brutal AI sees the whole map and earns 50% more. Computer players run on every machine.", 13, UiTheme.Dim));
@@ -487,8 +542,8 @@ public partial class MultiplayerLobby : CanvasLayer
                 row.Team.Visible = slot.IsPlayer;
                 row.Faction.Select(slot.Faction == "crucible" ? 1 : 0);
                 row.Team.Select(Math.Clamp(slot.Team, 0, NetProtocol.MaxSlots - 1));
-                row.Faction.Disabled = !editable;
-                row.Team.Disabled = !editable;
+                row.Faction.Disabled = !editable || !s.FactionsFree;
+                row.Team.Disabled = !editable || !s.TeamsFree;
 
                 row.Ping.Text = slot.Kind == SlotKind.Human && slot.Peer != INetTransport.HostPeer && slot.PingMs > 0 ? $"{slot.PingMs} ms" : "";
                 (string text, Color colour) = slot.Kind switch
@@ -506,11 +561,17 @@ public partial class MultiplayerLobby : CanvasLayer
             _win.Select(s.Win == WinCondition.Annihilation ? 1 : 0);
             _starts.Select(s.RandomStarts ? 1 : 0);
             _resources.Disabled = _win.Disabled = _starts.Disabled = !IsHost;
+            RefreshMode(s);
             if (_mapList is not null)
             {
-                int shown = _maps.FindIndex(m => m.Key == s.MapKey);
+                if (_listingMissions != (s.Mode == LobbyMode.Coop))
+                {
+                    _listingMissions = s.Mode == LobbyMode.Coop;
+                    FillList();
+                }
+                int shown = _listingMissions ? _coopMissions.FindIndex(m => m.Key == s.MissionKey) : _maps.FindIndex(m => m.Key == s.MapKey);
                 if (shown >= 0 && !_mapList.IsSelected(shown)) _mapList.Select(shown);
-                if (shown >= 0) _mapIndex = shown;
+                if (shown >= 0 && !_listingMissions) _mapIndex = shown;
             }
 
             RefreshMap(s);
@@ -540,7 +601,7 @@ public partial class MultiplayerLobby : CanvasLayer
     private void RefreshWho(int index, LobbySlot slot, int mine)
     {
         SlotRowUi row = _rows[index];
-        string key = $"{slot.Kind}|{slot.Ai}|{slot.Peer}|{slot.Name}|{index == mine}|{IsHost}";
+        string key = $"{slot.Kind}|{slot.Ai}|{slot.Peer}|{slot.Name}|{index == mine}|{IsHost}|{State?.AiAllowed}";
         if (key == row.WhoKey) return;
         row.WhoKey = key;
         foreach (Node c in row.Who.GetChildren()) c.QueueFree();
@@ -574,7 +635,8 @@ public partial class MultiplayerLobby : CanvasLayer
             return;
         }
         var pick = new OptionButton { CustomMinimumSize = new Vector2(200, 0) };
-        foreach (string c in SlotChoices) pick.AddItem(c);
+        // Co-op and survival have no computer players in slots (the mission or the waves bring their own).
+        foreach (string c in State?.AiAllowed == false ? SlotChoices.Take(2) : SlotChoices) pick.AddItem(c);
         pick.Select(slot.Kind switch
         {
             SlotKind.Closed => 1,
@@ -594,7 +656,7 @@ public partial class MultiplayerLobby : CanvasLayer
     private void RefreshMap(LobbyState s)
     {
         MapData? map = Map;
-        ulong key = map is null ? 0 : s.MapHash ^ (ulong)s.MapPlayers ^ (s.RandomStarts ? 0x5151UL : 0);
+        ulong key = map is null ? 0 : s.MapHash ^ (ulong)s.MapPlayers ^ (s.RandomStarts ? 0x5151UL : 0) ^ ((ulong)s.Mode << 40);
         if (map is null)
         {
             _mapInfo.Text = $"{s.MapName}\nReceiving map...";
@@ -617,7 +679,12 @@ public partial class MultiplayerLobby : CanvasLayer
             }
         }
         _preview.Texture = ImageTexture.CreateFromImage(img);
-        string starts = s.RandomStarts ? "Start positions are shuffled when the game begins." : "Slot numbers match the start positions shown.";
+        string starts = s.Mode switch
+        {
+            LobbyMode.Coop => "The mission fixes each seat's faction and start. Empty seats are played by an allied computer.",
+            LobbyMode.Survival => "Everyone defends together. Waves come from the map edges and the free start positions.",
+            _ => s.RandomStarts ? "Start positions are shuffled when the game begins." : "Slot numbers match the start positions shown.",
+        };
         _mapInfo.Text = $"{map.Name}{(s.MapKey.StartsWith("user:") ? "  (custom map)" : "")}\n{map.Description}\n\n" +
             $"{map.Width} x {map.Height} · {s.MapPlayers} players · {map.MetalSpots.Count} metal spots\n{starts}";
     }
@@ -626,7 +693,14 @@ public partial class MultiplayerLobby : CanvasLayer
 
     private void PickMap(int index)
     {
-        if (_host is null || index < 0 || index >= _maps.Count) return;
+        if (_host is null || _refreshing) return;
+        if (_listingMissions)
+        {
+            if (index < 0 || index >= _coopMissions.Count) return;
+            if (_host.SetCoop(NetModes.ToCoop(_coopMissions[index])) is { } why) AddChat(-1, "", why);
+            return;
+        }
+        if (index < 0 || index >= _maps.Count) return;
         MapEntry entry = _maps[index];
         MapData map;
         try
@@ -716,8 +790,75 @@ public partial class MultiplayerLobby : CanvasLayer
         if (_host is null || _host.StartProblem() is not null) return;
         Settings.Current.Save();
         ulong seed = unchecked((ulong)Random.Shared.NextInt64() ^ Time.GetTicksUsec());
+        LobbyMode mode = _host.State.Mode;
+        string mission = _host.State.MissionKey;
+        int humans = _host.HumanCount;
         NetMatchStart start = _host.StartMatch(seed);
-        NetGame.Launch(start);
+        Launch(start, mode, mission, humans);
+    }
+
+    /// <summary>Starts the networked match; a co-op mission win is recorded in the co-op campaign.</summary>
+    private static void Launch(NetMatchStart start, LobbyMode mode, string missionKey, int humans)
+    {
+        MatchScene match = NetGame.Launch(start);
+        if (mode == LobbyMode.Coop && !start.IsSpectator && MissionInfo.LoadAll().FirstOrDefault(m => m.Key == missionKey) is { } mission)
+            CampaignProgress.Track(match, mission, together: humans > 1);
+    }
+
+    // ---- Modes -------------------------------------------------------------------------------
+
+    private void FillList()
+    {
+        if (_mapList is null) return;
+        _mapList.Clear();
+        if (_listingMissions)
+            foreach (MissionInfo m in _coopMissions)
+            {
+                string mark = CampaignProgress.WonTogether(m.Key) ? "  (won)" : "";
+                _mapList.AddItem($"{m.Order}. {m.Title}{mark}");
+            }
+        else
+        {
+            foreach (MapEntry m in _maps) _mapList.AddItem(m.Name);
+            if (_mapIndex >= 0) _mapList.Select(_mapIndex);
+        }
+    }
+
+    private void ModeChosen(LobbyMode mode)
+    {
+        if (_refreshing || _host is null) return;
+        string? problem = mode switch
+        {
+            LobbyMode.Coop when _coopMissions.Count > 0 => _host.SetCoop(NetModes.ToCoop(
+                _coopMissions.FirstOrDefault(m => m.Key == _host.State.MissionKey) ?? _coopMissions[0])),
+            LobbyMode.Coop => "There are no co-op missions.",
+            LobbyMode.Survival => _host.SetSurvival(DifficultyChoices[Math.Clamp(_difficulty.Selected, 0, DifficultyChoices.Length - 1)]),
+            _ => Skirmish(),
+        };
+        if (problem is not null) AddChat(-1, "", problem);
+        Refresh();
+
+        string? Skirmish() { _host.SetSkirmish(); return null; }
+    }
+
+    /// <summary>Shows the controls that matter in the current mode, and the mode line for everyone.</summary>
+    private void RefreshMode(LobbyState s)
+    {
+        _mode?.Select((int)s.Mode);
+        foreach (Control c in _skirmishOnly) c.Visible = s.Mode == LobbyMode.Skirmish;
+        foreach (Control c in _survivalOnly) c.Visible = s.Mode == LobbyMode.Survival;
+        _resourcesRow.Visible = _resources.Visible = s.Mode != LobbyMode.Coop;
+        _difficulty.Select(Math.Max(0, Array.IndexOf(DifficultyChoices, s.Difficulty)));
+        _difficulty.Disabled = !IsHost;
+        _listTitle.Text = s.Mode == LobbyMode.Coop ? "MISSION" : "MAP";
+        _listTitle.Visible = _mapList is not null;
+        _modeInfo.Text = s.Mode switch
+        {
+            LobbyMode.Coop => $"{(IsHost ? "" : "Co-op mission: ")}{(s.MissionTitle.Length > 0 ? s.MissionTitle : "none picked")} · {s.MapPlayers} seats",
+            LobbyMode.Survival => $"{(IsHost ? "" : "Survival · ")}{s.Difficulty} waves, one every {SurvivalMode.WaveSeconds(s.Difficulty)} s · up to {s.MapPlayers} players",
+            _ => IsHost ? "" : "Skirmish",
+        };
+        _modeInfo.Visible = _modeInfo.Text.Length > 0;
     }
 
     private void Leave()

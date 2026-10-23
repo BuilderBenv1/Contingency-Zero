@@ -24,5 +24,6 @@
       "projectileSpeed": 45
     }
   ],
-  "description": "Lobs shells over walls and hills."
+  "description": "Lobs shells over walls and hills.",
+  "salvageWrecks": 3
 }

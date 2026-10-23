@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using ContingencyZero.Game.App;
+using ContingencyZero.Game.Match;
+using ContingencyZero.Sim.Replay;
 using ContingencyZero.Sim.Map;
 using ContingencyZero.Sim.Match;
 using Godot;
@@ -19,6 +21,8 @@ public partial class SkirmishSetup : CanvasLayer
     private VBoxContainer _slots = null!;
     private OptionButton _resources = null!;
     private OptionButton _win = null!;
+    private CheckBox _watch = null!;
+    private Missions.SurvivalOptions _survival = null!;
     private readonly List<SlotRow> _rows = new();
 
     private static readonly string[] SlotTypes = { "You", "Easy AI", "Normal AI", "Hard AI", "Brutal AI", "Closed" };
@@ -62,6 +66,10 @@ public partial class SkirmishSetup : CanvasLayer
         foreach (MapEntry m in _maps) _mapList.AddItem(m.Name);
         _mapList.ItemSelected += i => SelectMap((int)i);
         left.AddChild(_mapList);
+        var paste = UiTheme.Button("Paste map code", PasteMapCode, 0, 15);
+        paste.TooltipText = "Add a map someone sent you as a share code (" + ShareCodes.MapPrefix + "...). It is saved in your maps.";
+        paste.Name = "PasteMapCode";
+        left.AddChild(paste);
         cols.AddChild(UiTheme.Panel(left));
 
         var middle = new VBoxContainer { CustomMinimumSize = new Vector2(320, 0) };
@@ -96,7 +104,12 @@ public partial class SkirmishSetup : CanvasLayer
         _win.AddItem("Destroy the Commander");
         _win.AddItem("Annihilation (destroy everything)");
         opts.AddChild(_win);
+        _survival = Missions.SurvivalOptions.AddTo(opts); // survival game type (game/src/Missions/Survival.cs)
         right.AddChild(opts);
+        _watch = new CheckBox { Text = "Watch only: computer players in every seat, you spectate", Name = "WatchOnly" };
+        _watch.TooltipText = "Spectate an AI battle with the casting panel (C), vision per player and speed controls";
+        _watch.Toggled += on => ApplyWatch(on);
+        right.AddChild(_watch);
         right.AddChild(new Control { SizeFlagsVertical = Control.SizeFlags.ExpandFill });
         var note = UiTheme.Label("Brutal AI sees the whole map and earns 50% more.", 13, UiTheme.Dim);
         right.AddChild(note);
@@ -113,6 +126,27 @@ public partial class SkirmishSetup : CanvasLayer
         int initial = Math.Max(0, _maps.FindIndex(m => m.Key == Settings.Current.LastMap));
         _mapList.Select(initial);
         SelectMap(initial);
+    }
+
+    /// <summary>Opens the paste box for a map code; the imported map is added to the list and selected.</summary>
+    public void PasteMapCode()
+    {
+        string? file = null;
+        AddChild(ShareCodeDialog.Paste("PASTE MAP CODE", "map", ShareCodes.MapPrefix, text =>
+        {
+            MapData map = ShareCodes.DecodeMap(text);
+            file = ShareCodes.SaveMap(map);
+            return $"Added \"{map.Name}\" to your maps";
+        }, () =>
+        {
+            _maps = GameData.Maps();
+            _mapList.Clear();
+            foreach (MapEntry m in _maps) _mapList.AddItem(m.Name);
+            int i = Math.Max(0, _maps.FindIndex(m => m.Key == "user:" + file));
+            _mapList.Select(i);
+            _mapList.EnsureCurrentIsVisible();
+            SelectMap(i);
+        }));
     }
 
     private void SelectMap(int index)
@@ -148,7 +182,7 @@ public partial class SkirmishSetup : CanvasLayer
             row.AddChild(colour);
             row.AddChild(UiTheme.Label($"{i + 1}", 16));
             var type = new OptionButton { CustomMinimumSize = new Vector2(150, 0) };
-            if (i == 0) type.AddItem("You");
+            if (i == 0) foreach (string t in SlotTypes.Take(SlotTypes.Length - 1)) type.AddItem(t); // seat 1 is never closed
             else foreach (string t in SlotTypes.Skip(1)) type.AddItem(t);
             if (i > 0) type.Select(i == 1 ? 1 : 4); // second slot Normal AI, the rest closed
             var faction = new OptionButton { CustomMinimumSize = new Vector2(140, 0) };
@@ -164,12 +198,24 @@ public partial class SkirmishSetup : CanvasLayer
             row.AddChild(team);
             _slots.AddChild(row);
             _rows.Add(new SlotRow { Type = type, Faction = faction, Team = team, Colour = colour });
+            if (i == 0) type.ItemSelected += t => { if (_watch.ButtonPressed != (t != 0)) _watch.SetPressedNoSignal(t != 0); };
         }
+        if (_watch.ButtonPressed) ApplyWatch(true);
+    }
+
+    /// <summary>Watch only: seat 1 becomes a Hard AI (and back to you when turned off).</summary>
+    private void ApplyWatch(bool on)
+    {
+        if (_rows.Count == 0) return;
+        OptionButton seat = _rows[0].Type;
+        if (on && seat.Selected == 0) seat.Select(3);
+        else if (!on) seat.Select(0);
     }
 
     private void StartGame()
     {
         if (_map is null) return;
+        if (_survival.On) { _survival.Start(_map, _resources.Selected switch { 1 => 2500, 2 => 5000, _ => 1000 }, _rows[0].Faction.Selected == 1 ? "crucible" : "lattice", _rows.Skip(1).Count(r => r.Type.GetItemText(r.Type.Selected) != "Closed")); return; }
         var players = new List<PlayerSetup>();
         for (int i = 0; i < _rows.Count; i++)
         {
@@ -185,7 +231,7 @@ public partial class SkirmishSetup : CanvasLayer
                 _ => AiDifficulty.None,
             };
             string faction = r.Faction.Selected == 1 ? "crucible" : "lattice";
-            string name = i == 0 ? Settings.Current.PlayerName : $"{kind} ({(faction == "lattice" ? "Lattice" : "Crucible")})";
+            string name = kind == "You" ? Settings.Current.PlayerName : $"{kind} ({(faction == "lattice" ? "Lattice" : "Crucible")})";
             players.Add(new PlayerSetup(name, r.Team.Selected, faction, i, ai));
         }
         if (players.Select(p => p.Team).Distinct().Count() < 2)
@@ -197,6 +243,18 @@ public partial class SkirmishSetup : CanvasLayer
         int res = _resources.Selected switch { 1 => 2500, 2 => 5000, _ => 1000 };
         var options = new MatchOptions(res, res, _win.Selected == 1 ? WinCondition.Annihilation : WinCondition.Commander);
         Settings.Current.Save();
-        GameRoot.Instance.StartSkirmish(_map, players, options);
+        if (players.Any(p => p.Ai == AiDifficulty.None)) GameRoot.Instance.StartSkirmish(_map, players, options);
+        else StartSpectating(_map, players, options);
+    }
+
+    /// <summary>An AI-only skirmish with nobody at the controls (LocalPlayer -1): the spectator bar and casting panel come up.</summary>
+    public static void StartSpectating(MapData map, IReadOnlyList<PlayerSetup> players, MatchOptions options)
+    {
+        SimSession Make()
+        {
+            var scenario = new Scenario(map, (ulong)Time.GetTicksUsec(), players, options, new List<Spawn>());
+            return new SimSession(scenario, GameData.Catalog, -1, new LocalChannel());
+        }
+        GameRoot.Instance.StartMatch(Make(), MatchKind.Skirmish, "Spectating", Make);
     }
 }

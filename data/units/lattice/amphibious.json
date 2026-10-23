@@ -23,5 +23,6 @@
       "targetsGround": true
     }
   ],
-  "description": "Walks under water and climbs out on the far shore."
+  "description": "Walks under water and climbs out on the far shore.",
+  "salvageWrecks": 4
 }

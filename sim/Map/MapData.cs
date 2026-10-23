@@ -12,6 +12,8 @@ public enum FeatureKind : byte
     Wreck = 0,
     Rock = 1,
     Tree = 2,
+    /// <summary>Broken slabs and beams left where a structure stood. Reclaimable, never decays.</summary>
+    Rubble = 3,
 }
 
 public readonly record struct MetalSpot(FixVec2 Position, Fix64 Yield);
@@ -56,6 +58,26 @@ public sealed class MapData
         TilesX = tilesX;
         TilesY = tilesY;
         Heights = new int[(tilesX + 1) * (tilesY + 1)];
+    }
+
+    /// <summary>A deep copy, so a match can reshape its ground without touching the map it was made from.</summary>
+    public MapData Clone()
+    {
+        var m = new MapData(TilesX, TilesY)
+        {
+            Name = Name,
+            Description = Description,
+            Author = Author,
+            WaterLevel = WaterLevel,
+            WindMin = WindMin,
+            WindMax = WindMax,
+            Theme = Theme,
+        };
+        Array.Copy(Heights, m.Heights, Heights.Length);
+        m.MetalSpots.AddRange(MetalSpots);
+        m.Features.AddRange(Features);
+        m.StartPositions.AddRange(StartPositions);
+        return m;
     }
 
     public int CornerHeight(int vx, int vy)

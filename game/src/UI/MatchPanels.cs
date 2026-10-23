@@ -90,6 +90,12 @@ public partial class GameOverPanel : ModalLayer
         Body.AddChild(titleLabel);
         int secs = w.Tick / World.TicksPerSecond;
         Body.AddChild(UiTheme.Label($"{match.Title} · {w.Map.Name} · {secs / 60}:{secs % 60:D2}", 15, UiTheme.Dim, HorizontalAlignment.Center));
+        // Survival: score and the map's best (saved here for the players, not for replays or spectators).
+        if (Missions.SurvivalScores.GameOverText(w, save: !spectator && match.Kind != MatchKind.Replay) is { } survival)
+        {
+            if (!spectator) titleLabel.Text = "OVERRUN";
+            Body.AddChild(UiTheme.Label(survival, 18, UiTheme.Amber, HorizontalAlignment.Center));
+        }
 
         var grid = new GridContainer { Columns = 7 };
         grid.AddThemeConstantOverride("h_separation", 18);
@@ -115,6 +121,17 @@ public partial class GameOverPanel : ModalLayer
         var buttons = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
         buttons.AddThemeConstantOverride("separation", 12);
         buttons.AddChild(UiTheme.Button("Keep watching", QueueFree, 160));
+        if (replayFile is not null)
+        {
+            var share = UiTheme.Button("Copy share code", () =>
+            {
+                try { AddChild(ShareCodeDialog.ShowCode("SHARE REPLAY", "replay", ReplayFiles.CodeFor(replayFile))); }
+                catch (Exception e) { GD.PushWarning($"Couldn't make a share code: {e.Message}"); }
+            }, 180);
+            share.TooltipText = "Puts this match's replay on the clipboard as a text code to paste into chat";
+            share.Name = "CopyShareCode";
+            buttons.AddChild(share);
+        }
         if (match.Kind is MatchKind.Skirmish or MatchKind.Mission)
             buttons.AddChild(UiTheme.Button(match.Kind == MatchKind.Mission && !won ? "Retry mission" : "Play again", () => { QueueFree(); match.Restart(); }, 160));
         buttons.AddChild(UiTheme.Button(GameRoot.Instance.ReturnsToEditor ? "Editor" : "Main menu", () => { QueueFree(); match.Quit(); }, 160));

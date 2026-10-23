@@ -16,6 +16,10 @@ public sealed class Settings
     public bool EdgeScroll { get; set; } = true;
     public float ScrollSpeed { get; set; } = 1.0f;
     public bool AlwaysShowHealthBars { get; set; } = false;
+    /// <summary>Size of every menu and HUD element, 80..150 (100 = the 1600x900 design size). 115 suits a Steam Deck.</summary>
+    public int UiScalePercent { get; set; } = 100;
+    /// <summary>Always show the controller button hints in a match (otherwise only while a pad is connected).</summary>
+    public bool GamepadHints { get; set; } = false;
     public string PlayerName { get; set; } = "Commander";
     public string LastMap { get; set; } = "proving_grounds";
     public string LastFaction { get; set; } = "lattice";
@@ -57,6 +61,25 @@ public sealed class Settings
         SetBus("Master", MasterVolume);
         SetBus("SFX", SfxVolume);
         SetBus("Music", MusicVolume);
+        ApplyUiScale();
+    }
+
+    public const int MinUiScale = 80, MaxUiScale = 150;
+
+    /// <summary>Scales every canvas item (menus, HUD) about the 1600x900 design size; the battlefield itself is unaffected.</summary>
+    public void ApplyUiScale()
+    {
+        UiScalePercent = Mathf.Clamp(UiScalePercent, MinUiScale, MaxUiScale);
+        if (Engine.GetMainLoop() is SceneTree tree && tree.Root is { } root)
+            root.ContentScaleFactor = UiScalePercent / 100f;
+    }
+
+    /// <summary>The Steam Deck preset: a larger UI for the 7-inch 1280x800 screen, controller hints on.</summary>
+    public void ApplySteamDeckPreset()
+    {
+        UiScalePercent = 115;
+        GamepadHints = true;
+        Apply();
     }
 
     private static void SetBus(string name, float volume)

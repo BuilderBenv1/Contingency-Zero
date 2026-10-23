@@ -1,0 +1,1074 @@
+{
+  "campaign": "coop",
+  "order": 2,
+  "title": "Lifeline",
+  "briefing": "A Lattice survey convoy has to cross Frostline from the northern depot to the relay in the south-west, and the Crucible Wardens in the south-east will hunt it all the way. Vanguard rides with the convoy: you start with the escort and no factory. Foundry starts in the north-east with builders and extra metal: build fast and send what you make to the convoy road. Three of the six convoy trucks must reach the relay.",
+  "map": "frostline",
+  "players": [
+    {
+      "name": "Vanguard",
+      "team": 0,
+      "faction": "lattice",
+      "start": 0,
+      "ai": "None"
+    },
+    {
+      "name": "Foundry",
+      "team": 0,
+      "faction": "crucible",
+      "start": 1,
+      "ai": "None"
+    },
+    {
+      "name": "Survey Convoy",
+      "team": 0,
+      "faction": "lattice",
+      "start": 2,
+      "ai": "None"
+    },
+    {
+      "name": "The Wardens",
+      "team": 1,
+      "faction": "crucible",
+      "start": 3,
+      "ai": "None"
+    }
+  ],
+  "humanPlayer": 0,
+  "humanPlayers": [
+    0,
+    1
+  ],
+  "startMetal": 1000,
+  "startEnergy": 1000,
+  "spawnCommanders": false,
+  "messages": [
+    "Oversight online. Convoy is fuelling at the depot and moves out in two minutes. Vanguard, you are its guns. Foundry, get a factory running.",
+    "Foundry: the convoy road runs down the west side. Rally your factory there.",
+    "Convoy moving. First stop, the ridge south of the depot.",
+    "Ridge reached. Trucks need forty seconds to cool their drives.",
+    "Ambush from the east! They were waiting for us to stop.",
+    "Convoy holding north of the Wardens' outpost. Clear those turrets off the road and it moves on.",
+    "Anvils off the frozen lake, coming for the stalled convoy.",
+    "Outpost down. The road south is open.",
+    "Convoy rolling south. Last stop before the relay is the lake shore.",
+    "We can't wait any longer. The convoy is running the outpost's guns!",
+    "Lake shore. Thirty seconds, then the final run.",
+    "Gunships inbound on the convoy. Flak!",
+    "Wardens' main column is cutting across to the relay. Get there first!",
+    "Foundry, raid coming up the east side for your base.",
+    "Second raid on the Foundry.",
+    "Third raid. They want the Foundry gone.",
+    "The Wardens' base is rubble.",
+    "Too many trucks lost. The survey cannot be completed.",
+    "Convoy at the relay. The survey network is live. Well escorted."
+  ],
+  "objectives": [
+    {
+      "id": "escort",
+      "text": "Get 3 convoy trucks to the relay in the south-west"
+    },
+    {
+      "id": "alive",
+      "text": "Keep at least 3 convoy trucks alive"
+    },
+    {
+      "id": "outpost",
+      "text": "Clear the Wardens' outpost on the convoy road",
+      "optional": true
+    },
+    {
+      "id": "wardens",
+      "text": "Destroy the Wardens' base",
+      "optional": true
+    }
+  ],
+  "spawns": [
+    {
+      "tag": "cmdrV",
+      "type": "lattice_commander",
+      "owner": 0,
+      "x": 132,
+      "y": 132
+    },
+    {
+      "tag": "cmdrF",
+      "type": "crucible_commander",
+      "owner": 1,
+      "x": 892,
+      "y": 132
+    },
+    {
+      "tag": "",
+      "type": "lattice_strider",
+      "owner": 0,
+      "x": 190,
+      "y": 200
+    },
+    {
+      "tag": "",
+      "type": "lattice_strider",
+      "owner": 0,
+      "x": 200,
+      "y": 200
+    },
+    {
+      "tag": "",
+      "type": "lattice_strider",
+      "owner": 0,
+      "x": 210,
+      "y": 200
+    },
+    {
+      "tag": "",
+      "type": "lattice_strider",
+      "owner": 0,
+      "x": 190,
+      "y": 210
+    },
+    {
+      "tag": "",
+      "type": "lattice_strider",
+      "owner": 0,
+      "x": 200,
+      "y": 210
+    },
+    {
+      "tag": "",
+      "type": "lattice_strider",
+      "owner": 0,
+      "x": 210,
+      "y": 210
+    },
+    {
+      "tag": "",
+      "type": "lattice_assault_bot",
+      "owner": 0,
+      "x": 160,
+      "y": 230
+    },
+    {
+      "tag": "",
+      "type": "lattice_assault_bot",
+      "owner": 0,
+      "x": 168,
+      "y": 230
+    },
+    {
+      "tag": "",
+      "type": "lattice_assault_bot",
+      "owner": 0,
+      "x": 176,
+      "y": 230
+    },
+    {
+      "tag": "",
+      "type": "lattice_assault_bot",
+      "owner": 0,
+      "x": 184,
+      "y": 230
+    },
+    {
+      "tag": "",
+      "type": "lattice_mortar_bot",
+      "owner": 0,
+      "x": 175,
+      "y": 245
+    },
+    {
+      "tag": "",
+      "type": "lattice_mortar_bot",
+      "owner": 0,
+      "x": 185,
+      "y": 245
+    },
+    {
+      "tag": "",
+      "type": "lattice_flak_vehicle",
+      "owner": 0,
+      "x": 200,
+      "y": 245
+    },
+    {
+      "tag": "",
+      "type": "crucible_builder_vehicle",
+      "owner": 1,
+      "x": 860,
+      "y": 170
+    },
+    {
+      "tag": "",
+      "type": "crucible_rigger",
+      "owner": 1,
+      "x": 880,
+      "y": 175
+    },
+    {
+      "tag": "convoy",
+      "type": "lattice_builder_adv",
+      "owner": 2,
+      "x": 240,
+      "y": 170
+    },
+    {
+      "tag": "convoy",
+      "type": "lattice_builder_adv",
+      "owner": 2,
+      "x": 250,
+      "y": 170
+    },
+    {
+      "tag": "convoy",
+      "type": "lattice_builder_adv",
+      "owner": 2,
+      "x": 260,
+      "y": 170
+    },
+    {
+      "tag": "convoy",
+      "type": "lattice_builder_adv",
+      "owner": 2,
+      "x": 240,
+      "y": 180
+    },
+    {
+      "tag": "convoy",
+      "type": "lattice_builder_adv",
+      "owner": 2,
+      "x": 250,
+      "y": 180
+    },
+    {
+      "tag": "convoy",
+      "type": "lattice_builder_adv",
+      "owner": 2,
+      "x": 260,
+      "y": 180
+    },
+    {
+      "tag": "convoyGuard",
+      "type": "lattice_strider",
+      "owner": 2,
+      "x": 250,
+      "y": 195
+    },
+    {
+      "tag": "convoyGuard",
+      "type": "lattice_strider",
+      "owner": 2,
+      "x": 260,
+      "y": 195
+    },
+    {
+      "tag": "relay",
+      "type": "lattice_radar_tower",
+      "owner": 2,
+      "x": 156,
+      "y": 900
+    },
+    {
+      "tag": "relay",
+      "type": "lattice_solar_collector",
+      "owner": 2,
+      "x": 192,
+      "y": 920
+    },
+    {
+      "tag": "wardens",
+      "type": "crucible_vehicle_plant",
+      "owner": 3,
+      "x": 852,
+      "y": 820
+    },
+    {
+      "tag": "wardens",
+      "type": "crucible_bot_lab",
+      "owner": 3,
+      "x": 812,
+      "y": 868
+    },
+    {
+      "tag": "wardens",
+      "type": "crucible_heavy_turret",
+      "owner": 3,
+      "x": 824,
+      "y": 800
+    },
+    {
+      "tag": "wardens",
+      "type": "crucible_heavy_turret",
+      "owner": 3,
+      "x": 792,
+      "y": 840
+    },
+    {
+      "tag": "wardens",
+      "type": "crucible_light_turret",
+      "owner": 3,
+      "x": 844,
+      "y": 780
+    },
+    {
+      "tag": "wardens",
+      "type": "crucible_light_turret",
+      "owner": 3,
+      "x": 772,
+      "y": 868
+    },
+    {
+      "tag": "wardens",
+      "type": "crucible_solar_collector",
+      "owner": 3,
+      "x": 920,
+      "y": 848
+    },
+    {
+      "tag": "wardens",
+      "type": "crucible_solar_collector",
+      "owner": 3,
+      "x": 920,
+      "y": 904
+    },
+    {
+      "tag": "wardens",
+      "type": "crucible_aa_turret",
+      "owner": 3,
+      "x": 884,
+      "y": 788
+    },
+    {
+      "tag": "outpost",
+      "type": "crucible_light_turret",
+      "owner": 3,
+      "x": 252,
+      "y": 572
+    },
+    {
+      "tag": "outpost",
+      "type": "crucible_light_turret",
+      "owner": 3,
+      "x": 172,
+      "y": 588
+    },
+    {
+      "tag": "outpost",
+      "type": "crucible_light_turret",
+      "owner": 3,
+      "x": 212,
+      "y": 612
+    },
+    {
+      "tag": "outpost",
+      "type": "crucible_radar_tower",
+      "owner": 3,
+      "x": 260,
+      "y": 612
+    }
+  ],
+  "triggers": [
+    {
+      "id": "intro",
+      "when": {
+        "type": "time",
+        "seconds": 1
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 0
+        }
+      ]
+    },
+    {
+      "id": "give",
+      "when": {
+        "type": "time",
+        "seconds": 1
+      },
+      "actions": [
+        {
+          "type": "give",
+          "player": 1,
+          "metal": 1500,
+          "energy": 1500
+        }
+      ]
+    },
+    {
+      "id": "intro2",
+      "when": {
+        "type": "time",
+        "seconds": 60
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 1
+        }
+      ]
+    },
+    {
+      "id": "leg0",
+      "when": {
+        "type": "time",
+        "seconds": 120
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 2
+        },
+        {
+          "type": "attack",
+          "tag": "convoy",
+          "x": 230,
+          "y": 330,
+          "order": "move"
+        },
+        {
+          "type": "attack",
+          "tag": "convoyGuard",
+          "x": 250,
+          "y": 330,
+          "order": "fight"
+        }
+      ]
+    },
+    {
+      "id": "at1",
+      "when": {
+        "type": "all",
+        "of": [
+          {
+            "type": "fired",
+            "trigger": "leg0",
+            "after": 0
+          },
+          {
+            "type": "count",
+            "player": 2,
+            "atLeast": 1,
+            "unit": "lattice_builder_adv",
+            "x": 230,
+            "y": 330,
+            "radius": 40
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 3
+        }
+      ]
+    },
+    {
+      "id": "amb1",
+      "when": {
+        "type": "fired",
+        "trigger": "at1",
+        "after": 5
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 4
+        },
+        {
+          "type": "spawn",
+          "tag": "amb1",
+          "units": [
+            {
+              "unit": "crucible_assault_bot",
+              "owner": 3,
+              "x": 400,
+              "y": 330,
+              "count": 8
+            },
+            {
+              "unit": "crucible_scout_bot",
+              "owner": 3,
+              "x": 430,
+              "y": 330,
+              "count": 4
+            },
+            {
+              "unit": "crucible_anvil",
+              "owner": 3,
+              "x": 460,
+              "y": 330,
+              "count": 4
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "amb1",
+          "x": 230,
+          "y": 330
+        }
+      ]
+    },
+    {
+      "id": "leg1",
+      "when": {
+        "type": "fired",
+        "trigger": "at1",
+        "after": 40
+      },
+      "actions": [
+        {
+          "type": "attack",
+          "tag": "convoy",
+          "x": 200,
+          "y": 480,
+          "order": "move"
+        },
+        {
+          "type": "attack",
+          "tag": "convoyGuard",
+          "x": 220,
+          "y": 480,
+          "order": "fight"
+        }
+      ]
+    },
+    {
+      "id": "at2",
+      "when": {
+        "type": "all",
+        "of": [
+          {
+            "type": "fired",
+            "trigger": "leg1",
+            "after": 0
+          },
+          {
+            "type": "count",
+            "player": 2,
+            "atLeast": 1,
+            "unit": "lattice_builder_adv",
+            "x": 200,
+            "y": 480,
+            "radius": 40
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 5
+        },
+        {
+          "type": "objective",
+          "id": "outpost",
+          "state": "active"
+        }
+      ]
+    },
+    {
+      "id": "amb2",
+      "when": {
+        "type": "fired",
+        "trigger": "at2",
+        "after": 45
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 6
+        },
+        {
+          "type": "spawn",
+          "tag": "amb2",
+          "units": [
+            {
+              "unit": "crucible_anvil",
+              "owner": 3,
+              "x": 440,
+              "y": 520,
+              "count": 6
+            },
+            {
+              "unit": "crucible_assault_bot",
+              "owner": 3,
+              "x": 470,
+              "y": 520,
+              "count": 6
+            },
+            {
+              "unit": "crucible_mortar_bot",
+              "owner": 3,
+              "x": 500,
+              "y": 520,
+              "count": 2
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "amb2",
+          "x": 200,
+          "y": 480
+        }
+      ]
+    },
+    {
+      "id": "outpostDone",
+      "when": {
+        "type": "destroyed",
+        "tag": "outpost"
+      },
+      "actions": [
+        {
+          "type": "objective",
+          "id": "outpost",
+          "state": "complete"
+        },
+        {
+          "type": "message",
+          "message": 7
+        }
+      ]
+    },
+    {
+      "id": "leg2",
+      "when": {
+        "type": "any",
+        "of": [
+          {
+            "type": "all",
+            "of": [
+              {
+                "type": "fired",
+                "trigger": "at2",
+                "after": 0
+              },
+              {
+                "type": "destroyed",
+                "tag": "outpost"
+              }
+            ]
+          },
+          {
+            "type": "fired",
+            "trigger": "at2",
+            "after": 240
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 8
+        },
+        {
+          "type": "attack",
+          "tag": "convoy",
+          "x": 210,
+          "y": 700,
+          "order": "move"
+        },
+        {
+          "type": "attack",
+          "tag": "convoyGuard",
+          "x": 230,
+          "y": 700,
+          "order": "fight"
+        }
+      ]
+    },
+    {
+      "id": "pushThrough",
+      "when": {
+        "type": "all",
+        "of": [
+          {
+            "type": "fired",
+            "trigger": "at2",
+            "after": 240
+          },
+          {
+            "type": "not",
+            "of": {
+              "type": "destroyed",
+              "tag": "outpost"
+            }
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 9
+        }
+      ]
+    },
+    {
+      "id": "at3",
+      "when": {
+        "type": "all",
+        "of": [
+          {
+            "type": "fired",
+            "trigger": "leg2",
+            "after": 0
+          },
+          {
+            "type": "count",
+            "player": 2,
+            "atLeast": 1,
+            "unit": "lattice_builder_adv",
+            "x": 210,
+            "y": 700,
+            "radius": 40
+          }
+        ]
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 10
+        }
+      ]
+    },
+    {
+      "id": "gunships",
+      "when": {
+        "type": "fired",
+        "trigger": "at3",
+        "after": 5
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 11
+        },
+        {
+          "type": "spawn",
+          "tag": "gunships",
+          "units": [
+            {
+              "unit": "crucible_gunship",
+              "owner": 3,
+              "x": 700,
+              "y": 640,
+              "count": 6
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "gunships",
+          "x": 210,
+          "y": 700
+        }
+      ]
+    },
+    {
+      "id": "amb3",
+      "when": {
+        "type": "fired",
+        "trigger": "at3",
+        "after": 10
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 12
+        },
+        {
+          "type": "spawn",
+          "tag": "amb3",
+          "units": [
+            {
+              "unit": "crucible_anvil",
+              "owner": 3,
+              "x": 440,
+              "y": 870,
+              "count": 10
+            },
+            {
+              "unit": "crucible_assault_bot",
+              "owner": 3,
+              "x": 470,
+              "y": 870,
+              "count": 8
+            },
+            {
+              "unit": "crucible_artillery_vehicle",
+              "owner": 3,
+              "x": 500,
+              "y": 870,
+              "count": 3
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "amb3",
+          "x": 170,
+          "y": 880
+        }
+      ]
+    },
+    {
+      "id": "leg3",
+      "when": {
+        "type": "fired",
+        "trigger": "at3",
+        "after": 30
+      },
+      "actions": [
+        {
+          "type": "attack",
+          "tag": "convoy",
+          "x": 170,
+          "y": 880,
+          "order": "move"
+        },
+        {
+          "type": "attack",
+          "tag": "convoyGuard",
+          "x": 190,
+          "y": 880,
+          "order": "fight"
+        }
+      ]
+    },
+    {
+      "id": "raidF1",
+      "when": {
+        "type": "time",
+        "seconds": 240
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 13
+        },
+        {
+          "type": "spawn",
+          "tag": "raidF1",
+          "units": [
+            {
+              "unit": "crucible_assault_bot",
+              "owner": 3,
+              "x": 850,
+              "y": 560,
+              "count": 6
+            },
+            {
+              "unit": "crucible_anvil",
+              "owner": 3,
+              "x": 880,
+              "y": 560,
+              "count": 3
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "raidF1",
+          "x": 880,
+          "y": 160
+        }
+      ]
+    },
+    {
+      "id": "raidF2",
+      "when": {
+        "type": "time",
+        "seconds": 420
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 14
+        },
+        {
+          "type": "spawn",
+          "tag": "raidF2",
+          "units": [
+            {
+              "unit": "crucible_anvil",
+              "owner": 3,
+              "x": 850,
+              "y": 560,
+              "count": 6
+            },
+            {
+              "unit": "crucible_mortar_bot",
+              "owner": 3,
+              "x": 880,
+              "y": 560,
+              "count": 3
+            },
+            {
+              "unit": "crucible_assault_bot",
+              "owner": 3,
+              "x": 910,
+              "y": 560,
+              "count": 5
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "raidF2",
+          "x": 880,
+          "y": 160
+        }
+      ]
+    },
+    {
+      "id": "raidF3",
+      "when": {
+        "type": "time",
+        "seconds": 600
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 15
+        },
+        {
+          "type": "spawn",
+          "tag": "raidF3",
+          "units": [
+            {
+              "unit": "crucible_anvil",
+              "owner": 3,
+              "x": 850,
+              "y": 560,
+              "count": 7
+            },
+            {
+              "unit": "crucible_artillery_vehicle",
+              "owner": 3,
+              "x": 880,
+              "y": 560,
+              "count": 2
+            },
+            {
+              "unit": "crucible_assault_bot",
+              "owner": 3,
+              "x": 910,
+              "y": 560,
+              "count": 6
+            }
+          ]
+        },
+        {
+          "type": "attack",
+          "tag": "raidF3",
+          "x": 880,
+          "y": 160
+        }
+      ]
+    },
+    {
+      "id": "wardensDone",
+      "when": {
+        "type": "destroyed",
+        "tag": "wardens"
+      },
+      "actions": [
+        {
+          "type": "objective",
+          "id": "wardens",
+          "state": "complete"
+        },
+        {
+          "type": "message",
+          "message": 16
+        }
+      ]
+    },
+    {
+      "id": "lost",
+      "when": {
+        "type": "not",
+        "of": {
+          "type": "count",
+          "player": 2,
+          "atLeast": 3,
+          "unit": "lattice_builder_adv"
+        }
+      },
+      "actions": [
+        {
+          "type": "objective",
+          "id": "alive",
+          "state": "failed"
+        },
+        {
+          "type": "objective",
+          "id": "escort",
+          "state": "failed"
+        },
+        {
+          "type": "message",
+          "message": 17
+        },
+        {
+          "type": "defeat"
+        }
+      ]
+    },
+    {
+      "id": "arrived",
+      "when": {
+        "type": "count",
+        "player": 2,
+        "atLeast": 3,
+        "unit": "lattice_builder_adv",
+        "x": 170,
+        "y": 880,
+        "radius": 50
+      },
+      "actions": [
+        {
+          "type": "objective",
+          "id": "escort",
+          "state": "complete"
+        },
+        {
+          "type": "objective",
+          "id": "alive",
+          "state": "complete"
+        }
+      ]
+    },
+    {
+      "id": "win",
+      "when": {
+        "type": "fired",
+        "trigger": "arrived",
+        "after": 0
+      },
+      "actions": [
+        {
+          "type": "message",
+          "message": 18
+        },
+        {
+          "type": "reveal"
+        }
+      ]
+    },
+    {
+      "id": "winEnd",
+      "when": {
+        "type": "fired",
+        "trigger": "win",
+        "after": 4
+      },
+      "actions": [
+        {
+          "type": "victory"
+        }
+      ]
+    }
+  ]
+}

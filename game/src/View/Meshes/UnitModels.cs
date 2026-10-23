@@ -51,6 +51,13 @@ public static class UnitModels
         }
     }
 
+    /// <summary>The ruined foundation a structure leaves, <paramref name="width"/> world units square; variant 0..2. Cached.</summary>
+    public static ArrayMesh Foundation(int width, int variant) =>
+        Feature("foundation", width.ToString(), variant, (w, v) => Features.Foundation(int.Parse(w), v));
+
+    /// <summary>A small heap of structure rubble; variant 0..2. Cached.</summary>
+    public static ArrayMesh Rubble(int variant) => Feature("rubble", "", variant, (_, v) => Features.Rubble(v));
+
     /// <summary>A low-poly tree for the map theme ("temperate", "desert", "lava", "arctic"); variant 0..2.</summary>
     public static ArrayMesh Tree(string theme, int variant) => Feature("tree", theme, variant, Features.Tree);
 
