@@ -5,15 +5,22 @@ Conventions, matching the game's procedural models (game/src/View/Meshes):
 - Mobile units are authored at "radius 1": about 2.4 long, nose at +1.1; the game scales them.
 - Every face gets a paint from PAINTS, written to the "Color" attribute as RGBA:
   alpha 1 = plain colour, alpha 0 = team colour (RGB = brightness), alpha 0.5 = glowing light.
-- A model is a "Body" object and optionally a "Turret" object whose origin is its pivot.
+- A model is a "Body" object, optionally a "Turret" object whose origin is its pivot (it yaws
+  to aim), and optionally a spinning part named "Rotor_X", "Rotor_Y" or "Rotor_Z" whose origin is
+  its pivot; the letter is the spin axis in the GAME's axes (Y up, Z towards the back), so a
+  wind turbine's blades facing forward spin about Z, a radar dish about Y.
+- Structures are authored in world units, centred on the origin, ground at z = 0. A footprint of
+  N tiles is N * 8 world units square; keep the model within N * 8 - 1 across.
+- Call bake_detail for every part, then export(path, parts).
 - Each part gets a baked detail texture: R = ambient occlusion, G = worn edges, B = grime.
 """
 import math, os
 import bpy, bmesh
 from mathutils import Vector, Matrix
 
-# Crucible palette (see Style.cs): scorched gunmetal with a rust cast, orange furnace glow.
-PAINTS = {
+# Faction palettes (see game/src/View/Meshes/Style.cs). Paint names are the same for both,
+# so a model script picks its faction with reset('lattice') or reset('crucible').
+CRUCIBLE = {
     'hull':      (0.33, 0.30, 0.26, 1.0),
     'hull_dark': (0.20, 0.18, 0.16, 1.0),
     'mech':      (0.11, 0.10, 0.09, 1.0),
@@ -24,11 +31,31 @@ PAINTS = {
     'team_dark': (0.45, 0.45, 0.45, 0.0),
     'glow':      (1.00, 0.24, 0.03, 0.5),
     'glass':     (0.16, 0.11, 0.08, 1.0),
+    'glow_dim':  (0.60, 0.12, 0.02, 0.5),
+    'solar':     (0.11, 0.10, 0.12, 1.0),
 }
+# Lattice: weathered cold steel-grey armour, slim and bevelled, blue glow.
+LATTICE = {
+    'hull':      (0.52, 0.54, 0.56, 1.0),
+    'hull_dark': (0.34, 0.36, 0.39, 1.0),
+    'mech':      (0.19, 0.20, 0.22, 1.0),
+    'metal':     (0.40, 0.42, 0.44, 1.0),
+    'accent':    (0.40, 0.45, 0.50, 1.0),
+    'tread':     (0.15, 0.15, 0.16, 1.0),
+    'team':      (0.80, 0.80, 0.80, 0.0),
+    'team_dark': (0.50, 0.50, 0.50, 0.0),
+    'glow':      (0.10, 0.42, 1.00, 0.5),
+    'glass':     (0.10, 0.16, 0.22, 1.0),
+    'glow_dim':  (0.05, 0.20, 0.55, 0.5),
+    'solar':     (0.08, 0.12, 0.20, 1.0),
+}
+PAINTS = dict(CRUCIBLE)
 
 
-def reset():
+def reset(faction='crucible'):
+    """Empties the scene and sets the palette for 'lattice' or 'crucible'."""
     bpy.ops.wm.read_factory_settings(use_empty=True)
+    PAINTS.clear(); PAINTS.update(LATTICE if faction == 'lattice' else CRUCIBLE)
     for name in PAINTS:
         m = bpy.data.materials.new(name)
         m.diffuse_color = PAINTS[name][:3] + (1.0,)

@@ -36,4 +36,5 @@ public sealed class UnitModel
     /// <summary>Baked detail maps for hand-made models (R = occlusion, G = worn edges, B = grime); null for procedural ones.</summary>
     public Texture2D? BodyDetail { get; init; }
     public Texture2D? TurretDetail { get; init; }
+    public Texture2D? RotorDetail { get; init; }
 }

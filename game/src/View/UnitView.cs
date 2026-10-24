@@ -145,7 +145,7 @@ public partial class UnitView : Node3D
             Model = model,
             Body = Make(model.Body, DetailMaterial(model.BodyDetail)),
             Turret = model.Turret is null ? null : Make(model.Turret, DetailMaterial(model.TurretDetail)),
-            Rotor = model.Rotor is null ? null : Make(model.Rotor, _unitMaterial),
+            Rotor = model.Rotor is null ? null : Make(model.Rotor, DetailMaterial(model.RotorDetail)),
             Frame = Make(model.Body, _frameMaterial),
         };
         _batches[type] = b;
