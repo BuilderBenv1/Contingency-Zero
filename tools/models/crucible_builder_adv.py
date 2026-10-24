@@ -27,7 +27,8 @@ for sx in (-1, 1):
     body.append(cyl(f'lamphood{sx}', (sx * 0.4, 1.03, 0.46), (sx * 0.4, 1.07, 0.46), 0.055, 'mech', 8, bevel=0))
     body.append(box(f'hook{sx}', (sx * 0.22, 1.16, 0.33), (0.05, 0.06, 0.07), 'metal', 0.01, 1))
 
-# ---- Two heavy cranes ----
+# ---- Two heavy cranes on a team deck plate ----
+body.append(box('deckplate', (0, 0.38, 0.63), (1.12, 0.78, 0.025), 'team', 0.008, 1))
 for sx in (-1, 1):
     body.append(box(f'armpad{sx}', (sx * 0.3, 0.32, 0.64), (0.4, 0.4, 0.04), 'hull_dark', 0.008, 1))
     body += rivets(f'padrv{sx}', (sx * 0.3 - 0.16, 0.14, 0.665), (sx * 0.3 + 0.16, 0.14, 0.665), 4, 'metal', 0.014)
@@ -37,7 +38,7 @@ for sx in (-1, 1):
 ws = box('workshop', (0, -0.5, 0.82), (0.9, 0.74, 0.4), 'team', 0.025, 2)
 inset_panels(ws, 0.035, 0.012, lambda f: f.calc_area() > 0.08 and f.normal.z < 0.5)
 body.append(ws)
-body.append(box('wsroof', (0, -0.5, 1.035), (0.94, 0.78, 0.04), 'hull', 0.01, 1))
+body.append(box('wsroof', (0, -0.5, 1.035), (0.94, 0.78, 0.04), 'team', 0.01, 1))
 body += rivets('wsrv1', (-0.4, -0.12, 1.06), (0.4, -0.12, 1.06), 6, 'metal', 0.018)
 body += rivets('wsrv2', (-0.4, -0.88, 1.06), (0.4, -0.88, 1.06), 6, 'metal', 0.018)
 # Roll-up door on the front face and a vent.

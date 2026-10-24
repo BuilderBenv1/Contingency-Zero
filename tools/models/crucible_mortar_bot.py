@@ -34,12 +34,15 @@ for k in range(3):
     body.append(cyl(f'shell{k}', (0.41, -0.2 + k * 0.12, 0.56), (0.41, -0.2 + k * 0.12, 0.74), 0.045, 'accent', 8))
     body.append(cyl(f'shelltip{k}', (0.41, -0.2 + k * 0.12, 0.74), (0.41, -0.2 + k * 0.12, 0.8), 0.045, 'metal', 8, r2=0.01, bevel=0))
 body.append(box('rackband', (0.41, -0.08, 0.68), (0.1, 0.4, 0.03), 'mech', 0.004, 1))
+body.append(box('rearplate', (0, -0.415, 0.66), (0.56, 0.03, 0.26), 'team_dark', 0.008, 1))
+body += rivet_row('rr', (-0.24, -0.435, 0.76), (0.24, -0.435, 0.76), 4, 0.016)
+body.append(box('rearbox', (0.12, -0.46, 0.6), (0.2, 0.08, 0.1), 'accent', 0.01, 1))
 body.append(box('toolbox', (-0.37, 0.0, 0.64), (0.06, 0.34, 0.16), 'hull_dark', 0.01, 1))
 
 PIV = (0, -0.06, 0.84)
 P = lambda x, y, z: (PIV[0] + x, PIV[1] + y, PIV[2] + z)
 tur = [cyl('ring', P(0, 0, 0), P(0, 0, 0.05), 0.26, 'mech', 8)]
-tur.append(box('plate', P(0, -0.04, 0.07), (0.44, 0.44, 0.06), 'hull_dark', 0.015, 1))
+tur.append(box('plate', P(0, -0.04, 0.07), (0.44, 0.44, 0.06), 'team_dark', 0.015, 1))
 tur += rivet_row('pr0', P(-0.18, 0.15, 0.1), P(0.18, 0.15, 0.1), 4, 0.015)
 tur += rivet_row('pr1', P(-0.18, -0.23, 0.1), P(0.18, -0.23, 0.1), 4, 0.015)
 for sx in (-1, 1):
@@ -52,7 +55,7 @@ d = Vector((0, math.cos(math.radians(60)), math.sin(math.radians(60))))
 root = Vector(P(0, -0.12, 0.16))
 tur.append(cyl('tube', tuple(root - d * 0.12), tuple(root + d * 0.52), 0.135, 'metal', 12, r2=0.13))
 for k, s in enumerate((0.04, 0.2, 0.36)):
-    tur.append(cyl(f'band{k}', tuple(root + d * s), tuple(root + d * (s + 0.06)), 0.155, 'team' if k == 1 else 'hull_dark', 12, bevel=0.006))
+    tur.append(cyl(f'band{k}', tuple(root + d * s), tuple(root + d * (s + 0.06)), 0.155, 'team' if k != 2 else 'hull_dark', 12, bevel=0.006))
 tur.append(cyl('muzzle', tuple(root + d * 0.48), tuple(root + d * 0.62), 0.17, 'mech', 12, r2=0.16))
 tur.append(cyl('bore', tuple(root + d * 0.62), tuple(root + d * 0.625), 0.1, 'glow_dim', 12, bevel=0))
 tur.append(cyl('breech', tuple(root - d * 0.22), tuple(root - d * 0.1), 0.11, 'hull_dark', 10))

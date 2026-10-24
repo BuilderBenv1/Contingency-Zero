@@ -19,7 +19,7 @@ tur = crucible_infantry_torso(P, top_paint='team_dark')
 for sx in (-1, 1):
     tur.append(box(f'cradle{sx}', P(sx * 0.27, -0.12, 0.46), (0.05, 0.2, 0.16), 'mech', 0.01, 1))
     tur.append(cyl(f'trun{sx}', P(sx * 0.24, -0.1, 0.5), P(sx * 0.31, -0.1, 0.5), 0.05, 'metal', 8))
-tur += missile_pod('launcher', P(0, -0.08, 0.52), (0.48, 0.42, 0.3), 52, 3, 2, 'team', tip='accent')
+tur += missile_pod('launcher', P(0, -0.08, 0.52), (0.48, 0.42, 0.3), 52, 3, 2, 'team', tip='accent', straps=2)
 tur += rivet_row('lr', P(-0.2, -0.24, 0.42), P(0.2, -0.24, 0.42), 4, 0.016)
 tur.append(cyl('feed', P(0.2, -0.24, 0.3), P(0.12, -0.3, 0.44), 0.025, 'accent', 6, bevel=0))
 # Heavy arm blocks

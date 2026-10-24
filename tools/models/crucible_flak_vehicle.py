@@ -30,7 +30,7 @@ cab = hull_from('cab', [(-0.52, 1.02, 0.44), (0.52, 1.02, 0.44), (-0.52, 0.5, 0.
                         (-0.5, 0.5, 0.92), (0.5, 0.5, 0.92)], 'team', 0.025, 2)
 inset_panels(cab, 0.03, 0.01, lambda f: abs(f.normal.x) > 0.8 and f.calc_area() > 0.05)
 body.append(cab)
-body.append(box('cabroof', (0, 0.66, 0.935), (0.86, 0.36, 0.04), 'hull', 0.01, 1))
+body.append(box('cabroof', (0, 0.66, 0.935), (0.86, 0.36, 0.04), 'team_dark', 0.01, 1))
 body.append(hull_from('screen', [(-0.4, 0.945, 0.82), (0.4, 0.945, 0.82), (-0.38, 0.895, 0.89), (0.38, 0.895, 0.89),
                                  (-0.4, 0.93, 0.81), (0.4, 0.93, 0.81), (-0.38, 0.88, 0.88), (0.38, 0.88, 0.88)], 'glass', 0.003, 1))
 for k in range(3):
@@ -43,7 +43,7 @@ for sx in (-1, 1):
     body.append(cyl(f'lamp{sx}', (sx * 0.4, 1.03, 0.66), (sx * 0.4, 1.07, 0.66), 0.045, 'glow', 8, bevel=0))
     body.append(cyl(f'lamphood{sx}', (sx * 0.4, 1.01, 0.66), (sx * 0.4, 1.05, 0.66), 0.06, 'mech', 8, bevel=0))
     body.append(box(f'hook{sx}', (sx * 0.22, 1.17, 0.36), (0.05, 0.05, 0.06), 'metal', 0.01, 1))
-body += rivets('cabrv', (-0.46, 1.01, 0.74), (0.46, 1.01, 0.74), 7, 'metal', 0.018)
+body += rivets('cabrv', (-0.44, 1.03, 0.72), (0.44, 1.03, 0.72), 7, 'metal', 0.016)
 body += rivets('roofrv', (-0.4, 0.5, 0.96), (0.4, 0.5, 0.96), 6, 'metal', 0.016)
 # Mirror arms.
 for sx in (-1, 1):

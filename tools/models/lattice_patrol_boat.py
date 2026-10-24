@@ -18,18 +18,18 @@ body, secs = A.ship_hull(F, HW, DECK, KEEL)
 
 # Blue waterline lights along both sides, and a sensor eye on the bow.
 for sx in A.SIDES:
-    body.append(box(f'wl{sx}', (sx * (HW + 0.004), -0.25, 0.07), (0.01, 1.1, 0.014), 'glow_dim', 0, 1))
+    body.append(box(f'wl{sx}', (sx * (HW * 0.985 + 0.004), -0.36, 0.13), (0.01, 0.95, 0.014), 'glow_dim', 0, 1))
 body.append(box('boweye', (0, 1.12, DECK + 0.02), (0.04, 0.05, 0.02), 'glow', 0, 1))
 # Team deck plates fore and aft.
-for y, ln, w in ((0.25, 0.35, 0.44), (-0.62, 0.42, 0.5)):
+for y, ln, w in ((0.22, 0.3, 0.5), (-0.64, 0.52, 0.6)):
     p = box(f'deckplate{y}', (0, y, DECK + 0.006), (w, ln, 0.012), 'team', 0.004, 1)
     body.append(p)
 # ---- Bridge slab ----
 bridge = hull_from('bridge', [(0.22, 0.14, DECK), (-0.22, 0.14, DECK), (0.22, -0.4, DECK), (-0.22, -0.4, DECK),
                               (0.21, 0.06, 0.48), (-0.21, 0.06, 0.48), (0.21, -0.38, 0.5), (-0.21, -0.38, 0.5),
-                              (0.15, 0.0, 0.54), (-0.15, 0.0, 0.54), (0.15, -0.32, 0.54), (-0.15, -0.32, 0.54)], 'hull', bevel=0.012)
+                              (0.15, 0.0, 0.54), (-0.15, 0.0, 0.54), (0.15, -0.32, 0.54), (-0.15, -0.32, 0.54)], 'team', bevel=0.012)
 body.append(bridge)
-body.append(box('broof', (0, -0.16, 0.548), (0.26, 0.28, 0.012), 'team', 0.004, 1))
+body.append(box('broof', (0, -0.16, 0.548), (0.26, 0.28, 0.012), 'hull', 0.004, 1))
 body.append(hull_from('screen', [(0.2, 0.128, 0.36), (-0.2, 0.128, 0.36), (0.19, 0.072, 0.46), (-0.19, 0.072, 0.46),
                                  (0.2, 0.142, 0.36), (-0.2, 0.142, 0.36), (0.19, 0.086, 0.46), (-0.19, 0.086, 0.46)], 'glass', bevel=0.003))
 for sx in A.SIDES:

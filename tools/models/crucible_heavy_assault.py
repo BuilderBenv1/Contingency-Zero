@@ -17,7 +17,7 @@ body += vp.crucible_tracks(0.54, 0.92, -1.1, 1.06, r_end=0.24, wheels=6, cleats=
 HW = 0.54
 body.append(box('tub', (0, -0.02, 0.32), (2 * HW, 2.1, 0.3), 'hull_dark', 0.02))
 upper = prism_x('upper', [(1.08, 0.36), (0.72, 0.68), (-0.72, 0.68), (-1.06, 0.62), (-1.12, 0.42), (-1.12, 0.34), (1.08, 0.34)],
-                -0.7, 0.7, 'hull', 0.03, 2)
+                -0.7, 0.7, 'team', 0.03, 2)
 inset_panels(upper, 0.035, 0.012, lambda f: f.normal.z > 0.3 and f.calc_area() > 0.05)
 body.append(upper)
 body += rivets('glrv', (-0.6, 0.8, 0.665), (0.6, 0.8, 0.665), 8, 'metal', 0.022)
@@ -30,7 +30,7 @@ for sx in (-1, 1):
     body.append(cyl(f'lamp{sx}', (sx * 0.46, 1.0, 0.56), (sx * 0.46, 1.05, 0.56), 0.04, 'glow', 8, bevel=0))
     body.append(cyl(f'lamphood{sx}', (sx * 0.46, 0.97, 0.56), (sx * 0.46, 1.02, 0.56), 0.056, 'mech', 8, bevel=0))
 # Glacis team plate.
-body.append(prism_x('glacisplate', [(1.0, 0.43), (0.76, 0.67), (0.72, 0.685), (0.96, 0.445)], -0.46, 0.46, 'team', 0.006, 1))
+body.append(prism_x('glacisplate', [(1.0, 0.43), (0.76, 0.67), (0.72, 0.685), (0.96, 0.445)], -0.46, 0.46, 'team_dark', 0.006, 1))
 # Engine deck with stacks and grille.
 body += vp.grille('deck', (0, -0.84, 0.7), 0.9, 0.42, 8)
 for sx in (-1, 1):
@@ -52,7 +52,7 @@ shell = hull_from('turret', [P(-0.5, -0.46, 0.0), P(0.5, -0.46, 0.0), P(0.5, 0.4
                              P(0.28, 0.5, 0.3), P(-0.28, 0.5, 0.3)], 'team', bevel=0.035, segs=2)
 inset_panels(shell, 0.04, 0.012, lambda f: f.calc_area() > 0.05)
 tur.append(shell)
-tur.append(box('roof', P(0, -0.08, 0.39), (0.62, 0.6, 0.03), 'hull', 0.01, 1))
+tur.append(box('roof', P(0, -0.08, 0.39), (0.62, 0.6, 0.03), 'team_dark', 0.01, 1))
 tur += rivets('trv1', P(-0.4, 0.46, 0.31), P(0.4, 0.46, 0.31), 6, 'metal', 0.02)
 tur += rivets('trv2', P(-0.4, -0.5, 0.35), P(0.4, -0.5, 0.35), 6, 'metal', 0.02)
 # Appliqué blocks on the cheeks.

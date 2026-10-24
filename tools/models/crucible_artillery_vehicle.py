@@ -28,7 +28,7 @@ for sx in (-1, 1):
     # Mudguards over each wheel.
     for y in (0.66, -0.56):
         body.append(prism_x(f'guard{sx}{y}', [(y + 0.4, 0.62), (y + 0.3, 0.72), (y - 0.3, 0.72), (y - 0.4, 0.62)],
-                            min(sx * 0.48, sx * 0.8), max(sx * 0.48, sx * 0.8), 'hull', 0.008, 1))
+                            min(sx * 0.48, sx * 0.8), max(sx * 0.48, sx * 0.8), 'hull_dark', 0.008, 1))
     body.append(box(f'lamp{sx}', (sx * 0.3, 0.97, 0.52), (0.08, 0.02, 0.05), 'glow', 0, 1))
     body.append(box(f'lamphood{sx}', (sx * 0.3, 0.95, 0.55), (0.12, 0.05, 0.03), 'mech', 0.005, 1))
 # Driver's hatch with vision block at the front.
@@ -47,7 +47,7 @@ body.append(cyl('tring', (0, -0.22, 0.66), (0, -0.22, 0.69), 0.36, 'mech', 14, b
 PIV = (0.0, -0.22, 0.66)
 P = lambda x, y, z: (PIV[0] + x, PIV[1] + y, PIV[2] + z)
 tur = []
-tur.append(box('mount', P(0, -0.08, 0.1), (0.66, 0.7, 0.2), 'hull_dark', 0.02))
+tur.append(box('mount', P(0, -0.08, 0.1), (0.66, 0.7, 0.2), 'hull', 0.02))
 tur += rivets('mountrv', P(-0.28, 0.26, 0.205), P(0.28, 0.26, 0.205), 5, 'metal', 0.016)
 # Side walls (team) forming the cradle.
 for sx in (-1, 1):
@@ -69,7 +69,7 @@ tur.append(cyl('bore', E(1.72), E(1.73), 0.05, 'tread', 10, bevel=0))
 # Crew shield at the front of the mount, shell rack at the back, hot ammo glow.
 tur.append(hull_from('shield', [P(-0.33, 0.28, 0.18), P(0.33, 0.28, 0.18), P(-0.33, 0.22, 0.18), P(0.33, 0.22, 0.18),
                                 P(-0.3, 0.32, 0.36), P(-0.1, 0.32, 0.36), P(-0.3, 0.26, 0.36), P(-0.1, 0.26, 0.36),
-                                P(0.3, 0.32, 0.36), P(0.1, 0.32, 0.36), P(0.3, 0.26, 0.36), P(0.1, 0.26, 0.36)], 'hull', 0.01, 1))
+                                P(0.3, 0.32, 0.36), P(0.1, 0.32, 0.36), P(0.3, 0.26, 0.36), P(0.1, 0.26, 0.36)], 'team', 0.01, 1))
 tur.append(box('rack', P(0, -0.46, 0.16), (0.5, 0.14, 0.16), 'hull_dark', 0.012, 1))
 for k in range(5):
     tur.append(cyl(f'shell{k}', P(-0.18 + k * 0.09, -0.46, 0.2), P(-0.18 + k * 0.09, -0.46, 0.3), 0.032, 'accent', 8, bevel=0))

@@ -188,11 +188,17 @@ def barrel(p, a, b, r, brake=True, verts=10, paint='metal'):
     return out
 
 
-def missile_pod(p, centre, size, pitch, cols, rows, paint, tip='accent', yaw=0, face='mech'):
+def missile_pod(p, centre, size, pitch, cols, rows, paint, tip='accent', yaw=0, face='mech', straps=0):
     """A launcher box pitched up by `pitch` degrees, a grid of warheads poking from its front."""
     sx, sy, sz = size
     out = [box(p + 'pod', (0, 0, 0), size, paint, 0.012, 1)]
     out.append(box(p + 'face', (0, sy / 2 + 0.004, 0), (sx * 0.9, 0.012, sz * 0.88), face, 0, 1))
+    for k in range(straps):
+        yk = -sy / 2 + sy * (k + 1) / (straps + 1)
+        out.append(box(p + f'strap{k}', (0, yk, 0), (sx + 0.02, 0.04, sz + 0.02), 'hull_dark', 0.006, 1))
+        for c in range(cols + 1):
+            out.append(sphere(p + f'sr{k}{c}', (-sx / 2 + sx * (c + 0.5) / (cols + 1), yk, sz / 2 + 0.012), 0.016, 'metal', 6, 4))
+    out.append(box(p + 'stencil', (0, -sy / 2 + 0.06, sz / 2 + 0.004), (sx * 0.5, 0.05, 0.01), 'glow_dim', 0, 1))
     cw, rh = sx / cols, sz / rows
     rad = min(cw, rh) * 0.33
     for c in range(cols):

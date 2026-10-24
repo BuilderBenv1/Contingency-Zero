@@ -17,7 +17,7 @@ F = 'lattice'
 HW, DECK, KEEL = 0.3, 0.14, -0.1
 body, secs = A.ship_hull(F, HW, DECK, KEEL)
 for sx in A.SIDES:
-    body.append(box(f'wl{sx}', (sx * (HW + 0.004), -0.2, 0.045), (0.01, 1.3, 0.01), 'glow_dim', 0, 1))
+    body.append(box(f'wl{sx}', (sx * (HW * 0.985 + 0.004), -0.37, 0.07), (0.01, 0.98, 0.01), 'glow_dim', 0, 1))
 body.append(box('boweye', (0, 1.13, DECK + 0.035), (0.03, 0.04, 0.015), 'glow', 0, 1))
 body.append(box('foredeck', (0, 0.88, DECK + 0.005), (0.18, 0.3, 0.01), 'team_dark', 0.003, 1))
 

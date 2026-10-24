@@ -44,17 +44,23 @@ for sx in (-1, 1):
     body += rivet_row(f'skr{sx}', (sx * (TR_OUT + 0.055), 0.85, 0.46), (sx * (TR_OUT + 0.055), -0.85, 0.46), 8, 0.016)
 
 # Boat hull: a raised prow, flat deck, sloping stern
-hull = prism_x('hull', [(1.2, 0.46), (0.98, 0.72), (-0.82, 0.72), (-1.06, 0.6), (-1.08, 0.3), (-0.8, 0.18), (0.86, 0.18)],
+hull = prism_x('hull', [(0.99, 0.72), (-0.82, 0.72), (-1.06, 0.6), (-1.08, 0.3), (-0.8, 0.18), (0.99, 0.18)],
                -0.4, 0.4, 'hull', 0.03, 2)
 inset_panels(hull, 0.03, 0.01, lambda f: abs(f.normal.x) > 0.7)
 body.append(hull)
-body.append(hull_from('prow', [(-0.38, 0.98, 0.72), (0.38, 0.98, 0.72), (-0.3, 1.2, 0.46), (0.3, 1.2, 0.46),
-                               (-0.36, 0.98, 0.75), (0.36, 0.98, 0.75), (-0.28, 1.2, 0.49), (0.28, 1.2, 0.49)], 'team_dark', 0.01, 1))
-body += rivet_row('prowr', (-0.3, 1.1, 0.63), (0.3, 1.1, 0.63), 4, 0.018)
+body.append(hull_from('prow', [(-0.41, 0.97, 0.75), (0.41, 0.97, 0.75), (0, 1.3, 0.7), (-0.41, 0.97, 0.18), (0.41, 0.97, 0.18),
+                               (0, 1.12, 0.17), (0, 1.26, 0.45)], 'team', 0.015, 2))
+body.append(beam('cutwater', (0, 1.31, 0.7), (0, 1.13, 0.17), 0.05, 0.04, 'metal', side=(1, 0, 0), bevel=0.006))
+for sx in (-1, 1):
+    body += rivet_row(f'prowr{sx}', (sx * 0.34, 1.01, 0.755), (sx * 0.06, 1.25, 0.715), 4, 0.016)
+    body.append(cyl(f'rail{sx}', (sx * 0.37, 0.9, 0.82), (sx * 0.37, -0.3, 0.82), 0.014, 'mech', 6, bevel=0))
+    for k in range(4):
+        y = 0.86 - k * 0.38
+        body.append(cyl(f'railp{sx}{k}', (sx * 0.37, y, 0.74), (sx * 0.37, y, 0.82), 0.012, 'mech', 6, bevel=0))
 body.append(box('deck', (0, 0.0, 0.73), (0.76, 1.6, 0.03), 'hull_dark', 0.01, 1))
 for sx in (-1, 1):
-    body.append(cyl(f'lamp{sx}', (sx * 0.24, 1.08, 0.6), (sx * 0.24, 1.14, 0.6), 0.04, 'glow', 8, bevel=0))
-    body.append(cyl(f'lamph{sx}', (sx * 0.24, 1.04, 0.6), (sx * 0.24, 1.1, 0.6), 0.055, 'mech', 8, bevel=0))
+    body.append(cyl(f'lamp{sx}', (sx * 0.22, 1.09, 0.6), (sx * 0.22, 1.15, 0.6), 0.04, 'glow', 8, bevel=0))
+    body.append(cyl(f'lamph{sx}', (sx * 0.22, 1.05, 0.6), (sx * 0.22, 1.11, 0.6), 0.055, 'mech', 8, bevel=0))
 # Engine deck at the back: a team hatch, grille and a tall snorkel stack
 body.append(box('hatch', (-0.16, -0.58, 0.77), (0.32, 0.4, 0.06), 'team', 0.012, 1))
 body += rivet_row('hr', (-0.3, -0.42, 0.8), (-0.02, -0.42, 0.8), 3, 0.015)
