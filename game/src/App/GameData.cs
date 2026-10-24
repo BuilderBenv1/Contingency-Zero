@@ -53,7 +53,12 @@ public static class GameData
     /// <summary>Built-in skirmish maps in a sensible order, then the player's own maps.</summary>
     public static List<MapEntry> Maps()
     {
-        string[] order = { "proving_grounds", "ashfall_plains", "twin_rivers", "crater_basin", "coastal_divide", "frostline" };
+        string[] order =
+        {
+            "proving_grounds", "ashfall_plains", "twin_rivers", "crater_basin", "coastal_divide", "frostline",
+            "glacier_gorge", "the_boneyard", "frozen_mere", "tablelands", "sandriver_valley", "shoal_chain",
+            "ember_rift", "grand_continent",
+        };
         var list = new List<MapEntry>();
         var builtIn = EmbeddedUnder("data/maps/").ToList();
         foreach (string key in order.Concat(builtIn.Select(p => Path.GetFileNameWithoutExtension(p) ?? "")).Where(k => k.Length > 0).Distinct())
