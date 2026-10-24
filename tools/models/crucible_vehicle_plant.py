@@ -63,6 +63,7 @@ for i in range(TEETH):
     for k in range(8):
         x = -9.45 + k * 2.7
         body.append(box(f'pane{i}{k}', (x, y1 + 0.03, WH + 1.75), (2.3, 0.08, 2.1), 'glow_dim', 0, 1))
+    body.append(box(f'ridgel{i}', (0, y1 - 0.12, WH + 3.13), (21.6, 0.2, 0.06), 'glow_dim', 0, 1))
     body.append(box(f'gutter{i}', (0, y0 + 0.15, WH + 0.55), (22.4, 0.3, 0.3), 'mech', 0, 1))
     # Riveted ridge and dark seams down the slopes.
     body += studs(f'rr{i}', (-10.5, y1 - 0.25, WH + 3.0), (10.5, y1 - 0.25, WH + 3.0), 8, 'metal', 0.13)
