@@ -224,7 +224,11 @@ internal static class EconomySystem
         {
             int frame = w.Frame;
             if (!units.Alive[frame] || units.Complete[frame]) continue;
-            if (units.BuildProgress[frame] < catalog[units.TypeIndex[frame]].BuildTime) continue;
+            // Done when within 0.1% of the build time: fixed-point rounding while stalled can
+            // otherwise leave a frame a hair short of finished forever, showing 100%.
+            Fix64 buildTime = catalog[units.TypeIndex[frame]].BuildTime;
+            if (buildTime - units.BuildProgress[frame] > buildTime / 1000) continue;
+            units.BuildProgress[frame] = buildTime;
             world.OnCompleted(frame);
             world.Events.Add(new GameEvent(GameEventType.BuildComplete, frame, units.Owner[frame], Position: units.Position[frame]));
             // Mobile units are counted when their factory releases them.

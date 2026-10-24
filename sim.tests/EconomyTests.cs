@@ -194,4 +194,26 @@ public class EconomyTests
         for (int i = 0; i < 10 * World.TicksPerSecond; i++) world.Step();
         Assert.True(p.Metal - made < Fix64.Parse("0.01"), "makers kept converting below the reserve");
     }
+
+    [Fact]
+    public void A_frame_a_hair_short_of_done_finishes_even_while_stalled()
+    {
+        // Regression: while stalled, fixed-point rounding could leave a frame one step short of
+        // its build time forever, showing 100% but never completing.
+        World world = Flat(0, 0);
+        int cmdr = world.SpawnUnit("lattice_commander", 0, At(40, 40));
+        world.Step(new[] { Build(world, cmdr, "lattice_solar_collector", At(70, 40)) });
+        int frame = -1;
+        RunUntil(world, () =>
+        {
+            Order o = world.Units.CurrentOrder(cmdr);
+            if (o.Type == OrderType.Build && o.Target >= 0) frame = o.Target;
+            return frame >= 0;
+        }, 600);
+        Assert.True(frame >= 0);
+        Fix64 buildTime = world.Catalog[world.Units.TypeIndex[frame]].BuildTime;
+        world.Units.BuildProgress[frame] = buildTime - Fix64.FromRaw(1);
+        RunUntil(world, () => world.Units.Complete[frame], 60);
+        Assert.True(world.Units.Complete[frame], "the frame stuck just short of finished");
+    }
 }
