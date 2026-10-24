@@ -62,6 +62,7 @@ public partial class UnitView : Node3D
         _terrain = terrain;
         _viewerTeam = viewerTeam;
         _unitMaterial = new ShaderMaterial { Shader = new Shader { Code = UnitShader } };
+        _unitMaterial.SetShaderParameter("retro", RetroLook.Enabled);
         _frameMaterial = new ShaderMaterial { Shader = new Shader { Code = FrameShader } };
         Snapshot();
         Snapshot();
@@ -288,9 +289,12 @@ public partial class UnitView : Node3D
     public const string UnitShader = @"
 shader_type spatial;
 render_mode diffuse_lambert, specular_schlick_ggx;
+uniform bool retro = false;
+uniform bool plating = true;
 varying vec4 inst;
 varying vec3 lp;
-void vertex() { inst = INSTANCE_CUSTOM; lp = VERTEX; }
+varying vec3 ln;
+void vertex() { inst = INSTANCE_CUSTOM; lp = VERTEX; ln = NORMAL; }
 // Note: the Compatibility renderer lights in display (sRGB) space, so colours are used as authored.
 float h3(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
 float n3(vec3 x) {
@@ -298,12 +302,27 @@ float n3(vec3 x) {
     return mix(mix(mix(h3(i), h3(i + vec3(1, 0, 0)), f.x), mix(h3(i + vec3(0, 1, 0)), h3(i + vec3(1, 1, 0)), f.x), f.y),
                mix(mix(h3(i + vec3(0, 0, 1)), h3(i + vec3(1, 0, 1)), f.x), mix(h3(i + vec3(0, 1, 1)), h3(i + vec3(1, 1, 1)), f.x), f.y), f.z);
 }
+// Old-school pixel texture: the hull projected onto its facing plane in 4-texel-per-unit
+// blocks, with plating seams (dark line, lit line beside it), rivets at the panel corners and
+// per-texel noise, the way a 1997 sprite artist would have painted it.
+float panels(vec3 p, vec3 n, out float rivet) {
+    vec3 an = abs(n);
+    vec2 uv = an.y > an.x && an.y > an.z ? p.xz : (an.x > an.z ? p.zy : p.xy);
+    const float T = 4.0;
+    vec2 t = floor(uv * T);
+    vec2 size = vec2(12.0, 8.0);
+    vec2 cell = mod(t, size);
+    float seam = (cell.x < 0.5 || cell.y < 0.5) ? -1.0 : ((cell.x < 1.5 || cell.y < 1.5) ? 0.6 : 0.0);
+    rivet = (cell.x > 0.5 && cell.x < 1.5 && cell.y > 0.5 && cell.y < 1.5) ? 1.0 : 0.0;
+    return seam;
+}
 void fragment() {
     vec3 base = COLOR.rgb;
     float a = COLOR.a;
+    vec3 sp = retro ? floor(lp * 4.0) / 4.0 : lp;
     // Grime fixed to the model: blotchy dirt, fine scratches, dust settling on the lower parts.
-    float g = n3(lp * 1.3) * 0.6 + n3(lp * 4.7) * 0.4;
-    float speck = n3(lp * 11.0 + 3.0);
+    float g = n3(sp * 1.3) * 0.6 + n3(sp * 4.7) * 0.4;
+    float speck = n3(sp * 11.0 + 3.0);
     float dirt = clamp((g - 0.35) * 1.5, 0.0, 1.0);
     float low = 1.0 - smoothstep(0.0, 2.5, lp.y);
     vec3 col;
@@ -326,6 +345,15 @@ void fragment() {
         col = mix(col, vec3(0.27, 0.24, 0.2), dirt * 0.25 + low * 0.15);
         col *= 0.9 + 0.14 * speck;
         rough = 0.4 + 0.5 * dirt;
+    }
+    if (retro && plating) {
+        float rivet;
+        float seam = panels(lp, ln, rivet);
+        if (a < 0.25 || a >= 0.75) {
+            col *= seam < 0.0 ? 0.68 : (1.0 + 0.12 * seam);
+            col = mix(col, col * 1.35 + 0.03, rivet * 0.8);
+            col *= 0.93 + 0.14 * h3(floor(lp * 4.0));
+        }
     }
     col = mix(col, vec3(1.0), inst.a * 0.55);
     ALBEDO = col;

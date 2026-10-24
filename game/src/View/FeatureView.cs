@@ -30,6 +30,8 @@ public partial class FeatureView : Node3D
         _terrain = terrain;
         _viewerTeam = viewerTeam;
         _material = new ShaderMaterial { Shader = new Shader { Code = UnitView.UnitShader } };
+        _material.SetShaderParameter("retro", RetroLook.Enabled);
+        _material.SetShaderParameter("plating", false);
         Rebuild();
     }
 

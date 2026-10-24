@@ -20,6 +20,8 @@ public sealed class Settings
     public int UiScalePercent { get; set; } = 100;
     /// <summary>Always show the controller button hints in a match (otherwise only while a pad is connected).</summary>
     public bool GamepadHints { get; set; } = false;
+    /// <summary>The old-school look: chunky pixels, a fixed palette and pixel-textured units and ground.</summary>
+    public bool RetroLook { get; set; } = false;
     public string PlayerName { get; set; } = "Commander";
     public string LastMap { get; set; } = "proving_grounds";
     public string LastFaction { get; set; } = "lattice";

@@ -230,6 +230,7 @@ public partial class TerrainView : Node3D
         _material = new ShaderMaterial { Shader = new Shader { Code = GroundShader } };
         _material.SetShaderParameter("fog_tex", _fogTexture);
         _material.SetShaderParameter("map_size", new Vector2(map.Width, map.Height));
+        _material.SetShaderParameter("retro", RetroLook.Enabled);
 
         _ground = new Node3D { Name = "Ground" };
         _chunks.Clear();
@@ -454,6 +455,7 @@ shader_type spatial;
 render_mode diffuse_lambert, specular_disabled;
 uniform sampler2D fog_tex : filter_linear;
 uniform vec2 map_size;
+uniform bool retro = false;
 varying vec3 world_pos;
 void vertex() { world_pos = VERTEX; }
 float h2(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
@@ -476,7 +478,38 @@ void fragment() {
     float dry = smoothstep(0.55, 0.78, n2(w * 0.035 + 7.0));
     vec3 c = COLOR.rgb * (0.7 + 0.55 * d);
     c = mix(c, mix(COLOR.rgb * 0.65, vec3(0.3, 0.26, 0.21), 0.5) * (0.85 + 0.3 * d), dry * 0.45);
-    c = mix(c, c * 0.62, stones * 0.6);
+    if (retro) {
+        // Painted-tile ground, the old way: everything snapped to 6 texels per unit, with
+        // pebbles lit from the top left (bright rim, dark shadow under), tufts on the green,
+        // and cracks through the dry patches.
+        vec2 t = floor(w * 6.0) / 6.0;
+        c = COLOR.rgb * (0.72 + 0.5 * (n2(t * 0.06) * 0.42 + n2(t * 0.23) * 0.28 + n2(t * 0.9) * 0.18 + n2(t * 3.1) * 0.12));
+        c = mix(c, mix(COLOR.rgb * 0.65, vec3(0.3, 0.26, 0.21), 0.5), dry * 0.45);
+        c *= 0.9 + 0.2 * h2(t * 6.0);
+        // Pebbles: at most one per 3.2-unit cell, thicker where the ground is stony.
+        vec2 pc = floor(w / 3.2);
+        vec2 off = vec2(h2(pc + 3.1), h2(pc + 7.7)) * 0.6 + 0.2;
+        float pr = 0.1 + 0.16 * h2(pc + 1.3) + 0.12 * step(0.85, h2(pc + 4.4));
+        vec2 dv = (t + 1.0 / 12.0) / 3.2 - pc - off;
+        float pd = length(dv * vec2(1.0, 1.3));
+        float has = step(0.93 - 0.5 * smoothstep(0.45, 0.85, n2(w * 0.05 + 5.0)), h2(pc + 9.9));
+        if (has > 0.5 && pd < pr) {
+            float lit = dot(normalize(dv + 1e-4), normalize(vec2(-1.0, -1.0)));
+            vec3 stone = mix(vec3(0.38, 0.36, 0.33), COLOR.rgb, 0.35);
+            c = stone * (0.75 + 0.45 * lit * smoothstep(0.3, 1.0, pd / pr));
+        } else if (has > 0.5 && pd < pr + 0.07 && dv.y > 0.0) {
+            c *= 0.55; // its shadow
+        }
+        // Grass tufts: short vertical strokes, dark under light.
+        float green = smoothstep(0.03, 0.12, COLOR.g - max(COLOR.r, COLOR.b));
+        vec2 gc = floor(w * vec2(6.0, 2.0));
+        if (green > 0.0 && h2(gc) > 0.965 - 0.03 * n2(w * 0.2)) c = mix(c, c * (fract(w.y * 2.0) < 0.5 ? 1.35 : 0.7), green);
+        // Cracks in the dry ground.
+        float crack = abs(n2(t * 0.7 + 21.0) - 0.5);
+        if (crack < 0.018 && dry > 0.55 && n2(w * 0.05 + 40.0) > 0.45) c *= 0.62;
+    } else {
+        c = mix(c, c * 0.62, stones * 0.6);
+    }
     ALBEDO = c * light;
     ROUGHNESS = 0.95;
 }";

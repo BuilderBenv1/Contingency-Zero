@@ -93,6 +93,7 @@ public partial class MatchScene : Node3D
         Effects = new EffectsView { Name = "Effects" };
         AddChild(Effects);
         AddChild(MakeVignette());
+        if (RetroLook.Enabled) AddChild(RetroLook.MakeLayer());
 
         // Start looking at our own Commander (or the middle when watching).
         Vector3 focus = new(world.Map.Width / 2f, 0, world.Map.Height / 2f);

@@ -46,6 +46,7 @@ public partial class DevAutomation : Node
     public override void _Ready()
     {
         _shots = Arg("--dev-shots");
+        if (Arg("--dev-retro") is { Length: > 0 } retro) View.RetroLook.Forced = retro != "0";
         double seconds = double.Parse(Arg("--dev-seconds", "20"), System.Globalization.CultureInfo.InvariantCulture);
         _quitAt = seconds;
         _shotTimes = Arg("--dev-shot-times", "").Split(',', StringSplitOptions.RemoveEmptyEntries)
