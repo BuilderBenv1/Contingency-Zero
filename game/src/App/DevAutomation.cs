@@ -126,6 +126,44 @@ public partial class DevAutomation : Node
             if (Arg("--dev-zoom") is { Length: > 0 } sz)
                 _match.Rig.SetZoom(float.Parse(sz, System.Globalization.CultureInfo.InvariantCulture));
         }
+        else if (_args.ContainsKey("--dev-parade"))
+        {
+            // Every unit and building of both factions lined up on Proving Grounds, idle and on
+            // the same team, for checking models in the game. Lattice rows north, Crucible south.
+            MapData map = GameData.Maps().First(m => m.Key == "proving_grounds").Load();
+            var spawns = new List<Spawn>();
+            var catalog = GameData.Catalog;
+            foreach (var (faction, owner) in new[] { ("lattice", 0), ("crucible", 1) })
+            {
+                var defs = catalog.All.Where(d => d.Faction == faction).OrderBy(d => d.Footprint).ThenBy(d => d.Id, StringComparer.Ordinal).ToList();
+                int x = 40;
+                foreach (var d in defs.Where(d => !d.IsStructure))
+                {
+                    spawns.Add(new Spawn(d.Id, owner, FixVec2.FromInts(x, owner == 0 ? 150 : 200)));
+                    x += 14;
+                }
+                x = 30;
+                foreach (var d in defs.Where(d => d.IsStructure))
+                {
+                    int half = d.Footprint * 4;
+                    spawns.Add(new Spawn(d.Id, owner, FixVec2.FromInts(x + half, owner == 0 ? 290 : 370)));
+                    x += half * 2 + 4;
+                }
+            }
+            var players = new List<PlayerSetup> { new("You", 0, "lattice", 0), new("Crucible", 1, "crucible", 0) };
+            var scenario = new Scenario(map, 2026, players, new MatchOptions(5000, 5000, RevealMap: true), spawns);
+            var session = new SimSession(scenario, GameData.Catalog, 0, new LocalChannel());
+            MatchScene.SuppressHints = true;
+            _match = root.StartMatch(session, MatchKind.Skirmish, "Parade", null);
+            for (int i = 0; i < 15; i++) session.World.Step();
+            _match.Units.Snapshot();
+            _match.Units.Snapshot();
+            var look = Arg("--dev-look", "200,175").Split(',');
+            _match.Rig.JumpTo(new Vector3(float.Parse(look[0], System.Globalization.CultureInfo.InvariantCulture), 0,
+                float.Parse(look[1], System.Globalization.CultureInfo.InvariantCulture)));
+            if (Arg("--dev-zoom") is { Length: > 0 } sz)
+                _match.Rig.SetZoom(float.Parse(sz, System.Globalization.CultureInfo.InvariantCulture));
+        }
         else if (_args.ContainsKey("--dev-replay"))
         {
             // Plays the newest saved replay, fast-forwarded by --dev-fastforward seconds.
