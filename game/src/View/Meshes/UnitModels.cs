@@ -153,6 +153,8 @@ public static class UnitModels
 
     private static UnitModel Build(UnitDef def)
     {
+        if (!def.IsStructure && CustomModels.TryLoad(def, Math.Max(0.5f, def.Radius.Raw / 65536f) * VisualScale(def.Role)) is { } custom)
+            return custom;
         Style style = Style.For(def.Faction);
         ModelRig rig = def.IsStructure
             ? ModelRig.ForStructure(def.Footprint)

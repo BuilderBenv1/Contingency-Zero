@@ -32,4 +32,8 @@ public sealed class UnitModel
 
     /// <summary>Local axis the rotor spins around.</summary>
     public Vector3 RotorAxis { get; init; }
+
+    /// <summary>Baked detail maps for hand-made models (R = occlusion, G = worn edges, B = grime); null for procedural ones.</summary>
+    public Texture2D? BodyDetail { get; init; }
+    public Texture2D? TurretDetail { get; init; }
 }

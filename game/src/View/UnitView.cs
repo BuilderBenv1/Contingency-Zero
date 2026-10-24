@@ -143,13 +143,27 @@ public partial class UnitView : Node3D
         b = new Batch
         {
             Model = model,
-            Body = Make(model.Body, _unitMaterial),
-            Turret = model.Turret is null ? null : Make(model.Turret, _unitMaterial),
+            Body = Make(model.Body, DetailMaterial(model.BodyDetail)),
+            Turret = model.Turret is null ? null : Make(model.Turret, DetailMaterial(model.TurretDetail)),
             Rotor = model.Rotor is null ? null : Make(model.Rotor, _unitMaterial),
             Frame = Make(model.Body, _frameMaterial),
         };
         _batches[type] = b;
         return b;
+    }
+
+    private readonly Dictionary<Texture2D, ShaderMaterial> _detailMaterials = new();
+
+    /// <summary>The unit material, or a copy of it carrying a hand-made model's baked detail map.</summary>
+    private ShaderMaterial DetailMaterial(Texture2D? detail)
+    {
+        if (detail is null) return _unitMaterial;
+        if (_detailMaterials.TryGetValue(detail, out var m)) return m;
+        m = (ShaderMaterial)_unitMaterial.Duplicate();
+        m.SetShaderParameter("detail_tex", detail);
+        m.SetShaderParameter("detailed", true);
+        _detailMaterials[detail] = m;
+        return m;
     }
 
     private static void Ensure(MultiMesh mm, int needed) => MultiMeshUtil.Ensure(mm, needed);
@@ -292,13 +306,16 @@ shader_type spatial;
 render_mode diffuse_lambert, specular_schlick_ggx;
 uniform bool retro = false;
 uniform bool plating = true;
+uniform bool detailed = false;
+uniform sampler2D detail_tex : filter_linear_mipmap;
 uniform bool hull_textured = false;
 uniform sampler2D hull_tex : filter_linear_mipmap, repeat_enable;
 uniform vec3 hull_avg = vec3(0.5, 0.1, 0.16);
 varying vec4 inst;
 varying vec3 lp;
 varying vec3 ln;
-void vertex() { inst = INSTANCE_CUSTOM; lp = VERTEX; ln = NORMAL; }
+varying vec2 duv;
+void vertex() { inst = INSTANCE_CUSTOM; lp = VERTEX; ln = NORMAL; duv = UV; }
 // Note: the Compatibility renderer lights in display (sRGB) space, so colours are used as authored.
 float h3(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
 float n3(vec3 x) {
@@ -350,7 +367,33 @@ void fragment() {
         col *= 0.9 + 0.14 * speck;
         rough = 0.4 + 0.5 * dirt;
     }
-    if (retro && plating) {
+    if (detailed && a >= 0.25 && a < 0.75) {
+        // Lights on a hand-made model: leave them bright.
+    } else if (detailed) {
+        // Hand-made model: its baked maps replace the procedural seams and blotches. Occlusion
+        // darkens creases, worn edges catch the light (team paint chips to bare steel there),
+        // and grime collects low down and in corners.
+        vec3 d = texture(detail_tex, duv).rgb;
+        float ao = mix(0.32, 1.0, d.r);
+        vec3 steel = vec3(0.5, 0.48, 0.45);
+        if (a < 0.25) {
+            float lum = dot(base, vec3(0.333));
+            col = mix(inst.rgb, vec3(dot(inst.rgb, vec3(0.333))), 0.25) * (0.35 + 0.65 * lum);
+            col = mix(col, steel, smoothstep(0.35, 0.8, d.g) * 0.75);
+        } else {
+            col = base * (1.0 + 0.6 * d.g);
+        }
+        col = mix(col, vec3(0.2, 0.16, 0.12), d.b * 0.55);
+        col *= ao;
+        rough = 0.5 + 0.35 * d.b - 0.25 * d.g;
+        if (hull_textured) {
+            vec3 an = abs(ln);
+            vec2 uv = (an.y > an.x && an.y > an.z ? lp.xz : (an.x > an.z ? lp.zy : lp.xy)) / 3.5;
+            vec3 h = texture(hull_tex, uv).rgb;
+            col *= mix(1.0, h.r / hull_avg.r, 0.25);
+            col = mix(col, vec3(0.36, 0.2, 0.11) * (0.7 + 0.6 * h.b), h.g * (a < 0.25 ? 0.5 : 0.2));
+        }
+    } else if (retro && plating) {
         float rivet;
         float seam = panels(lp, ln, rivet);
         if (a < 0.25 || a >= 0.75) {
