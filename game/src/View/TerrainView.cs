@@ -551,30 +551,79 @@ void fragment() {
         return root;
     }
 
+    /// <summary>Metal deposits as dark, ragged patches of ore grit sitting on the ground, like
+    /// TA's: no rings or glow, you spot them by looking. Each patch is a small grid draped over
+    /// the terrain so it hugs slopes; the shader breaks its outline up per spot.</summary>
     private Node3D BuildMetalSpots(MapData map)
     {
-        var disc = new CylinderMesh { TopRadius = 3.6f, BottomRadius = 3.6f, Height = 0.2f, RadialSegments = 12, Rings = 1 };
-        var mm = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, Mesh = disc, InstanceCount = map.MetalSpots.Count };
+        var mat = new ShaderMaterial { Shader = new Shader { Code = SpotShader } };
+        return new MeshInstance3D { Mesh = MetalSpotMesh(map, HeightAt), MaterialOverride = mat, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off, Name = "MetalSpots" };
+    }
+
+    /// <summary>The ore patch mesh for every metal spot, draped over the ground given by heightAt.
+    /// The map editor rebuilds it as spots move or the ground is sculpted.</summary>
+    public static ArrayMesh MetalSpotMesh(MapData map, Func<float, float, float> heightAt)
+    {
+        if (map.MetalSpots.Count == 0) return new ArrayMesh();
+        const float R = 5.2f;
+        const int N = 8;
+        var st = new SurfaceTool();
+        st.Begin(Mesh.PrimitiveType.Triangles);
         for (int i = 0; i < map.MetalSpots.Count; i++)
         {
             var s = map.MetalSpots[i];
-            float x = s.Position.X.Raw / 65536f, z = s.Position.Y.Raw / 65536f;
-            mm.SetInstanceTransform(i, new Transform3D(Basis.Identity, new Vector3(x, HeightAt(x, z) + 0.08f, z)));
+            float cx = s.Position.X.Raw / 65536f, cz = s.Position.Y.Raw / 65536f;
+            var seed = new Vector2((i * 0.6180339f) % 1f * 37f, (i * 0.4142135f) % 1f * 53f);
+            Vector3 P(int gx, int gz)
+            {
+                float u = gx / (float)N * 2 - 1, v = gz / (float)N * 2 - 1;
+                float x = cx + u * R, z = cz + v * R;
+                return new Vector3(x, heightAt(x, z) + 0.07f, z);
+            }
+            void V(int gx, int gz)
+            {
+                st.SetUV(new Vector2(gx / (float)N * 2 - 1, gz / (float)N * 2 - 1));
+                st.SetUV2(seed);
+                st.SetNormal(Vector3.Up);
+                st.AddVertex(P(gx, gz));
+            }
+            for (int gz = 0; gz < N; gz++)
+            for (int gx = 0; gx < N; gx++)
+            {
+                V(gx, gz); V(gx + 1, gz); V(gx, gz + 1);
+                V(gx + 1, gz); V(gx + 1, gz + 1); V(gx, gz + 1);
+            }
         }
-        var mat = new ShaderMaterial { Shader = new Shader { Code = SpotShader } };
-        return new MultiMeshInstance3D { Multimesh = mm, MaterialOverride = mat, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off, Name = "MetalSpots" };
+        return st.Commit();
     }
 
     private const string SpotShader = @"
 shader_type spatial;
-render_mode unshaded;
-varying vec3 lp;
-void vertex() { lp = VERTEX; }
+render_mode blend_mix, depth_draw_never, cull_disabled;
+varying vec2 seed;
+void vertex() { seed = UV2; }
+float h(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float n(vec2 p) {
+    vec2 i = floor(p), f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+    return mix(mix(h(i), h(i + vec2(1, 0)), f.x), mix(h(i + vec2(0, 1)), h(i + vec2(1, 1)), f.x), f.y);
+}
 void fragment() {
-    float r = length(lp.xz) / 3.6;
-    float ring = smoothstep(0.7, 0.78, r) * (1.0 - smoothstep(0.9, 1.0, r));
-    float pulse = 0.5 + 0.5 * sin(TIME * 2.0);
-    vec3 core = vec3(0.12, 0.13, 0.15) + vec3(0.25, 0.35, 0.4) * (1.0 - r) * 0.5;
-    ALBEDO = mix(core, vec3(0.55, 0.85, 1.0) * (0.6 + 0.4 * pulse), ring);
+    vec2 uv = UV;
+    float wob = n(uv * 2.2 + seed) * 0.6 + n(uv * 5.0 + seed * 1.7) * 0.3;
+    float d = length(uv) + (wob - 0.45) * 0.55;
+    float blob = 1.0 - smoothstep(0.55, 0.95, d);
+    // Clumps of ore: a cluster of darker stones with a few cold metallic flecks.
+    vec2 cell = floor(uv * 9.0 + seed);
+    float stone = step(0.45, h(cell)) * (1.0 - smoothstep(0.3, 0.5, length(fract(uv * 9.0 + seed) - 0.5)));
+    float fleck = step(0.93, h(floor(uv * 26.0 + seed * 3.0)));
+    float grit = n(uv * 14.0 + seed);
+    vec3 dirt = mix(vec3(0.11, 0.10, 0.09), vec3(0.20, 0.19, 0.17), grit);
+    vec3 col = mix(dirt, vec3(0.27, 0.27, 0.26), stone * 0.8);
+    col = mix(col, vec3(0.52, 0.53, 0.52), fleck * blob);
+    ALBEDO = col;
+    METALLIC = 0.35 + 0.4 * max(stone, fleck);
+    ROUGHNESS = 0.75 - 0.35 * fleck;
+    ALPHA = blob * (0.7 + 0.25 * stone);
 }";
 }

@@ -196,19 +196,14 @@ public partial class EditorTerrain : Node3D
         return false;
     }
 
-    /// <summary>Moves the game view's metal spot discs back onto the (re-sculpted) ground.</summary>
-    /// <remarks>Also follows spots being added or removed, so placing one doesn't need a full rebuild. Returns false if the discs weren't found.</remarks>
+    /// <summary>Redrapes the game view's metal ore patches over the (re-sculpted) ground.</summary>
+    /// <remarks>Also follows spots being added or removed, so placing one doesn't need a full rebuild. Returns false if the patches weren't found.</remarks>
     public bool RefreshMetalDiscs()
     {
         foreach (Node child in _view.GetChildren())
         {
-            if (child.IsQueuedForDeletion() || child is not MultiMeshInstance3D { Multimesh: { } mm }) continue;
-            if (mm.InstanceCount != Map.MetalSpots.Count) mm.InstanceCount = Map.MetalSpots.Count;
-            for (int i = 0; i < mm.InstanceCount; i++)
-            {
-                Vector2 p = MapEdits.ToVec(Map.MetalSpots[i].Position);
-                mm.SetInstanceTransform(i, new Transform3D(Basis.Identity, new Vector3(p.X, HeightAt(p.X, p.Y) + 0.08f, p.Y)));
-            }
+            if (child.IsQueuedForDeletion() || child is not MeshInstance3D { Name: var n } mi || n != "MetalSpots") continue;
+            mi.Mesh = TerrainView.MetalSpotMesh(Map, HeightAt);
             return true;
         }
         return false;

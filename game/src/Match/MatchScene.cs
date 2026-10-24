@@ -128,7 +128,7 @@ public partial class MatchScene : Node3D
             }
             else if ((kind == MatchKind.Skirmish || kind == MatchKind.Multiplayer) && !SuppressHints && session.LocalPlayer >= 0)
             {
-                Hud.Post("Build metal extractors on the glowing spots, then energy, then a factory.", UiTheme.Accent, 12);
+                Hud.Post("Build metal extractors on the dark patches of metal ore, then energy, then a factory.", UiTheme.Accent, 12);
                 Hud.Post("Destroy the enemy Commander to win. Keep yours alive.", UiTheme.Accent, 12);
             }
         }

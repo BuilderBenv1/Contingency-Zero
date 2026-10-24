@@ -92,10 +92,11 @@ public partial class Minimap : Control
         foreach (MetalSpot s in map.MetalSpots)
         {
             int x = (int)(s.Position.X.Raw / 65536f / map.Width * w), y = (int)(s.Position.Y.Raw / 65536f / map.Height * h);
+            // A small dark smudge, like the patch on the ground, not a bright marker.
             for (int dy = -1; dy <= 1; dy++)
             for (int dx = -1; dx <= 1; dx++)
-                if (x + dx >= 0 && y + dy >= 0 && x + dx < w && y + dy < h)
-                    img.SetPixel(x + dx, y + dy, new Color(0.65f, 0.9f, 1f));
+                if (Math.Abs(dx) + Math.Abs(dy) < 2 && x + dx >= 0 && y + dy >= 0 && x + dx < w && y + dy < h)
+                    img.SetPixel(x + dx, y + dy, img.GetPixel(x + dx, y + dy).Darkened(0.45f));
         }
         return img;
     }

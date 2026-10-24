@@ -116,7 +116,7 @@ A attack / attack-move · S stop · M move · P patrol · G guard · R reclaim �
 Factories: left click a unit to queue it (shift +5), right click to remove one.
 
 [b]Economy[/b]   Metal and energy flow continuously. Everything being built draws from the flow; if you can't cover it, everything slows down (a stall).
-Metal extractors go on the glowing metal spots. Solar collectors and wind turbines make energy. Storage stops surplus going to waste.
+Metal extractors go on the dark patches of metal ore. Solar collectors and wind turbines make energy. Storage stops surplus going to waste.
 Wrecks, rocks and trees can be reclaimed by builders for metal and energy: winning a fight pays twice.
 
 [b]Winning[/b]   Destroy the enemy Commander. Lose yours and you lose the match.

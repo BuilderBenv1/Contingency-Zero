@@ -13,7 +13,7 @@ Your first match
 1. Main menu > Skirmish. Pick a map (Proving Grounds is small and quick),
    your faction, and one computer opponent on Easy. Press Start.
 2. Your Commander is selected with the Home key. Its build menu is on the right.
-3. Build Metal Extractors on the glowing metal spots near your base,
+3. Build Metal Extractors on the dark patches of metal ore near your base,
    then Solar Collectors (or Wind Turbines on windy maps) for energy,
    then a Bot Lab or Vehicle Plant.
 4. Select the factory and left-click units to queue them (shift-click adds 5).

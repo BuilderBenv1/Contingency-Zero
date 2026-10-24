@@ -25,7 +25,7 @@
   "startEnergy": 1000,
   "spawnCommanders": true,
   "messages": [
-    "Forgemaster awake. The furnaces want metal: Metal Extractors on the glowing deposits.",
+    "Forgemaster awake. The furnaces want metal: Metal Extractors on the dark ore deposits.",
     "Then power. Solar Collectors burn steady; Wind Turbines are cheap and moody.",
     "Ore flowing. Raise a factory. A Vehicle Plant makes Anvils.",
     "Factory hot. Anvils are slow, but they do not break.",
