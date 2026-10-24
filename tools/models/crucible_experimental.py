@@ -76,9 +76,11 @@ for sx in A.SIDES:
 for sy in (-1, 1):
     body.append(hull_from(f'hend{sy}', [(0.4, HY + sy * 0.24, 0.78), (-0.4, HY + sy * 0.24, 0.78), (0.46, HY + sy * 0.27, 1.02), (-0.46, HY + sy * 0.27, 1.02),
                                         (0.4, HY + sy * 0.2, 0.78), (-0.4, HY + sy * 0.2, 0.78), (0.46, HY + sy * 0.23, 1.02), (-0.46, HY + sy * 0.23, 1.02)], 'team_dark', bevel=0.008))
-body.append(box('hrim', (0, HY, 1.03), (0.96, 0.56, 0.02), 'hull_dark', 0.004, 1))
-body.append(box('hrimhole', (0, HY, 1.035), (0.84, 0.44, 0.02), 'mech', 0, 1))
-body.append(box('slag', (0, HY, 0.93), (0.8, 0.42, 0.04), 'glow_dim', 0, 1))
+for sx in A.SIDES:
+    body.append(box(f'hrimx{sx}', (sx * 0.45, HY, 1.03), (0.06, 0.56, 0.025), 'hull_dark', 0.004, 1))
+    body.append(box(f'hrimy{sx}', (0, HY + sx * 0.255, 1.03), (0.96, 0.05, 0.025), 'hull_dark', 0.004, 1))
+body.append(box('slag', (0, HY, 0.93), (0.8, 0.42, 0.04), 'glow', 0, 1))
+body.append(box('slagcrust', (0.12, HY - 0.08, 0.955), (0.3, 0.16, 0.02), 'mech', 0.006, 1))
 for i, (x, y, rx, rz, s) in enumerate(((-0.2, -0.05, 0.5, 0.3, 1.0), (0.18, 0.05, -0.4, 0.8, 0.9), (0.02, -0.1, 1.1, 0.2, 1.2),
                                        (-0.28, 0.1, 0.3, 1.4, 0.8), (0.27, -0.1, 0.9, 2.0, 1.0), (0.05, 0.12, 0.2, 2.6, 0.9))):
     c = (x, HY + y, 0.98)
