@@ -46,7 +46,7 @@ Download the latest build from **[Releases](https://github.com/BuilderBenv1/Cont
   - **Crucible:** tougher and better at salvage.
 - **43 units and structures per faction** across land, sea and air, up to experimentals.
 
-All 3D models, sound effects and music are generated in code; there are no asset files.
+All 3D models, sound effects and music are generated in code. The old-school look's ground and hull textures come from [ambientCG](https://ambientcg.com) (CC0), shrunk and prepared by `tools/textures.py`.
 
 ## Layout
 

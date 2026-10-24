@@ -63,6 +63,7 @@ public partial class UnitView : Node3D
         _viewerTeam = viewerTeam;
         _unitMaterial = new ShaderMaterial { Shader = new Shader { Code = UnitShader } };
         _unitMaterial.SetShaderParameter("retro", RetroLook.Enabled);
+        RetroLook.ApplyHullTexture(_unitMaterial);
         _frameMaterial = new ShaderMaterial { Shader = new Shader { Code = FrameShader } };
         Snapshot();
         Snapshot();
@@ -291,6 +292,9 @@ shader_type spatial;
 render_mode diffuse_lambert, specular_schlick_ggx;
 uniform bool retro = false;
 uniform bool plating = true;
+uniform bool hull_textured = false;
+uniform sampler2D hull_tex : filter_linear_mipmap, repeat_enable;
+uniform vec3 hull_avg = vec3(0.5, 0.1, 0.16);
 varying vec4 inst;
 varying vec3 lp;
 varying vec3 ln;
@@ -353,6 +357,16 @@ void fragment() {
             col *= seam < 0.0 ? 0.68 : (1.0 + 0.12 * seam);
             col = mix(col, col * 1.35 + 0.03, rivet * 0.8);
             col *= 0.93 + 0.14 * h3(floor(lp * 4.0));
+            if (hull_textured) {
+                // Photo detail on the plating (panel lines, rivets, rust streaks) and chipped
+                // paint showing rust through on team colours.
+                vec3 an = abs(ln);
+                vec2 uv = (an.y > an.x && an.y > an.z ? lp.xz : (an.x > an.z ? lp.zy : lp.xy)) / 3.5;
+                vec3 d = texture(hull_tex, uv).rgb;
+                col *= mix(1.0, d.r / hull_avg.r, 0.55) * mix(1.0, d.b / hull_avg.b, 0.25);
+                vec3 rustc = vec3(0.36, 0.2, 0.11) * (0.7 + 0.6 * d.b);
+                col = mix(col, rustc, d.g * (a < 0.25 ? 0.85 : 0.35));
+            }
         }
     }
     col = mix(col, vec3(1.0), inst.a * 0.55);

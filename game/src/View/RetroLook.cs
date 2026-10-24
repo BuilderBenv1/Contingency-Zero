@@ -27,6 +27,16 @@ public static class RetroLook
 
     private static ImageTexture? _lut;
 
+    /// <summary>Gives a unit-shader material the hull detail texture, when the old-school look is on.</summary>
+    public static void ApplyHullTexture(ShaderMaterial mat)
+    {
+        if (!Enabled || ResourceLoader.Load<Texture2D>("res://textures/hull_detail.png") is not { } tex) return;
+        mat.SetShaderParameter("hull_tex", tex);
+        Color a = TextureSet.HullAverage;
+        mat.SetShaderParameter("hull_avg", new Vector3(a.R, a.G, a.B));
+        mat.SetShaderParameter("hull_textured", true);
+    }
+
     /// <summary>A canvas layer that pixelates and palettises everything drawn beneath it (the 3D world).</summary>
     public static CanvasLayer MakeLayer()
     {
@@ -64,7 +74,8 @@ public static class RetroLook
         Ramp(0.20f, 0.45f, 10, 0.06f, 0.75f);      // olive
         Ramp(0.28f, 0.45f, 8, 0.06f, 0.70f);       // grass
         Ramp(0.03f, 0.60f, 8, 0.08f, 0.75f);       // rust
-        Ramp(0.60f, 0.55f, 8, 0.10f, 0.95f);       // team blue
+        Ramp(0.60f, 0.55f, 10, 0.10f, 0.95f);      // team blue
+        Ramp(0.59f, 0.32f, 8, 0.15f, 0.85f);       // steel blue (worn blue paint)
         Ramp(0.00f, 0.70f, 8, 0.10f, 0.95f);       // team red
         Ramp(0.33f, 0.55f, 5, 0.15f, 0.90f);       // team green
         Ramp(0.14f, 0.75f, 6, 0.30f, 1.00f);       // yellow

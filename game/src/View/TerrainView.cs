@@ -74,6 +74,22 @@ public partial class TerrainView : Node3D
     }
 
     /// <summary>
+    /// How much of each ground texture (shore, low ground, high ground, cliff rock) shows at a
+    /// corner, summing to 1. They follow the same bands as <see cref="GroundColour"/>.
+    /// </summary>
+    public static (Vector2 A, Vector2 B) GroundWeights(ColourBands b, float h, Vector3 normal)
+    {
+        float t = Mathf.Clamp((h - b.Baseline) / b.Range, 0, 1);
+        float shore = b.HasWater ? Mathf.Clamp(1 - (h - b.Water) / 2.5f, 0, 1) : 0;
+        float high = Mathf.SmoothStep(0.3f, 0.8f, t);
+        float low = (1 - high) * (1 - shore);
+        high *= 1 - shore;
+        float rock = Mathf.Clamp((1 - normal.Y) * 6f, 0, 1);
+        float keep = 1 - rock;
+        return (new Vector2(shore * keep, low * keep), new Vector2(high * keep, rock));
+    }
+
+    /// <summary>
     /// The battlefield's light for a theme, shared by matches and the map editor. The
     /// Compatibility renderer lights in display space, so a linear tonemap keeps colours as authored.
     /// </summary>
@@ -185,6 +201,7 @@ public partial class TerrainView : Node3D
     private int _chunksX, _chunksY;
     private Vector3[] _normals = Array.Empty<Vector3>();
     private Color[] _colours = Array.Empty<Color>();
+    private Vector2[] _weightsA = Array.Empty<Vector2>(), _weightsB = Array.Empty<Vector2>();
     private float[] _scorch = Array.Empty<float>();
     /// <summary>The ground as the match began, so craters can be coloured by how deep they were dug.</summary>
     private float[] _original = Array.Empty<float>();
@@ -221,6 +238,8 @@ public partial class TerrainView : Node3D
         _bands = ColourBands.For(min, max, water);
         _normals = new Vector3[vx * vy];
         _colours = new Color[vx * vy];
+        _weightsA = new Vector2[vx * vy];
+        _weightsB = new Vector2[vx * vy];
         RecomputeCorners(0, 0, map.TilesX, map.TilesY);
 
         _fogImage = Image.CreateEmpty(map.TilesX, map.TilesY, false, Image.Format.Rg8);
@@ -231,6 +250,7 @@ public partial class TerrainView : Node3D
         _material.SetShaderParameter("fog_tex", _fogTexture);
         _material.SetShaderParameter("map_size", new Vector2(map.Width, map.Height));
         _material.SetShaderParameter("retro", RetroLook.Enabled);
+        ApplyGroundTextures(_material, map.Theme);
 
         _ground = new Node3D { Name = "Ground" };
         _chunks.Clear();
@@ -280,6 +300,7 @@ public partial class TerrainView : Node3D
                 c = c.Lerp(new Color(0.09f, 0.08f, 0.07f), Mathf.Min(0.8f, sc * 0.85f));
             }
             _colours[i] = c;
+            (_weightsA[i], _weightsB[i]) = GroundWeights(_bands, h, n);
         }
     }
 
@@ -293,6 +314,7 @@ public partial class TerrainView : Node3D
         var normals = new Vector3[cw * ch];
         var colours = new Color[cw * ch];
         var uvs = new Vector2[cw * ch];
+        var uv2s = new Vector2[cw * ch];
         for (int y = 0; y < ch; y++)
         for (int x = 0; x < cw; x++)
         {
@@ -301,7 +323,8 @@ public partial class TerrainView : Node3D
             verts[li] = new Vector3(gx * MapData.TileSize, _heights[gi], gy * MapData.TileSize);
             normals[li] = _normals[gi];
             colours[li] = _colours[gi];
-            uvs[li] = new Vector2((float)gx / Map.TilesX, (float)gy / Map.TilesY);
+            uvs[li] = _weightsA[gi];
+            uv2s[li] = _weightsB[gi];
         }
         var indices = new int[tw * th * 6];
         int k = 0;
@@ -314,13 +337,14 @@ public partial class TerrainView : Node3D
         }
         // Dispose the native copies at once: a stroke or a bombing run makes many of them.
         using Variant vVerts = Variant.CreateFrom(verts), vNormals = Variant.CreateFrom(normals),
-            vColours = Variant.CreateFrom(colours), vUvs = Variant.CreateFrom(uvs), vIndices = Variant.CreateFrom(indices);
+            vColours = Variant.CreateFrom(colours), vUvs = Variant.CreateFrom(uvs), vUv2s = Variant.CreateFrom(uv2s), vIndices = Variant.CreateFrom(indices);
         using var arrays = new Godot.Collections.Array();
         arrays.Resize((int)Mesh.ArrayType.Max);
         arrays[(int)Mesh.ArrayType.Vertex] = vVerts;
         arrays[(int)Mesh.ArrayType.Normal] = vNormals;
         arrays[(int)Mesh.ArrayType.Color] = vColours;
         arrays[(int)Mesh.ArrayType.TexUV] = vUvs;
+        arrays[(int)Mesh.ArrayType.TexUV2] = vUv2s;
         arrays[(int)Mesh.ArrayType.Index] = vIndices;
         MeshInstance3D mi = _chunks[cy * _chunksX + cx];
         if (mi.Mesh is ArrayMesh existing)
@@ -456,8 +480,26 @@ render_mode diffuse_lambert, specular_disabled;
 uniform sampler2D fog_tex : filter_linear;
 uniform vec2 map_size;
 uniform bool retro = false;
+uniform bool textured = false;
+uniform sampler2D tex_shore : source_color, filter_linear_mipmap, repeat_enable;
+uniform sampler2D tex_low : source_color, filter_linear_mipmap, repeat_enable;
+uniform sampler2D tex_high : source_color, filter_linear_mipmap, repeat_enable;
+uniform sampler2D tex_rock : source_color, filter_linear_mipmap, repeat_enable;
+uniform vec3 avg_shore = vec3(0.5);
+uniform vec3 avg_low = vec3(0.5);
+uniform vec3 avg_high = vec3(0.5);
+uniform vec3 avg_rock = vec3(0.5);
+uniform float tile = 30.0;
 varying vec3 world_pos;
-void vertex() { world_pos = VERTEX; }
+varying vec4 wts;
+void vertex() { world_pos = VERTEX; wts = vec4(UV, UV2); }
+// One texture, sampled twice at unrelated scales and blended by slow noise, so the repeat
+// doesn't show as a grid.
+vec3 untiled(sampler2D t, vec2 p, float k) {
+    vec3 a = texture(t, p).rgb;
+    vec3 b = texture(t, p * 0.43 + vec2(0.37, 0.71)).rgb;
+    return mix(a, b, k);
+}
 float h2(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
 float n2(vec2 x) {
     vec2 i = floor(x); vec2 f = fract(x); f = f * f * (3.0 - 2.0 * f);
@@ -478,41 +520,40 @@ void fragment() {
     float dry = smoothstep(0.55, 0.78, n2(w * 0.035 + 7.0));
     vec3 c = COLOR.rgb * (0.7 + 0.55 * d);
     c = mix(c, mix(COLOR.rgb * 0.65, vec3(0.3, 0.26, 0.21), 0.5) * (0.85 + 0.3 * d), dry * 0.45);
-    if (retro) {
-        // Painted-tile ground, the old way: everything snapped to 6 texels per unit, with
-        // pebbles lit from the top left (bright rim, dark shadow under), tufts on the green,
-        // and cracks through the dry patches.
-        vec2 t = floor(w * 6.0) / 6.0;
-        c = COLOR.rgb * (0.72 + 0.5 * (n2(t * 0.06) * 0.42 + n2(t * 0.23) * 0.28 + n2(t * 0.9) * 0.18 + n2(t * 3.1) * 0.12));
-        c = mix(c, mix(COLOR.rgb * 0.65, vec3(0.3, 0.26, 0.21), 0.5), dry * 0.45);
-        c *= 0.9 + 0.2 * h2(t * 6.0);
-        // Pebbles: at most one per 3.2-unit cell, thicker where the ground is stony.
-        vec2 pc = floor(w / 3.2);
-        vec2 off = vec2(h2(pc + 3.1), h2(pc + 7.7)) * 0.6 + 0.2;
-        float pr = 0.1 + 0.16 * h2(pc + 1.3) + 0.12 * step(0.85, h2(pc + 4.4));
-        vec2 dv = (t + 1.0 / 12.0) / 3.2 - pc - off;
-        float pd = length(dv * vec2(1.0, 1.3));
-        float has = step(0.93 - 0.5 * smoothstep(0.45, 0.85, n2(w * 0.05 + 5.0)), h2(pc + 9.9));
-        if (has > 0.5 && pd < pr) {
-            float lit = dot(normalize(dv + 1e-4), normalize(vec2(-1.0, -1.0)));
-            vec3 stone = mix(vec3(0.38, 0.36, 0.33), COLOR.rgb, 0.35);
-            c = stone * (0.75 + 0.45 * lit * smoothstep(0.3, 1.0, pd / pr));
-        } else if (has > 0.5 && pd < pr + 0.07 && dv.y > 0.0) {
-            c *= 0.55; // its shadow
-        }
-        // Grass tufts: short vertical strokes, dark under light.
-        float green = smoothstep(0.03, 0.12, COLOR.g - max(COLOR.r, COLOR.b));
-        vec2 gc = floor(w * vec2(6.0, 2.0));
-        if (green > 0.0 && h2(gc) > 0.965 - 0.03 * n2(w * 0.2)) c = mix(c, c * (fract(w.y * 2.0) < 0.5 ? 1.35 : 0.7), green);
-        // Cracks in the dry ground.
-        float crack = abs(n2(t * 0.7 + 21.0) - 0.5);
-        if (crack < 0.018 && dry > 0.55 && n2(w * 0.05 + 40.0) > 0.45) c *= 0.62;
+    if (retro && textured) {
+        // Photo-sourced ground textures, as 1997 maps used, blended by height band and slope.
+        // The vertex colour still tints them toward the theme and carries craters and scorching.
+        vec4 k = wts / max(dot(wts, vec4(1.0)), 0.001);
+        float mixk = smoothstep(0.35, 0.65, n2(w * 0.021 + 3.0));
+        vec2 p = w / tile;
+        vec3 tex = untiled(tex_shore, p, mixk) * k.x + untiled(tex_low, p, mixk) * k.y
+                 + untiled(tex_high, p, mixk) * k.z
+                 + untiled(tex_rock, (w + world_pos.y * 0.8) / (tile * 0.8), mixk) * k.w;
+        vec3 av = avg_shore * k.x + avg_low * k.y + avg_high * k.z + avg_rock * k.w;
+        c = tex * mix(vec3(1.0), COLOR.rgb / max(av, vec3(0.05)), 0.7);
+        c *= 0.88 + 0.24 * n2(w * 0.05 + 11.0);
     } else {
         c = mix(c, c * 0.62, stones * 0.6);
     }
     ALBEDO = c * light;
     ROUGHNESS = 0.95;
 }";
+
+    /// <summary>Gives the ground shader the theme's texture set (shore, low, high, rock), when the old-school look is on.</summary>
+    public static void ApplyGroundTextures(ShaderMaterial mat, string theme)
+    {
+        if (!RetroLook.Enabled) return;
+        if (!TextureSet.GroundAverages.ContainsKey(theme)) theme = "temperate";
+        Color[] avg = TextureSet.GroundAverages[theme];
+        string[] slots = { "shore", "low", "high", "rock" };
+        for (int i = 0; i < 4; i++)
+        {
+            if (ResourceLoader.Load<Texture2D>($"res://textures/{theme}_{slots[i]}.png") is not { } tex) return;
+            mat.SetShaderParameter($"tex_{slots[i]}", tex);
+            mat.SetShaderParameter($"avg_{slots[i]}", new Vector3(avg[i].R, avg[i].G, avg[i].B));
+        }
+        mat.SetShaderParameter("textured", true);
+    }
 
     private Node3D BuildWater(MapData map, TerrainPalette pal)
     {

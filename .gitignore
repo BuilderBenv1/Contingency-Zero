@@ -10,3 +10,4 @@ obj/
 TestResults/
 mono_crash.*
 build/
+__pycache__/

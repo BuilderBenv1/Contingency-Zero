@@ -67,3 +67,7 @@ Replays      Every match can be saved and watched again.
 Your settings, maps, replays and campaign progress are kept in
   Windows: %APPDATA%\Godot\app_userdata\Contingency Zero\
   Linux:   ~/.local/share/godot/app_userdata/Contingency Zero/
+
+Credits
+-------
+Ground and hull textures: ambientCG.com (CC0 1.0).

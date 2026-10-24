@@ -46,6 +46,7 @@ public partial class EditorTerrain : Node3D
         public required Vector3[] Normals;
         public required Color[] Colours;
         public required Vector2[] Uvs;
+        public required Vector2[] Uv2s;
         public required int[] Indices;
         // Corner rectangle (map corners, inclusive) waiting to be recomputed; empty when x0 > x1.
         public int X0 = int.MaxValue, Y0 = int.MaxValue, X1 = int.MinValue, Y1 = int.MinValue;
@@ -294,7 +295,7 @@ public partial class EditorTerrain : Node3D
             else indices = Indices(tw, th);
             d = _data[index] = new ChunkData
             {
-                Verts = new Vector3[count], Normals = new Vector3[count], Colours = new Color[count], Uvs = new Vector2[count], Indices = indices,
+                Verts = new Vector3[count], Normals = new Vector3[count], Colours = new Color[count], Uvs = new Vector2[count], Uv2s = new Vector2[count], Indices = indices,
             };
             partial = false;
         }
@@ -316,9 +317,9 @@ public partial class EditorTerrain : Node3D
             int i = y * vw + x;
             float h = H(gx, gy);
             d.Verts[i] = new Vector3(gx * MapData.TileSize, h, gy * MapData.TileSize);
-            d.Uvs[i] = new Vector2((float)gx / map.TilesX, (float)gy / map.TilesY);
             var n = new Vector3(H(gx - 1, gy) - H(gx + 1, gy), 2 * MapData.TileSize, H(gx, gy - 1) - H(gx, gy + 1)).Normalized();
             d.Normals[i] = n;
+            (d.Uvs[i], d.Uv2s[i]) = TerrainView.GroundWeights(new TerrainView.ColourBands(_baseline, _range, _water, _hasWater), h, n);
             Color ground = GroundColour(gx, gy, h, n);
             d.Colours[i] = ShowPassability ? PassabilityColour(gx, gy, ground) : ground;
         }
@@ -326,13 +327,14 @@ public partial class EditorTerrain : Node3D
         // Dispose the variants and the array at once: they hold native copies of the vertex data that
         // the GC can't see, and a stroke makes many of them (left to the finaliser, memory balloons).
         using Variant vVerts = Variant.CreateFrom(d.Verts), vNormals = Variant.CreateFrom(d.Normals),
-            vColours = Variant.CreateFrom(d.Colours), vUvs = Variant.CreateFrom(d.Uvs), vIndices = Variant.CreateFrom(d.Indices);
+            vColours = Variant.CreateFrom(d.Colours), vUvs = Variant.CreateFrom(d.Uvs), vUv2s = Variant.CreateFrom(d.Uv2s), vIndices = Variant.CreateFrom(d.Indices);
         using var arrays = new Godot.Collections.Array();
         arrays.Resize((int)Mesh.ArrayType.Max);
         arrays[(int)Mesh.ArrayType.Vertex] = vVerts;
         arrays[(int)Mesh.ArrayType.Normal] = vNormals;
         arrays[(int)Mesh.ArrayType.Color] = vColours;
         arrays[(int)Mesh.ArrayType.TexUV] = vUvs;
+        arrays[(int)Mesh.ArrayType.TexUV2] = vUv2s;
         arrays[(int)Mesh.ArrayType.Index] = vIndices;
         MeshInstance3D mi = _chunks[index];
         if (mi.Mesh is ArrayMesh existing)
