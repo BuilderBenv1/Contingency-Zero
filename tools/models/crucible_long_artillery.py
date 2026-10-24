@@ -17,10 +17,10 @@ body += vp.crucible_tracks(0.5, 0.86, -1.08, 1.04, r_end=0.22, wheels=6, cleats=
 HW = 0.5
 body.append(box('tub', (0, -0.02, 0.3), (2 * HW, 2.04, 0.28), 'hull_dark', 0.02))
 upper = prism_x('upper', [(1.04, 0.34), (0.74, 0.6), (-0.96, 0.6), (-1.06, 0.52), (-1.06, 0.32), (1.04, 0.32)],
-                -0.62, 0.62, 'hull', 0.025, 2)
+                -0.62, 0.62, 'team', 0.025, 2)
 inset_panels(upper, 0.03, 0.01, lambda f: f.normal.z > 0.3 and f.calc_area() > 0.05)
 body.append(upper)
-body.append(prism_x('glacisplate', [(0.98, 0.39), (0.78, 0.585), (0.74, 0.6), (0.94, 0.405)], -0.44, 0.44, 'team', 0.006, 1))
+body.append(prism_x('glacisplate', [(0.98, 0.39), (0.78, 0.585), (0.74, 0.6), (0.94, 0.405)], -0.44, 0.44, 'team_dark', 0.006, 1))
 body += rivets('glrv', (-0.54, 0.84, 0.56), (0.54, 0.84, 0.56), 8, 'metal', 0.02)
 for sx in (-1, 1):
     body.append(cyl(f'lamp{sx}', (sx * 0.38, 1.0, 0.44), (sx * 0.38, 1.05, 0.44), 0.04, 'glow', 8, bevel=0))
@@ -50,7 +50,7 @@ case = hull_from('case', [P(-0.4, 0.44, 0.0), P(0.4, 0.44, 0.0), P(-0.4, -0.54, 
                           P(-0.34, 0.3, 0.42), P(0.34, 0.3, 0.42), P(-0.36, -0.5, 0.42), P(0.36, -0.5, 0.42)], 'team', 0.03, 2)
 inset_panels(case, 0.04, 0.012, lambda f: f.calc_area() > 0.06)
 tur.append(case)
-tur.append(box('caseroof', P(0, -0.12, 0.43), (0.56, 0.6, 0.03), 'hull', 0.01, 1))
+tur.append(box('caseroof', P(0, -0.12, 0.43), (0.56, 0.6, 0.03), 'team_dark', 0.01, 1))
 tur += rivets('crv1', P(-0.34, 0.31, 0.44), P(0.34, 0.31, 0.44), 6, 'metal', 0.02)
 tur += rivets('crv2', P(-0.34, -0.5, 0.44), P(0.34, -0.5, 0.44), 6, 'metal', 0.02)
 for sx in (-1, 1):
@@ -61,16 +61,16 @@ E = lambda d, dx=0.0, dz=0.0: vp.elevated((root[0] + dx, root[1], root[2] + dz),
 tur.append(box('mantlet', P(0, 0.44, 0.3), (0.36, 0.14, 0.3), 'hull_dark', 0.025))
 tur.append(cyl('sleeve', E(0.1), E(0.6), 0.16, 'team', 12, r2=0.15))
 tur.append(cyl('sleeveband', E(0.56), E(0.62), 0.165, 'mech', 12, bevel=0.004))
-tur.append(cyl('tube', E(0.6), E(1.9), 0.11, 'metal', 12, r2=0.1))
-tur.append(cyl('fume', E(1.0), E(1.18), 0.135, 'hull_dark', 12))
+tur.append(cyl('tube', E(0.6), E(2.2), 0.11, 'metal', 12, r2=0.095))
+tur.append(cyl('fume', E(1.1), E(1.3), 0.135, 'hull_dark', 12))
 for sx in (-1, 1):
     tur.append(cyl(f'recoil{sx}', E(0.1, sx * 0.16, -0.08), E(0.82, sx * 0.13, -0.08), 0.045, 'metal', 8))
     tur.append(cyl(f'recoilc{sx}', E(0.1, sx * 0.16, -0.08), E(0.4, sx * 0.15, -0.08), 0.06, 'mech', 8))
-tur.append(vp.beam('brake', E(1.88), E(2.14), 0.3, 0.22, 'mech', 0.02))
+tur.append(vp.beam('brake', E(2.16), E(2.42), 0.3, 0.22, 'mech', 0.02))
 for sx in (-1, 1):
     for k in range(2):
-        tur.append(vp.beam(f'bslot{sx}{k}', E(1.93 + k * 0.1, sx * 0.14), E(1.99 + k * 0.1, sx * 0.14), 0.04, 0.14, 'tread', 0.004))
-tur.append(cyl('bore', E(2.14), E(2.15), 0.06, 'tread', 10, bevel=0))
+        tur.append(vp.beam(f'bslot{sx}{k}', E(2.21 + k * 0.1, sx * 0.14), E(2.27 + k * 0.1, sx * 0.14), 0.04, 0.14, 'tread', 0.004))
+tur.append(cyl('bore', E(2.42), E(2.43), 0.06, 'tread', 10, bevel=0))
 # Shell hoist and ammo bins at the back, a commander's hatch.
 tur.append(box('hoist', P(0.24, -0.64, 0.24), (0.18, 0.16, 0.42), 'hull_dark', 0.015, 1))
 tur.append(box('hoistglow', P(0.24, -0.725, 0.26), (0.1, 0.008, 0.2), 'glow_dim', 0, 1))

@@ -17,8 +17,8 @@ HW, DECK, KEEL = 0.34, 0.15, -0.1
 body, secs = A.ship_hull(F, HW, DECK, KEEL)
 for sx in A.SIDES:
     # Armour belt along the waterline, studded with rivets.
-    body.append(box(f'belt{sx}', (sx * (HW + 0.01), -0.1, 0.05), (0.025, 1.6, 0.07), 'hull_dark', 0.006, 1))
-    body += rivets(f'br{sx}', (sx * (HW + 0.024), 0.62, 0.05), (sx * (HW + 0.024), -0.82, 0.05), 12, 'metal', 0.012)
+    body.append(box(f'belt{sx}', (sx * HW, -0.15, 0.085), (0.026, 1.5, 0.07), 'hull_dark', 0.006, 1))
+    body += rivets(f'br{sx}', (sx * (HW + 0.014), 0.52, 0.085), (sx * (HW + 0.014), -0.82, 0.085), 11, 'metal', 0.012)
     body += rivets(f'dr{sx}', (sx * HW * 0.82, 0.85, DECK + 0.004), (sx * HW * 0.82, -1.0, DECK + 0.004), 12, 'metal', 0.012)
 body.append(box('foredeck', (0, 0.88, DECK + 0.006), (0.3, 0.26, 0.012), 'team_dark', 0.004, 1))
 body.append(box('anchor', (0.18, 1.1, 0.1), (0.02, 0.07, 0.08), 'mech', 0.005, 1))
