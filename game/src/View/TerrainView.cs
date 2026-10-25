@@ -26,8 +26,8 @@ public partial class TerrainView : Node3D
 
     public static TerrainPalette PaletteFor(string theme) => theme switch
     {
-        "desert" => new TerrainPalette(new Color(0.66f, 0.57f, 0.43f), new Color(0.6f, 0.47f, 0.34f), new Color(0.52f, 0.39f, 0.29f),
-            new Color(0.62f, 0.54f, 0.44f), new Color(0.55f, 0.36f, 0.25f), new Color(0.2f, 0.42f, 0.5f, 0.75f), new Color(0.08f, 0.2f, 0.3f), false,
+        "desert" => new TerrainPalette(new Color(0.64f, 0.56f, 0.44f), new Color(0.56f, 0.47f, 0.37f), new Color(0.5f, 0.41f, 0.33f),
+            new Color(0.6f, 0.53f, 0.44f), new Color(0.52f, 0.4f, 0.3f), new Color(0.2f, 0.42f, 0.5f, 0.75f), new Color(0.08f, 0.2f, 0.3f), false,
             new Color(0.62f, 0.5f, 0.4f)),
         "lava" => new TerrainPalette(new Color(0.25f, 0.18f, 0.16f), new Color(0.24f, 0.22f, 0.22f), new Color(0.32f, 0.28f, 0.26f),
             new Color(0.45f, 0.4f, 0.38f), new Color(0.18f, 0.15f, 0.15f), new Color(1.0f, 0.38f, 0.05f, 0.95f), new Color(0.9f, 0.15f, 0.02f), true,
@@ -605,7 +605,13 @@ void fragment() {
     ALBEDO = c * light;
 }";
 
-    /// <summary>Gives the ground shader the theme's texture set (shore, low, high, rock), when the old-school look is on.</summary>
+    /// <summary>Per-theme ground shader tuning (tile size, band tint, normal depth); unset themes use the shader defaults.</summary>
+    private static readonly Dictionary<string, Vector3> GroundTune = new()
+    {
+        // Desert reads calmest with large, softly tinted tiles: the battle, not the ground, is busy.
+        ["desert"] = new Vector3(18f, 0.6f, 0.7f),
+    };
+
     /// <summary>Gives the ground shader the theme's texture set: colour and normal maps for shore, ground, patches, high ground and cliffs.</summary>
     public static void ApplyGroundTextures(ShaderMaterial mat, string theme)
     {
@@ -618,6 +624,12 @@ void fragment() {
             mat.SetShaderParameter($"tex_{slots[i]}", tex);
             mat.SetShaderParameter($"nrm_{slots[i]}", ResourceLoader.Load<Texture2D>($"res://textures/{theme}_{slots[i]}_n.png"));
             mat.SetShaderParameter($"avg_{slots[i]}", new Vector3(avg[i].R, avg[i].G, avg[i].B));
+        }
+        if (GroundTune.TryGetValue(theme, out Vector3 tune))
+        {
+            mat.SetShaderParameter("tile", tune.X);
+            mat.SetShaderParameter("tint", tune.Y);
+            mat.SetShaderParameter("bump", tune.Z);
         }
         mat.SetShaderParameter("textured", true);
     }
