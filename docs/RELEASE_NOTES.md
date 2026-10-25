@@ -1,6 +1,21 @@
-## Contingency Zero 1.2
+## Contingency Zero 1.3
 
-**New in 1.2**
+**New in 1.3**
+
+A new look:
+- **Every unit and building rebuilt as a proper 3D model:** all 86, both factions, from Commanders to experimental gantries. Real tracks and road wheels, riveted armour, cupolas, smokestacks, nano arms, spinning turbine blades and radar dishes, with baked shading, worn paint edges and grime.
+- **Old-school look, on by default:** the battlefield is drawn in chunky pixels with a 1997-style palette and dithering, while the menus and HUD stay sharp. Settings → "Old-school look" switches it off.
+- **Real ground textures:** each map theme (temperate, desert, arctic, lava) blends photo-sourced textures for shore, low ground, high ground and cliffs. Textures from ambientCG (CC0).
+- **Metal deposits** are now dark, ragged patches of ore on the ground instead of glowing rings.
+
+Maps:
+- **Eight new maps:** Glacier Gorge, The Boneyard, Frozen Mere, Tablelands, Sandriver Valley, Shoal Chain, Ember Rift and Grand Continent, for 2 to 8 players. Shoal Chain is a naval map; the computer doesn't use ships yet, so play it against friends.
+
+Fixes:
+- A building could get stuck at 100% and never finish while your economy was stalled. It now completes.
+
+
+### Earlier in 1.2
 
 The battlefield:
 - **Deformable terrain:** big explosions dig craters. Deep craters block vehicles but bots can still climb through.
@@ -47,7 +62,7 @@ No install, and nothing else to download. `HOW_TO_PLAY.txt` in the folder covers
 
 ### What's in it
 
-- **Skirmish** on six maps against up to seven computer players, at Easy, Normal, Hard or Brutal difficulty.
+- **Skirmish** on fourteen maps against up to seven computer players, at Easy, Normal, Hard or Brutal difficulty.
 - **Two campaigns** of five missions each, one for the Lattice and one for the Crucible.
 - **Multiplayer** over a LAN or by IP address, with computer players allowed in the same match.
 - **Map editor** for sculpting terrain and placing water, metal spots, trees, rocks and start positions. Your maps appear in Skirmish and Multiplayer.

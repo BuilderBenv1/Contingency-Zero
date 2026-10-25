@@ -13,7 +13,7 @@ Download the latest build from **[Releases](https://github.com/BuilderBenv1/Cont
 
 ## What's in the game
 
-- **Skirmish:** you against up to seven computer players on six maps, at four difficulties:
+- **Skirmish:** you against up to seven computer players on fourteen maps, at four difficulties:
   - **Easy:** one factory and slow attacks.
   - **Normal:** scouts, expands and attacks in waves.
   - **Hard:** a bigger economy, staged attack waves, and uses the Breach Cannon.
@@ -46,7 +46,7 @@ Download the latest build from **[Releases](https://github.com/BuilderBenv1/Cont
   - **Crucible:** tougher and better at salvage.
 - **43 units and structures per faction** across land, sea and air, up to experimentals.
 
-All 3D models, sound effects and music are generated in code. The old-school look's ground and hull textures come from [ambientCG](https://ambientcg.com) (CC0), shrunk and prepared by `tools/textures.py`.
+Sound effects and music are generated in code. Units and buildings are 3D models built by Blender scripts in `tools/models/` (`kit.py` plus one script per unit). The old-school look's ground and hull textures come from [ambientCG](https://ambientcg.com) (CC0), shrunk and prepared by `tools/textures.py`.
 
 ## Layout
 
