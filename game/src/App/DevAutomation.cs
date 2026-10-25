@@ -211,7 +211,8 @@ public partial class DevAutomation : Node
             if (_args.ContainsKey("--dev-ffa"))
                 for (int i = 2; i < map.StartPositions.Count; i++)
                     players.Add(new($"AI {i + 1}", i, i % 2 == 0 ? "lattice" : "crucible", i, AiDifficulty.Hard));
-            root.StartSkirmish(map, players, new MatchOptions(5000, 5000, RevealMap: _args.ContainsKey("--dev-reveal")));
+            root.StartSkirmish(map, players, new MatchOptions(5000, 5000, RevealMap: _args.ContainsKey("--dev-reveal")),
+                _args.TryGetValue("--dev-seed", out var seedTxt) && ulong.TryParse(seedTxt, out var seedVal) ? seedVal : 0);
             _match = root.GetNodeOrNull<MatchScene>("Match");
             int ff = int.Parse(Arg("--dev-fastforward", "0"));
             if (_match is not null && ff > 0)
