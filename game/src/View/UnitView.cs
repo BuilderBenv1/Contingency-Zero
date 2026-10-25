@@ -65,6 +65,14 @@ public partial class UnitView : Node3D
         _unitMaterial.SetShaderParameter("retro", RetroLook.Enabled);
         RetroLook.ApplyHullTexture(_unitMaterial);
         _frameMaterial = new ShaderMaterial { Shader = new Shader { Code = FrameShader } };
+        _shadows = MultiMeshUtil.Create(new PlaneMesh { Size = new Vector2(2, 2) }, 64);
+        AddChild(new MultiMeshInstance3D
+        {
+            Multimesh = _shadows,
+            MaterialOverride = new ShaderMaterial { Shader = new Shader { Code = ContactShadowShader } },
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+            Name = "ContactShadows",
+        });
         Snapshot();
         Snapshot();
     }
@@ -271,6 +279,8 @@ public partial class UnitView : Node3D
             VisibleUnits.Add((id, pos, b.Model.Radius, b.Model.Height));
         }
 
+        DrawContactShadows();
+
         foreach (var b in _batches.Values)
         {
             b.Body.VisibleInstanceCount = b.Count;
@@ -279,6 +289,47 @@ public partial class UnitView : Node3D
             b.Frame.VisibleInstanceCount = b.FrameCount;
         }
     }
+
+    private MultiMesh _shadows = null!;
+
+    /// <summary>
+    /// A soft dark footprint under every unit and building, so models sit in the ground rather
+    /// than on it. Rounded squares for buildings, discs for units; aircraft get a faint, wide one.
+    /// </summary>
+    private void DrawContactShadows()
+    {
+        MultiMeshUtil.Ensure(_shadows, VisibleUnits.Count);
+        int n = 0;
+        foreach (var (id, pos, radius, _) in VisibleUnits)
+        {
+            var def = _world.Catalog[_world.Units.TypeIndex[id]];
+            if (def.MoveClass == MoveClass.Ship) continue;
+            float ground = _terrain.HeightAt(pos.X, pos.Z);
+            float lift = Mathf.Max(0, pos.Y - ground);
+            float strength = def.IsAir ? 0.25f : Mathf.Clamp(1f - lift * 0.3f, 0, 1);
+            float size = def.IsStructure ? (def.Footprint * 4f + 0.6f) : radius * (def.IsAir ? 1.4f : 1.25f);
+            var basis = Basis.Identity.Scaled(new Vector3(size, 1, size));
+            _shadows.SetInstanceTransform(n, new Transform3D(basis, new Vector3(pos.X, ground + 0.06f, pos.Z)));
+            _shadows.SetInstanceCustomData(n, new Color(def.IsStructure ? 1 : 0, strength, 0, 0));
+            n++;
+        }
+        _shadows.VisibleInstanceCount = n;
+    }
+
+    // Rounded-square (buildings) or round (units) soft shadow; custom.r = squareness, custom.g = strength.
+    private const string ContactShadowShader = @"
+shader_type spatial;
+render_mode unshaded, blend_mix, depth_draw_never, cull_disabled, shadows_disabled;
+varying vec4 inst;
+void vertex() { inst = INSTANCE_CUSTOM; }
+void fragment() {
+    vec2 p = abs(UV * 2.0 - 1.0);
+    float sq = pow(pow(p.x, 6.0) + pow(p.y, 6.0), 1.0 / 6.0);
+    float d = mix(length(p), sq, inst.r);
+    float a = (1.0 - smoothstep(mix(0.2, 0.55, inst.r), 1.0, d)) * inst.g;
+    ALBEDO = vec3(0.02, 0.02, 0.015);
+    ALPHA = a * mix(0.7, 0.32, inst.r);
+}";
 
     private float TurretYaw(int id, Vector3 pos, float heading, float delta)
     {
