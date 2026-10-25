@@ -46,7 +46,7 @@ Download the latest build from **[Releases](https://github.com/BuilderBenv1/Cont
   - **Crucible:** tougher and better at salvage.
 - **43 units and structures per faction** across land, sea and air, up to experimentals.
 
-Sound effects and music are generated in code. Units and buildings are 3D models built by Blender scripts in `tools/models/` (`kit.py` plus one script per unit). The old-school look's ground and hull textures come from [ambientCG](https://ambientcg.com) (CC0), shrunk and prepared by `tools/textures.py`.
+Sound effects and music are generated in code. Units and buildings are 3D models built by Blender scripts in `tools/models/` (`kit.py` plus one script per unit). The old-school look's ground and hull textures come from [ambientCG](https://ambientcg.com) (CC0), shrunk and prepared by `tools/textures.py`. The desert ground layers come from [Poly Haven](https://polyhaven.com) (CC0): `sand_01` (shore/low), `damp_sand` (patch), `mud_cracked_dry_03` (high ground) and `rock_face_03` (cliffs), downloaded as 2K colour + normal maps into `tools/source_textures/desert/`. Desert battlefield clutter (ruined walls, houses, field walls, barrels, crates) is generated in code (`game/src/View/Meshes/ClutterModels.cs`) - no external assets.
 
 ## Layout
 
