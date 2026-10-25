@@ -1,3 +1,13 @@
+## Contingency Zero 1.3.1
+
+**New in 1.3.1**
+
+- **Ground to match the models:** every theme now has five high-resolution ground textures (shore, ground, patches, high ground, cliffs) at the scale of pebbles and grass, each with a bump map so the sun picks out stones and cracks. Layers meet with crisp, natural edges.
+- **Hand-built nature:** trees, rocks, wrecks and rubble are now proper models for each theme: firs, oaks and pines; cacti and palms; snow-laden spruce; charred trunks with glowing embers. Rocks still show their metal-ore crystals.
+- **Ground detail:** grass tufts, ferns, scrub, stones, ice shards and cinders are scattered across every map, kept clear of buildings and cliffs.
+- **Smaller download:** textures are now GPU-compressed.
+
+
 ## Contingency Zero 1.3
 
 **New in 1.3**
