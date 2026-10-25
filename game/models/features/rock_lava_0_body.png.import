@@ -3,25 +3,26 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://jfwcs5gqc0me"
-path="res://.godot/imported/rock_lava_0_body.png-c2cc596b0b2617c2558eb3b2553cc982.ctex"
+path.s3tc="res://.godot/imported/rock_lava_0_body.png-c2cc596b0b2617c2558eb3b2553cc982.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://models/features/rock_lava_0_body.png"
-dest_files=["res://.godot/imported/rock_lava_0_body.png-c2cc596b0b2617c2558eb3b2553cc982.ctex"]
+dest_files=["res://.godot/imported/rock_lava_0_body.png-c2cc596b0b2617c2558eb3b2553cc982.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=false
+mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""
