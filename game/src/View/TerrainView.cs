@@ -103,8 +103,18 @@ public partial class TerrainView : Node3D
         env.AmbientLightColor = palette.Sky.Lerp(new Color(0.6f, 0.6f, 0.6f), 0.6f);
         env.AmbientLightEnergy = 0.4f;
         env.TonemapMode = Godot.Environment.ToneMapper.Linear;
-        sun.LightEnergy = theme == "lava" ? 0.85f : 1.0f;
-        sun.LightColor = theme == "lava" ? new Color(1f, 0.8f, 0.66f) : new Color(1f, 0.95f, 0.86f);
+        if (theme == "desert")
+        {
+            // Warm late-afternoon grade; the haze itself is a screen-space gradient in MatchScene
+            // (Environment fog is unreliable in the Compatibility renderer).
+            sun.LightColor = new Color(1f, 0.9f, 0.76f);
+            sun.LightEnergy = 1.05f;
+        }
+        else
+        {
+            sun.LightEnergy = theme == "lava" ? 0.85f : 1.0f;
+            sun.LightColor = theme == "lava" ? new Color(1f, 0.8f, 0.66f) : new Color(1f, 0.95f, 0.86f);
+        }
     }
 
     public void Build(MapData map)
@@ -500,6 +510,7 @@ uniform sampler2D tex_low : source_color, filter_linear_mipmap_anisotropic, repe
 uniform sampler2D tex_patch : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D tex_high : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D tex_rock : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform float patch_amount = 1.0;
 uniform sampler2D nrm_shore : hint_normal, filter_linear_mipmap, repeat_enable;
 uniform sampler2D nrm_low : hint_normal, filter_linear_mipmap, repeat_enable;
 uniform sampler2D nrm_patch : hint_normal, filter_linear_mipmap, repeat_enable;
@@ -559,7 +570,7 @@ void fragment() {
         vec2 pr = (w + vec2(world_pos.y * 0.7)) / (tile * 1.3);
         vec3 cs = col2(tex_shore, p, mixk), cl = col2(tex_low, p, mixk), cp = col2(tex_patch, p, mixk);
         vec3 ch = col2(tex_high, p, mixk), cr = col2(tex_rock, pr, mixk);
-        float patchy = smoothstep(0.52, 0.78, n2(w * 0.07 + 17.0) * 0.55 + n2(w * 0.23 + 5.0) * 0.3 + n2(w * 0.9 + 2.0) * 0.15);
+        float patchy = smoothstep(0.52, 0.78, n2(w * 0.07 + 17.0) * 0.55 + n2(w * 0.23 + 5.0) * 0.3 + n2(w * 0.9 + 2.0) * 0.15) * patch_amount;
         vec4 k = wts / max(dot(wts, vec4(1.0)), 0.001);
         float wl = k.y * (1.0 - patchy), wp = k.y * patchy;
         float hs = dot(cs, vec3(0.333)) / dot(avg_shore, vec3(0.333)), hl = dot(cl, vec3(0.333)) / dot(avg_low, vec3(0.333));
@@ -608,8 +619,15 @@ void fragment() {
     /// <summary>Per-theme ground shader tuning (tile size, band tint, normal depth); unset themes use the shader defaults.</summary>
     private static readonly Dictionary<string, Vector3> GroundTune = new()
     {
-        // Desert reads calmest with large, softly tinted tiles: the battle, not the ground, is busy.
+        // Desert reads calmest with large, softly tinted tiles and few dark patches:
+        // the battle, not the ground, is busy.
         ["desert"] = new Vector3(18f, 0.6f, 0.7f),
+    };
+
+    /// <summary>Per-theme strength of the patch layer's ragged blotches (shader default 1).</summary>
+    private static readonly Dictionary<string, float> PatchAmount = new()
+    {
+        ["desert"] = 0.45f,
     };
 
     /// <summary>Gives the ground shader the theme's texture set: colour and normal maps for shore, ground, patches, high ground and cliffs.</summary>
@@ -631,6 +649,7 @@ void fragment() {
             mat.SetShaderParameter("tint", tune.Y);
             mat.SetShaderParameter("bump", tune.Z);
         }
+        if (PatchAmount.TryGetValue(theme, out float patch)) mat.SetShaderParameter("patch_amount", patch);
         mat.SetShaderParameter("textured", true);
     }
 

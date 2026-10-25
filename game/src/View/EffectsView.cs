@@ -33,10 +33,12 @@ public partial class EffectsView : Node3D
 
     private struct Beam { public Vector3 A, B; public Color C; public float Life, Max, Width; }
     private struct Sprite { public Vector3 P, V; public Color C; public float Life, Max, Size, Grow, Gravity; public bool Smoke; }
+    private struct Plume { public Vector3 P; public float Life, Size, Spawn, Flicker; }
 
     private readonly List<Beam> _beams = new();
     private readonly List<Sprite> _sprites = new();
     private readonly List<Beam> _nano = new();
+    private readonly List<Plume> _plumes = new();
 
     private static readonly Color LatticeLaser = new(0.45f, 0.8f, 1.0f);
     private static readonly Color CrucibleLaser = new(1.0f, 0.55f, 0.2f);
@@ -188,6 +190,8 @@ public partial class EffectsView : Node3D
                     Debris(p, (int)Math.Clamp(size * 3, 6, 40), size);
                     if (def.IsStructure) _terrain.Scorch(p, size * 1.4f, 0.6f);
                     else if (!def.IsAir) _terrain.Scorch(p, Math.Max(6f, size * 1.5f), 0.25f);
+                    if (!def.IsAir && (def.IsStructure || def.MoveClass == MoveClass.Vehicle))
+                        AddPlume(p, def.IsStructure ? size * 0.8f : size * 0.9f);
                     Sfx.PlayAt(size > 10 ? SfxKind.ExplosionLarge : SfxKind.ExplosionSmall, p, listener, zoom, size > 10 ? 0 : -3);
                     break;
                 }
@@ -299,6 +303,47 @@ public partial class EffectsView : Node3D
         }
     }
 
+    /// <summary>Burning wrecks and razed buildings smoke for a while; past this many, the oldest fades.</summary>
+    public const int MaxPlumes = 24;
+
+    private void AddPlume(Vector3 p, float size)
+    {
+        if (_plumes.Count >= MaxPlumes) _plumes.RemoveAt(0);
+        _plumes.Add(new Plume { P = p, Life = 30f + _rng.Randf() * 60f, Size = size, Spawn = 0.3f, Flicker = 0.1f });
+    }
+
+    /// <summary>Tall, slowly rising, wind-leaning smoke columns; puffs feed the shared sprite pool.</summary>
+    private void UpdatePlumes(float dt)
+    {
+        for (int i = _plumes.Count - 1; i >= 0; i--)
+        {
+            Plume pl = _plumes[i];
+            pl.Life -= dt;
+            if (pl.Life <= 0f) { _plumes.RemoveAt(i); continue; }
+            _plumes[i] = pl;
+            pl.Spawn += dt;
+            while (pl.Spawn > 0.1f)
+            {
+                pl.Spawn -= 0.1f;
+                _sprites.Add(new Sprite
+                {
+                    P = pl.P + RandomInSphere(pl.Size * 0.2f) + new Vector3(0, pl.Size * 0.4f, 0),
+                    V = new Vector3(2.0f + _rng.Randf() * 1.0f, 6.5f + pl.Size * 0.4f, 0.6f) + RandomInSphere(0.6f),
+                    C = new Color(0.1f, 0.095f, 0.09f, 0.55f),
+                    Life = 6f + _rng.Randf() * 3f, Max = 9f,
+                    Size = pl.Size * 0.9f, Grow = pl.Size * 1.6f, Smoke = true,
+                });
+            }
+            pl.Flicker += dt;
+            if (pl.Flicker > 0.5f && _rng.Randf() < 0.6f)
+            {
+                pl.Flicker = 0f;
+                Flash(pl.P + new Vector3(0, 1f, 0), new Color(1f, 0.5f, 0.15f), pl.Size * 0.5f, 0.25f);
+            }
+            _plumes[i] = pl;
+        }
+    }
+
     private void Shockwave(Vector3 p, float radius)
     {
         for (int i = 0; i < 24; i++)
@@ -375,6 +420,7 @@ public partial class EffectsView : Node3D
         if (_world is null) return;
         SyncTerrain();
         float dt = (float)delta;
+        UpdatePlumes(dt);
         float alpha = GetMeta("alpha", 1f).AsSingle();
         Basis cam = _camera.GlobalTransform.Basis;
         Vector3 right = cam.X, up = cam.Y;

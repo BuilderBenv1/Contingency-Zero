@@ -102,6 +102,7 @@ public partial class MatchScene : Node3D
         Effects = new EffectsView { Name = "Effects" };
         AddChild(Effects);
         AddChild(MakeVignette());
+        if (world.Map.Theme == "desert") AddChild(MakeHaze());
         if (RetroLook.Enabled) AddChild(RetroLook.MakeLayer());
 
         // Start looking at our own Commander (or the middle when watching).
@@ -175,6 +176,33 @@ public partial class MatchScene : Node3D
                 FillFrom = new Vector2(0.5f, 0.5f),
                 FillTo = new Vector2(1.05f, 1.05f),
                 Width = 256,
+                Height = 256,
+            },
+            StretchMode = TextureRect.StretchModeEnum.Scale,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        rect.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        layer.AddChild(rect);
+        return layer;
+    }
+
+    /// <summary>Warm aerial haze pooling toward the top of the screen (desert only).</summary>
+    private static CanvasLayer MakeHaze()
+    {
+        var layer = new CanvasLayer { Layer = -1, Name = "Haze" };
+        var rect = new TextureRect
+        {
+            Texture = new GradientTexture2D
+            {
+                Gradient = new Gradient
+                {
+                    Colors = new[] { new Color(0.93f, 0.83f, 0.66f, 0f), new Color(0.93f, 0.83f, 0.66f, 0.14f), new Color(0.94f, 0.85f, 0.7f, 0.3f) },
+                    Offsets = new[] { 0f, 0.55f, 1f },
+                },
+                Fill = GradientTexture2D.FillEnum.Linear,
+                FillFrom = new Vector2(0.5f, 1f),
+                FillTo = new Vector2(0.5f, 0f),
+                Width = 4,
                 Height = 256,
             },
             StretchMode = TextureRect.StretchModeEnum.Scale,
