@@ -156,9 +156,12 @@ public partial class PropView : Node3D
     private void SyncClutter(Dictionary<(int, string), List<Transform3D>> lists)
     {
         MapData map = _terrain.Map;
+        foreach (Node3D old in _oasisExtras) old.QueueFree();
+        _oasisExtras.Clear();
         if (map.Theme != "desert")
         {
             foreach (var (_, mm) in _clutterBatches) mm.VisibleInstanceCount = 0;
+            foreach (var (_, mm) in _shadowBatches) mm.VisibleInstanceCount = 0;
             return;
         }
         var placed = new Dictionary<string, List<Transform3D>>();
@@ -167,16 +170,16 @@ public partial class PropView : Node3D
         for (int cy = 0; cy < cellsY; cy++)
         for (int cx = 0; cx < cellsX; cx++)
         {
-            if (Hash(cx, cy, ClutterSalt) > 0.32f) continue;
+            if (Hash(cx, cy, ClutterSalt) > 0.34f) continue;
             float wx = (cx + 0.25f + Hash(cx, cy, ClutterSalt + 1) * 0.5f) * ClusterCellTiles * MapData.TileSize;
             float wz = (cy + 0.25f + Hash(cx, cy, ClutterSalt + 2) * 0.5f) * ClusterCellTiles * MapData.TileSize;
             if (!ClusterSpotOK(wx, wz)) continue;
             float kind = Hash(cx, cy, ClutterSalt + 3);
-            if (kind < 0.26f) ClusterFieldWalls(placed, cx, cy, wx, wz);
-            else if (kind < 0.50f) ClusterRuin(placed, cx, cy, wx, wz);
-            else if (kind < 0.70f) ClusterHouse(placed, cx, cy, wx, wz);
-            else if (kind < 0.88f) ClusterSupplies(placed, cx, cy, wx, wz);
-            else if (FindOasisSpot(cx, cy, wx, wz, out float ox, out float oz)) ClusterOasis(lists, chunksX, cx, cy, ox, oz);
+            if (kind < 0.34f) ClusterVillage(placed, cx, cy, wx, wz);
+            else if (kind < 0.52f) ClusterFieldWalls(placed, cx, cy, wx, wz);
+            else if (kind < 0.68f) ClusterRuin(placed, cx, cy, wx, wz);
+            else if (kind < 0.86f) ClusterSupplies(placed, cx, cy, wx, wz);
+            else if (FindOasisSpot(cx, cy, wx, wz, out float ox, out float oz)) ClusterOasis(placed, lists, chunksX, cx, cy, ox, oz);
             else ClusterSupplies(placed, cx, cy, wx, wz);
         }
         foreach (var (name, list) in placed)
@@ -189,9 +192,49 @@ public partial class PropView : Node3D
                 mm.SetInstanceCustomData(i, new Color(0.6f, 0.6f, 0.6f, 0));
             }
             mm.VisibleInstanceCount = list.Count;
+            // Soft contact shadow under each piece, so the clutter sits in the ground.
+            Vector2 fp = ClutterModels.Footprint(name);
+            MultiMesh sh = ShadowBatch(name);
+            MultiMeshUtil.Ensure(sh, list.Count);
+            for (int i = 0; i < list.Count; i++)
+            {
+                var flat = new Transform3D(Basis.Identity.Scaled(new Vector3(fp.X, 1, fp.Y)), list[i].Origin + new Vector3(0, 0.08f, 0));
+                sh.SetInstanceTransform(i, flat);
+            }
+            sh.VisibleInstanceCount = list.Count;
         }
         foreach (var (name, mm) in _clutterBatches)
             if (!placed.ContainsKey(name)) mm.VisibleInstanceCount = 0;
+        foreach (var (name, mm) in _shadowBatches)
+            if (!placed.ContainsKey(name)) mm.VisibleInstanceCount = 0;
+    }
+
+    /// <summary>A small settlement: one or two houses, a well, some wall runs and supplies (5-8 pieces).</summary>
+    private void ClusterVillage(Dictionary<string, List<Transform3D>> placed, int cx, int cy, float wx, float wz)
+    {
+        int s = ClutterSalt + 150;
+        PlaceClutter(placed, "clutter_well", wx + (Hash(cx, cy, s) - 0.5f) * 6f, wz + (Hash(cx, cy, s + 1) - 0.5f) * 6f,
+            Hash(cx, cy, s + 2) * Mathf.Tau, 1f);
+        int houses = 1 + (int)(Hash(cx, cy, s + 3) * 2f);
+        for (int h = 0; h < houses; h++)
+        {
+            float a = Hash(cx + h * 7, cy, s + 4) * Mathf.Tau;
+            float r = 11f + Hash(cx, cy + h * 5, s + 5) * 5f;
+            PlaceClutter(placed, "clutter_house_ruin", wx + Mathf.Cos(a) * r, wz + Mathf.Sin(a) * r,
+                Hash(cx + h, cy, s + 6) * Mathf.Tau, 1f);
+        }
+        int walls = 2 + (int)(Hash(cx, cy, s + 7) * 2f);
+        for (int i = 0; i < walls; i++)
+        {
+            float a = Hash(cx + i * 3, cy, s + 8) * Mathf.Tau;
+            float r = 7f + Hash(cx, cy + i * 9, s + 9) * 7f;
+            PlaceClutter(placed, "clutter_wall_ruin", wx + Mathf.Cos(a) * r, wz + Mathf.Sin(a) * r,
+                Mathf.Round(a / (Mathf.Pi / 2f)) * (Mathf.Pi / 2f) + (Hash(cx, cy + i, s + 10) - 0.5f) * 0.5f,
+                0.9f + Hash(cx + i, cy + i, s + 11) * 0.2f);
+        }
+        string supply = Hash(cx, cy, s + 12) < 0.5f ? "clutter_barrels" : "clutter_crates";
+        float sa = Hash(cx + 5, cy, s + 13) * Mathf.Tau;
+        PlaceClutter(placed, supply, wx + Mathf.Cos(sa) * 5f, wz + Mathf.Sin(sa) * 5f, Hash(cx, cy + 5, s + 14) * Mathf.Tau, 1f);
     }
 
     /// <summary>Flat, dry, unblocked ground, clear of start positions and metal spots.</summary>
@@ -283,19 +326,6 @@ public partial class PropView : Node3D
         }
     }
 
-    private void ClusterHouse(Dictionary<string, List<Transform3D>> placed, int cx, int cy, float wx, float wz)
-    {
-        PlaceClutter(placed, "clutter_house_ruin", wx, wz, Hash(cx, cy, ClutterSalt + 30) * Mathf.Tau, 1.3f);
-        int n = (int)(Hash(cx, cy, ClutterSalt + 31) * 3f);
-        for (int i = 0; i < n; i++)
-        {
-            float a = Hash(cx + i, cy, ClutterSalt + 32) * Mathf.Tau;
-            float r = 6f + Hash(cx, cy + i, ClutterSalt + 33) * 5f;
-            PlaceClutter(placed, "clutter_wall_ruin", wx + Mathf.Cos(a) * r, wz + Mathf.Sin(a) * r,
-                Hash(cx, cy, ClutterSalt + 34 + i) * Mathf.Tau, 1.05f + Hash(cx, cy + i, ClutterSalt + 35) * 0.25f);
-        }
-    }
-
     private void ClusterSupplies(Dictionary<string, List<Transform3D>> placed, int cx, int cy, float wx, float wz)
     {
         PlaceClutter(placed, "clutter_barrels", wx, wz, Hash(cx, cy, ClutterSalt + 40) * Mathf.Tau, 1.15f);
@@ -310,38 +340,105 @@ public partial class PropView : Node3D
         }
     }
 
-    /// <summary>A stand of palms near water, with scrub at their feet (reuses the nature models).</summary>
-    private void ClusterOasis(Dictionary<(int, string), List<Transform3D>> lists, int chunksX, int cx, int cy, float wx, float wz)
+    /// <summary>An oasis: a small pool on damp dark sand, ringed by palms and scrub.</summary>
+    private void ClusterOasis(Dictionary<string, List<Transform3D>> placed, Dictionary<(int, string), List<Transform3D>> lists, int chunksX, int cx, int cy, float wx, float wz)
     {
-        int palms = 2 + (int)(Hash(cx, cy, ClutterSalt + 50) * 2f);
+        // Damp sand disc and the pool itself, as a little node placed once per cluster.
+        wx0 = wx; wz0 = wz; _baseY = _terrain.HeightAt(wx, wz);
+        var node = new Node3D { Position = new Vector3(wx, _baseY + 0.05f, wz) };
+        node.AddChild(new MeshInstance3D { Mesh = ClutterModels.DrapedDisc(5.6f, 0.1f, poolRings, (dx, dz) => _terrain.HeightAt(wx0 + dx, wz0 + dz) - _baseY), MaterialOverride = ClutterMaterial(), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
+        AddChild(node);
+        _oasisExtras.Add(node);
+
+        int palms = 4 + (int)(Hash(cx, cy, ClutterSalt + 50) * 3f);
         for (int i = 0; i < palms; i++)
         {
-            string name = $"tree_desert_{(int)(Hash(cx + i, cy, ClutterSalt + 51) * 3f)}";
-            if (NatureModels.Get(name) is null) continue;
             float a = Hash(cx + i, cy, ClutterSalt + 52) * Mathf.Tau;
-            float r = 2f + Hash(cx, cy + i, ClutterSalt + 53) * 7f;
+            float r = 4.5f + Hash(cx, cy + i, ClutterSalt + 53) * 4f;
             float px = wx + Mathf.Cos(a) * r, pz = wz + Mathf.Sin(a) * r;
             float h = _terrain.HeightAt(px, pz);
-            if (h < _terrain.WaterHeight + 0.3f) continue; // palms stand on the bank, not in the river
-            int chunk = ((int)(pz / MapData.TileSize) / ChunkTiles) * chunksX + (int)(px / MapData.TileSize) / ChunkTiles;
-            float s = 0.8f + Hash(cx + i, cy + i, ClutterSalt + 54) * 0.5f;
-            var basis = new Basis(Vector3.Up, Hash(cx, cy + i, ClutterSalt + 55) * Mathf.Tau).Scaled(new Vector3(s, s, s));
-            if (!lists.TryGetValue((chunk, name), out var list)) lists[(chunk, name)] = list = new List<Transform3D>();
-            list.Add(new Transform3D(basis, new Vector3(px, h - 0.02f, pz)));
+            if (h < _terrain.WaterHeight + 0.3f) continue; // palms stand on the bank, not in the pool
+            PlaceClutter(placed, "clutter_palm", px, pz, Hash(cx, cy + i, ClutterSalt + 55) * Mathf.Tau, 1.1f + Hash(cx + i, cy + i, ClutterSalt + 54) * 0.55f);
+        }
+        // Scrub and stones at the water's edge.
+        for (int i = 0; i < 5; i++)
+        {
+            string name = Hash(cx + i, cy, ClutterSalt + 56) < 0.7f ? $"prop_{_terrain.Map.Theme}_scrub_{(int)(Hash(cx, cy + i, ClutterSalt + 57) * 2f)}" : $"prop_{_terrain.Map.Theme}_pebbles_{(int)(Hash(cx, cy + i, ClutterSalt + 57) * 2f)}";
+            if (NatureModels.Get(name) is null) continue;
+            float a = Hash(cx + i * 2, cy, ClutterSalt + 58) * Mathf.Tau;
+            float r = 7.5f + Hash(cx, cy + i * 3, ClutterSalt + 59) * 4f;
+            float px = wx + Mathf.Cos(a) * r, pz = wz + Mathf.Sin(a) * r;
+            float h = _terrain.HeightAt(px, pz);
+            if (h < _terrain.WaterHeight + 0.25f) continue;
+            PlaceClutterAt(lists, chunksX, name, px, pz, Hash(cx, cy + i, ClutterSalt + 60) * Mathf.Tau, 0.9f + Hash(cx + i, cy, ClutterSalt + 61) * 0.5f);
         }
     }
 
+    /// <summary>Adds a scatter-pass (chunked, detail-textured) model at a spot.</summary>
+    private void PlaceClutterAt(Dictionary<(int, string), List<Transform3D>> lists, int chunksX, string name, float px, float pz, float yaw, float s)
+    {
+        float h = _terrain.HeightAt(px, pz);
+        int chunk = ((int)(pz / MapData.TileSize) / ChunkTiles) * chunksX + (int)(px / MapData.TileSize) / ChunkTiles;
+        var basis = new Basis(Vector3.Up, yaw).Scaled(new Vector3(s, s, s));
+        if (!lists.TryGetValue((chunk, name), out var list)) lists[(chunk, name)] = list = new List<Transform3D>();
+        list.Add(new Transform3D(basis, new Vector3(px, h - 0.02f, pz)));
+    }
+
+    private readonly List<Node3D> _oasisExtras = new();
     private ShaderMaterial? _clutterMaterial;
+    private static readonly (float r, Color c)[] dampRings =
+    {
+        (3.0f, new Color(0.66f, 0.54f, 0.39f)),
+        (4.4f, new Color(0.66f, 0.54f, 0.39f)),
+        (5.6f, new Color(0.66f, 0.54f, 0.39f)),
+    };
+    private static readonly (float r, Color c)[] poolRings =
+    {
+        (2.7f, new Color(0.24f, 0.37f, 0.41f)),
+        (3.6f, new Color(0.42f, 0.54f, 0.52f)),
+        (4.8f, new Color(0.56f, 0.47f, 0.36f)),
+        (5.6f, new Color(0.63f, 0.54f, 0.42f)),
+    };
+
+    private float wx0, wz0, _baseY;
+    private ShaderMaterial ClutterMaterial()
+    {
+        _clutterMaterial ??= new ShaderMaterial { Shader = SharedShader };
+        _clutterMaterial.SetShaderParameter("fog_tex", _terrain.FogTexture);
+        _clutterMaterial.SetShaderParameter("map_size", new Vector2(_terrain.Map.Width, _terrain.Map.Height));
+        return _clutterMaterial;
+    }
+
+    private readonly Dictionary<string, MultiMesh> _shadowBatches = new();
+    private static Shader? _shadowShader;
+    private static Shader ShadowShader => _shadowShader ??= new Shader { Code = ShadowShaderCode };
+
+    private const string ShadowShaderCode = @"
+shader_type spatial;
+render_mode blend_mix, unshaded, depth_draw_never, cull_disabled, shadows_disabled;
+void fragment() {
+    vec2 d = UV * 2.0 - 1.0;
+    float a = clamp(1.0 - dot(d, d), 0.0, 1.0);
+    ALBEDO = vec3(0.02, 0.02, 0.015);
+    ALPHA = a * a * 0.38;
+}";
 
     private MultiMesh ClutterBatch(string name)
     {
         if (_clutterBatches.TryGetValue(name, out var mm)) return mm;
         mm = MultiMeshUtil.Create(ClutterModels.Get(name)!, 16);
-        _clutterMaterial ??= new ShaderMaterial { Shader = SharedShader };
-        _clutterMaterial.SetShaderParameter("fog_tex", _terrain.FogTexture);
-        _clutterMaterial.SetShaderParameter("map_size", new Vector2(_terrain.Map.Width, _terrain.Map.Height));
-        AddChild(new MultiMeshInstance3D { Multimesh = mm, MaterialOverride = _clutterMaterial, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
+        AddChild(new MultiMeshInstance3D { Multimesh = mm, MaterialOverride = ClutterMaterial(), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
         _clutterBatches[name] = mm;
+        return mm;
+    }
+
+    /// <summary>The soft dark disc under each clutter piece (same transforms, flattened).</summary>
+    private MultiMesh ShadowBatch(string name)
+    {
+        if (_shadowBatches.TryGetValue(name, out var mm)) return mm;
+        mm = MultiMeshUtil.Create(new PlaneMesh { Size = new Vector2(1, 1) }, 16, customData: false);
+        AddChild(new MultiMeshInstance3D { Multimesh = mm, MaterialOverride = new ShaderMaterial { Shader = ShadowShader }, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
+        _shadowBatches[name] = mm;
         return mm;
     }
 

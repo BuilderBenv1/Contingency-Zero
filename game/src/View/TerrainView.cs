@@ -27,7 +27,7 @@ public partial class TerrainView : Node3D
     public static TerrainPalette PaletteFor(string theme) => theme switch
     {
         "desert" => new TerrainPalette(new Color(0.64f, 0.56f, 0.44f), new Color(0.56f, 0.47f, 0.37f), new Color(0.5f, 0.41f, 0.33f),
-            new Color(0.6f, 0.53f, 0.44f), new Color(0.52f, 0.4f, 0.3f), new Color(0.2f, 0.42f, 0.5f, 0.75f), new Color(0.08f, 0.2f, 0.3f), false,
+            new Color(0.6f, 0.53f, 0.44f), new Color(0.58f, 0.47f, 0.37f), new Color(0.2f, 0.42f, 0.5f, 0.75f), new Color(0.08f, 0.2f, 0.3f), false,
             new Color(0.62f, 0.5f, 0.4f)),
         "lava" => new TerrainPalette(new Color(0.25f, 0.18f, 0.16f), new Color(0.24f, 0.22f, 0.22f), new Color(0.32f, 0.28f, 0.26f),
             new Color(0.45f, 0.4f, 0.38f), new Color(0.18f, 0.15f, 0.15f), new Color(1.0f, 0.38f, 0.05f, 0.95f), new Color(0.9f, 0.15f, 0.02f), true,
@@ -66,7 +66,7 @@ public partial class TerrainView : Node3D
             : t < 0.3f ? pal.Low
             : t < 0.8f ? pal.Low.Lerp(pal.High, (t - 0.3f) / 0.5f)
             : pal.High.Lerp(pal.Peak, (t - 0.8f) / 0.2f);
-        float steep = Mathf.Clamp((1 - normal.Y) * 8f, 0, 1);
+        float steep = Mathf.Clamp((0.92f - normal.Y) * 10f, 0, 1);
         c = c.Lerp(pal.Rock, steep);
         if (h < b.Water) c = c.Darkened(0.35f);
         float noise = Hash(x, y) * 0.12f - 0.06f + Hash(x / 3, y / 3) * 0.08f - 0.04f;
@@ -84,7 +84,7 @@ public partial class TerrainView : Node3D
         float high = Mathf.SmoothStep(0.3f, 0.8f, t);
         float low = (1 - high) * (1 - shore);
         high *= 1 - shore;
-        float rock = Mathf.Clamp((1 - normal.Y) * 8f, 0, 1);
+        float rock = Mathf.Clamp((0.92f - normal.Y) * 10f, 0, 1);
         float keep = 1 - rock;
         return (new Vector2(shore * keep, low * keep), new Vector2(high * keep, rock));
     }
@@ -108,8 +108,10 @@ public partial class TerrainView : Node3D
             // Warm late-afternoon grade; the haze itself is a screen-space gradient in MatchScene
             // (Environment fog is unreliable in the Compatibility renderer). Under the retro
             // palette the warmth mottles into few colour steps, so keep the sun near-neutral.
+            // The extra ambient keeps shade-side cliff faces readable.
             sun.LightColor = RetroLook.Enabled ? new Color(0.98f, 0.94f, 0.86f) : new Color(1f, 0.93f, 0.82f);
             sun.LightEnergy = 1.05f;
+            env.AmbientLightEnergy = 0.5f;
         }
         else
         {
@@ -591,8 +593,14 @@ void fragment() {
         b1 /= sum; b2 /= sum;
         vec3 tex = cs * b1.x + cl * b1.y + cp * b1.z + ch * b1.w + cr * b2;
         vec3 av = avg_shore * b1.x + avg_low * b1.y + avg_patch * b1.z + avg_high * b1.w + avg_rock * b2;
+        // The rock normal is sampled on a side plane (zy or xy); rotate it into world space
+        // with that plane's frame, then back into the ground's flat tangent frame, or the
+        // strata light up as vertical smears.
+        vec3 rt = nrm2(nrm_rock, pr, mixk).xyz * 2.0 - 1.0;
+        vec3 rw = anrm.x > anrm.z ? vec3(rt.z, rt.y, rt.x) : rt;
+        vec3 rts = normalize(vec3(rw.x, rw.z, rw.y)) * 0.5 + 0.5;
         vec3 n = nrm2(nrm_shore, p, mixk) * b1.x + nrm2(nrm_low, p, mixk) * b1.y + nrm2(nrm_patch, p, mixk) * b1.z
-               + nrm2(nrm_high, p, mixk) * b1.w + nrm2(nrm_rock, pr, mixk) * b2;
+               + nrm2(nrm_high, p, mixk) * b1.w + rts * b2;
         // Vertex RGB is the theme's band colour after craters and scorching; alpha is how much
         // of its brightness the damage left, so burns darken the photo texture too.
         vec3 band = COLOR.rgb / max(COLOR.a, 0.05);

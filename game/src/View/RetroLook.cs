@@ -25,8 +25,6 @@ public static class RetroLook
     /// <summary>Screen pixels per world pixel. 2 at 1080p gives about a 960x540 picture.</summary>
     public static int PixelSize => Math.Max(1, (int)Math.Round(DisplayServer.WindowGetSize().Y / 540f));
 
-    private static ImageTexture? _lut;
-
     /// <summary>Gives a unit-shader material the hull detail texture, when the old-school look is on.</summary>
     public static void ApplyHullTexture(ShaderMaterial mat)
     {
@@ -37,12 +35,14 @@ public static class RetroLook
         mat.SetShaderParameter("hull_textured", true);
     }
 
+    private static readonly Dictionary<string, ImageTexture> Luts = new();
+
     /// <summary>A canvas layer that pixelates and palettises everything drawn beneath it (the 3D world).</summary>
-    public static CanvasLayer MakeLayer()
+    public static CanvasLayer MakeLayer(string theme = "")
     {
         var layer = new CanvasLayer { Layer = -5, Name = "Retro" };
         var mat = new ShaderMaterial { Shader = new Shader { Code = PostShader } };
-        mat.SetShaderParameter("lut", Lut());
+        mat.SetShaderParameter("lut", Lut(theme));
         mat.SetShaderParameter("pixel", (float)PixelSize);
         var rect = new ColorRect { Material = mat, MouseFilter = Control.MouseFilterEnum.Ignore };
         rect.SetAnchorsPreset(Control.LayoutPreset.FullRect);
@@ -86,10 +86,20 @@ public static class RetroLook
         return p;
     }
 
-    private static ImageTexture Lut()
+    /// <summary>
+    /// The palette lookup table for a theme. Each theme's actual ground tones (from
+    /// TextureSet) are added as shaded ramp entries so its terrain quantises to its own
+    /// colours - without them, warm mid-tones (like the desert patch layer) snap to the
+    /// generic saturated yellow ramp and read as big mustard blotches.
+    /// </summary>
+    private static ImageTexture Lut(string theme)
     {
-        if (_lut is not null) return _lut;
+        if (Luts.TryGetValue(theme, out var cached)) return cached;
         List<Color> pal = Palette();
+        if (theme.Length > 0 && TextureSet.GroundAverages.TryGetValue(theme, out Color[]? avgs))
+            foreach (Color a in avgs)
+                foreach (float v in new[] { 0.7f, 0.85f, 1f, 1.15f, 1.3f })
+                    pal.Add(new Color(Mathf.Clamp(a.R * v, 0, 1), Mathf.Clamp(a.G * v, 0, 1), Mathf.Clamp(a.B * v, 0, 1)));
         const int N = 32;
         var img = Image.CreateEmpty(N * N, N, false, Image.Format.Rgb8);
         for (int b = 0; b < N; b++)
@@ -109,8 +119,9 @@ public static class RetroLook
             }
             img.SetPixel(r + b * N, g, best);
         }
-        _lut = ImageTexture.CreateFromImage(img);
-        return _lut;
+        var tex = ImageTexture.CreateFromImage(img);
+        Luts[theme] = tex;
+        return tex;
     }
 
     private const string PostShader = @"
