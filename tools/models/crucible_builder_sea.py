@@ -69,6 +69,11 @@ for sx in A.SIDES:
 body.append(A.beam('aframetop', (-0.08, 0.66, 0.6), (0.08, 0.66, 0.6), 0.05, 0.06, 'team', bevel=0.006))
 body.append(cyl('hoist', (0, 0.66, 0.58), top + V((0, 0.25, 0.04)), 0.008, 'metal', 4, bevel=0))
 body.append(box('chute', (0, 0.36, DECK + 0.06), (0.16, 0.2, 0.08), 'hull_dark', 0.008, 1))
+# The ladder well: a dark slot in the foredeck with a riveted coaming.
+body.append(box('well', (0, 0.93, DECK + 0.02), (0.24, 0.5, 0.012), 'mech', 0.003, 1))
+for sx in A.SIDES:
+    body.append(box(f'coaming{sx}', (sx * 0.135, 0.93, DECK + 0.035), (0.03, 0.52, 0.05), 'hull_dark', 0.006, 1))
+    body += rivets(f'cmr{sx}', (sx * 0.135, 0.72, DECK + 0.062), (sx * 0.135, 1.14, DECK + 0.062), 4, 'metal', 0.012)
 
 # ---- Hydraulic nanolathe crane ----
 base = V((0.2, -0.26, DECK))
