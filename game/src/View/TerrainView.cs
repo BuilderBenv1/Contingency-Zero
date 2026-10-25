@@ -66,7 +66,7 @@ public partial class TerrainView : Node3D
             : t < 0.3f ? pal.Low
             : t < 0.8f ? pal.Low.Lerp(pal.High, (t - 0.3f) / 0.5f)
             : pal.High.Lerp(pal.Peak, (t - 0.8f) / 0.2f);
-        float steep = Mathf.Clamp((1 - normal.Y) * 6f, 0, 1);
+        float steep = Mathf.Clamp((1 - normal.Y) * 8f, 0, 1);
         c = c.Lerp(pal.Rock, steep);
         if (h < b.Water) c = c.Darkened(0.35f);
         float noise = Hash(x, y) * 0.12f - 0.06f + Hash(x / 3, y / 3) * 0.08f - 0.04f;
@@ -84,7 +84,7 @@ public partial class TerrainView : Node3D
         float high = Mathf.SmoothStep(0.3f, 0.8f, t);
         float low = (1 - high) * (1 - shore);
         high *= 1 - shore;
-        float rock = Mathf.Clamp((1 - normal.Y) * 6f, 0, 1);
+        float rock = Mathf.Clamp((1 - normal.Y) * 8f, 0, 1);
         float keep = 1 - rock;
         return (new Vector2(shore * keep, low * keep), new Vector2(high * keep, rock));
     }

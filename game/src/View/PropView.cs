@@ -126,6 +126,7 @@ public partial class PropView : Node3D
             }
         }
 
+        SyncClutter(lists);
         foreach (var (key, list) in lists)
         {
             MultiMesh mm = Batch(key);
@@ -142,7 +143,6 @@ public partial class PropView : Node3D
         }
         foreach (var (key, mm) in _batches)
             if (!lists.ContainsKey(key)) mm.VisibleInstanceCount = 0;
-        SyncClutter(lists);
     }
 
     // ---- Clutter: ruined walls, field walls, supply dumps and oases in hashed clusters. ----
@@ -175,8 +175,9 @@ public partial class PropView : Node3D
             if (kind < 0.26f) ClusterFieldWalls(placed, cx, cy, wx, wz);
             else if (kind < 0.50f) ClusterRuin(placed, cx, cy, wx, wz);
             else if (kind < 0.70f) ClusterHouse(placed, cx, cy, wx, wz);
-            else if (kind < 0.88f || !NearWater(wx, wz)) ClusterSupplies(placed, cx, cy, wx, wz);
-            else ClusterOasis(lists, chunksX, cx, cy, wx, wz);
+            else if (kind < 0.88f) ClusterSupplies(placed, cx, cy, wx, wz);
+            else if (FindOasisSpot(cx, cy, wx, wz, out float ox, out float oz)) ClusterOasis(lists, chunksX, cx, cy, ox, oz);
+            else ClusterSupplies(placed, cx, cy, wx, wz);
         }
         foreach (var (name, list) in placed)
         {
@@ -216,13 +217,33 @@ public partial class PropView : Node3D
         return true;
     }
 
+    /// <summary>Oasis cluster centres often land away from the water they seek. Search a coarse
+    /// grid around the candidate for a dry, flat, unblocked bank spot near water.</summary>
+    private bool FindOasisSpot(int cx, int cy, float wx, float wz, out float ox, out float oz)
+    {
+        for (int dz = -2; dz <= 2; dz++)
+        for (int dx = -2; dx <= 2; dx++)
+        {
+            float x = wx + dx * 64f + (Hash(cx + dx, cy + dz, ClutterSalt + 60) - 0.5f) * 48f;
+            float z = wz + dz * 64f + (Hash(cx + dx, cy + dz, ClutterSalt + 61) - 0.5f) * 48f;
+            if (x < 20 || z < 20 || x > _terrain.Map.Width - 20 || z > _terrain.Map.Height - 20) continue;
+            if (!ClusterSpotOK(x, z) || !NearWater(x, z)) continue;
+            ox = x; oz = z;
+            return true;
+        }
+        ox = oz = 0;
+        return false;
+    }
+
     private bool NearWater(float wx, float wz)
     {
         float water = _terrain.WaterHeight;
+        for (int ring = 0; ring < 6; ring++)
         for (int i = 0; i < 12; i++)
         {
             float a = i / 12f * Mathf.Tau;
-            if (_terrain.HeightAt(wx + Mathf.Cos(a) * 56f, wz + Mathf.Sin(a) * 56f) < water) return true;
+            float r = 24f + ring * 22f;
+            if (_terrain.HeightAt(wx + Mathf.Cos(a) * r, wz + Mathf.Sin(a) * r) < water) return true;
         }
         return false;
     }
@@ -301,6 +322,7 @@ public partial class PropView : Node3D
             float r = 2f + Hash(cx, cy + i, ClutterSalt + 53) * 7f;
             float px = wx + Mathf.Cos(a) * r, pz = wz + Mathf.Sin(a) * r;
             float h = _terrain.HeightAt(px, pz);
+            if (h < _terrain.WaterHeight + 0.3f) continue; // palms stand on the bank, not in the river
             int chunk = ((int)(pz / MapData.TileSize) / ChunkTiles) * chunksX + (int)(px / MapData.TileSize) / ChunkTiles;
             float s = 0.8f + Hash(cx + i, cy + i, ClutterSalt + 54) * 0.5f;
             var basis = new Basis(Vector3.Up, Hash(cx, cy + i, ClutterSalt + 55) * Mathf.Tau).Scaled(new Vector3(s, s, s));
