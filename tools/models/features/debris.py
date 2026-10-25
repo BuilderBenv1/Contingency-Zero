@@ -90,8 +90,16 @@ def embers(p, rng, spots, size=0.18):
 
 
 def scorch(p, rng, rx, ry):
-    """The burnt patch the wreck lies in: a low mound of soot and scorched earth."""
-    p.append(lump('scorch', rng, (0, 0, -0.18), rx, ry, 0.34, shade('w_scorch', 'w_soot', 'w_soot', rng), n=18, floor=-0.1, jit=0.25))
+    """The burnt patch the wreck lies in: a low, ragged mound of soot and scorched earth with
+    clods thrown round its rim, so it has no clean outline."""
+    pal = shade('w_scorch', 'w_soot', 'w_soot', rng)
+    p.append(lump('scorch', rng, (0, 0, -0.2), rx * 0.8, ry * 0.8, 0.32, pal, n=30, floor=-0.1, jit=0.3))
+    for i in range(9):
+        a = i * TAU / 9 + rng.uniform(-0.25, 0.25)
+        d = rng.uniform(0.7, 0.95)
+        c = (math.cos(a) * rx * d, math.sin(a) * ry * d, -0.08)
+        r = rng.uniform(0.35, 0.7)
+        p.append(lump(f'clod{i}', rng, c, r, r * 0.7, rng.uniform(0.12, 0.2), shade('w_scorch', 'w_scorch', 'w_soot', rng), n=8, floor=-0.06, rot=a))
 
 
 def barrel(p, rng, a, b, r, name='barrel'):

@@ -44,7 +44,7 @@ NATURE = {
     'd_scrub':    (0.46, 0.42, 0.26, 1), 'd_scrub_dk': (0.33, 0.29, 0.18, 1), 'd_flower': (0.80, 0.42, 0.30, 1),
     # arctic
     'snow':       (0.90, 0.91, 0.90, 1), 'snow_sh':  (0.72, 0.76, 0.82, 1),
-    'a_rock_lt':  (0.47, 0.51, 0.57, 1), 'a_rock':   (0.35, 0.39, 0.45, 1), 'a_rock_dk':  (0.23, 0.26, 0.32, 1),
+    'a_rock_lt':  (0.41, 0.45, 0.51, 1), 'a_rock':   (0.30, 0.34, 0.40, 1), 'a_rock_dk':  (0.19, 0.22, 0.27, 1),
     'a_pine_dk':  (0.07, 0.15, 0.14, 1), 'a_pine':   (0.12, 0.23, 0.21, 1), 'a_pine_lt':  (0.20, 0.32, 0.29, 1),
     'frost':      (0.66, 0.74, 0.76, 1), 'ice':      (0.56, 0.73, 0.82, 1), 'ice_lt':     (0.80, 0.90, 0.95, 1),
     'a_grass':    (0.52, 0.52, 0.42, 1), 'a_grass_dk': (0.38, 0.38, 0.30, 1), 'a_twig':  (0.30, 0.25, 0.21, 1),
@@ -336,7 +336,7 @@ def ore_cluster(name, rng, c, n=3, size=1.0, out=None):
         d = (outward + Vector((rng.uniform(-0.55, 0.55), rng.uniform(-0.55, 0.55), rng.uniform(0.2, 0.7)))).normalized()
         L0 = size * rng.uniform(0.6, 0.9) * (1.0 if i == 0 else 0.7)
         r = size * rng.uniform(0.09, 0.12) * (1.0 if i == 0 else 0.8)
-        b = c + Vector((rng.uniform(-0.15, 0.15), rng.uniform(-0.15, 0.15), -0.25)) * size
+        b = c + (Vector((rng.uniform(-0.2, 0.2), rng.uniform(-0.2, 0.2), 0)) - outward * 0.2) * size
         crystal_bm(bm, b, d, L0, r, 6, rng)
     bm.normal_update()
     # Facets alternate bright and dull, like cut metal catching the light.

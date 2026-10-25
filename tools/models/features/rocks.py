@@ -68,11 +68,22 @@ def stone(theme, name, rng, c, rx, ry, rz, n=20, jit=0.26, rot=None, flat_top=No
     return [from_bm(name, bm, paint)] + extra
 
 
-def ore(rng, c, rx, ry, rz, a, size=0.9, n=3):
-    """Ore crystals breaking out of a stone's upper flank at angle a, jutting out and up."""
+def ore(rng, stone_obj, a, size=0.9, n=3, z=0.45):
+    """Ore crystals breaking out of a stone's flank at angle a: found by casting a ray at the stone
+    from outside, so the cluster sits right on its surface and juts out along the normal and up."""
+    from mathutils.bvhtree import BVHTree
+    me = stone_obj.data
+    tree = BVHTree.FromPolygons([v.co.copy() for v in me.vertices], [tuple(p.vertices) for p in me.polygons])
+    xs = [v.co for v in me.vertices]
+    c = sum(xs, Vector()) / len(xs)
+    top = max(v.z for v in xs)
     d = Vector((math.cos(a), math.sin(a), 0))
-    p = Vector(c) + Vector((d.x * rx * 0.55, d.y * ry * 0.55, rz * 0.45))
-    return ore_cluster('ore', rng, p, n=n, size=size * 1.5, out=d + Vector((0, 0, 0.9)))
+    origin = Vector((c.x, c.y, top * z)) + d * 10
+    hit, nrm, _, _ = tree.ray_cast(origin, -d)
+    if hit is None:
+        hit, nrm = Vector((c.x, c.y, top * z)), d
+    out = (nrm + Vector((0, 0, 0.7))).normalized()
+    return ore_cluster("ore", rng, hit - nrm * 0.05 * size, n=n, size=size * 1.9, out=out)
 
 
 def foot(theme, p, rng, spots):
@@ -98,24 +109,24 @@ def foot(theme, p, rng, spots):
 def build(theme, variant, rng):
     p = []
     if variant == 0:
-        p += stone(theme, 'boulder', rng, (0, 0, 0.35), 1.65, 1.35, 1.25, n=28)
+        p += stone(theme, 'boulder', rng, (0, 0, 0.35), 1.65, 1.35, 1.25, n=28); main = p[0]
         p += stone(theme, 'shoulder', rng, (-0.9, 0.55, 0.15), 0.95, 0.85, 0.85, n=16)
         p += stone(theme, 'chip', rng, (1.45, -0.75, 0.0), 0.45, 0.38, 0.32, n=10)
-        p.append(ore(rng, (0, 0, 0.35), 1.65, 1.35, 1.25, rng.uniform(-1.4, -0.4), 1.0, n=4))
+        p.append(ore(rng, main, rng.uniform(-1.4, -0.4), 1.0, n=4))
         foot(theme, p, rng, [(1.2, 0.6, 0.6), (-1.3, -0.6, 0.55)])
     elif variant == 1:
-        p += stone(theme, 'slab', rng, (0, 0, 0.05), 2.0, 1.45, 0.5, n=24, flat_top=0.8)
-        p += stone(theme, 'stone', rng, (0.6, 0.35, 0.65), 0.75, 0.62, 0.62, n=16)
+        p += stone(theme, 'slab', rng, (0, 0, 0.05), 2.0, 1.45, 0.5, n=24, flat_top=0.8); slab = p[0]
+        p += stone(theme, 'stone', rng, (0.6, 0.35, 0.65), 0.75, 0.62, 0.62, n=16); st = p[-1] if theme != 'lava' else p[-2]
         p += stone(theme, 'pebble', rng, (-1.7, 0.9, 0.0), 0.4, 0.33, 0.28, n=9)
-        p.append(ore(rng, (0, 0, 0.05), 2.0, 1.45, 0.5, rng.uniform(2.6, 3.6), 0.9, n=3))
-        p.append(ore(rng, (0.6, 0.35, 0.6), 0.75, 0.62, 0.62, rng.uniform(-1.2, -0.6), 0.6, n=2))
+        p.append(ore(rng, slab, rng.uniform(2.6, 3.6), 0.9, n=3, z=0.4))
+        p.append(ore(rng, st, rng.uniform(-1.2, -0.6), 0.65, n=2, z=0.75))
         foot(theme, p, rng, [(1.6, -0.9, 0.5), (-1.2, -1.0, 0.5)])
     else:
-        p += stone(theme, 'big', rng, (-0.7, -0.35, 0.25), 1.15, 1.0, 1.05, n=22)
-        p += stone(theme, 'mid', rng, (0.9, -0.15, 0.15), 0.9, 0.8, 0.9, n=18)
+        p += stone(theme, 'big', rng, (-0.7, -0.35, 0.25), 1.15, 1.0, 1.05, n=22); big = p[0]
+        p += stone(theme, 'mid', rng, (0.9, -0.15, 0.15), 0.9, 0.8, 0.9, n=18); mid = p[-1] if theme != 'lava' else p[-2]
         p += stone(theme, 'small', rng, (0.1, 1.0, 0.05), 0.75, 0.62, 0.62, n=16)
-        p.append(ore(rng, (-0.7, -0.35, 0.25), 1.15, 1.0, 1.05, rng.uniform(-2.3, -1.6), 0.85, n=3))
-        p.append(ore(rng, (0.9, -0.15, 0.15), 0.9, 0.8, 0.9, rng.uniform(-0.3, 0.3), 0.6, n=2))
+        p.append(ore(rng, big, rng.uniform(-2.3, -1.6), 0.85, n=3))
+        p.append(ore(rng, mid, rng.uniform(-0.3, 0.3), 0.65, n=2, z=0.6))
         foot(theme, p, rng, [(0.15, 0.1, 0.55), (1.4, 0.9, 0.45), (-1.5, 0.6, 0.45)])
     return p
 

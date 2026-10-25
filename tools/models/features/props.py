@@ -157,7 +157,8 @@ def prop_arctic_grass_0(rng):
 
 
 def prop_arctic_snowlump_0(rng):
-    p = [lump('lump', rng, (0, 0, 0.0), 0.55, 0.42, 0.32, shade('snow', 'snow', 'snow_sh', rng, spread=0.05), n=14, floor=-0.04, jit=0.2)]
+    p = [lump('lump', rng, (0, 0, 0.0), 0.55, 0.42, 0.32, shade('snow', 'snow', 'snow_sh', rng, spread=0.05), n=22, floor=-0.04, jit=0.15),
+         lump('lump2', rng, (-0.35, 0.25, -0.02), 0.28, 0.24, 0.17, 'snow', n=10, floor=-0.04)]
     p += pebbles(rng, [(0.42, -0.2, 0.12, 0.1)], shade('a_rock_lt', 'a_rock', 'a_rock_dk', rng), n=7, top=0.7, top_paint='snow')
     return p
 
