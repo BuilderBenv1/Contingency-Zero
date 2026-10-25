@@ -186,9 +186,11 @@ public partial class MatchScene : Node3D
         return layer;
     }
 
-    /// <summary>Warm aerial haze pooling toward the top of the screen (desert only).</summary>
+    /// <summary>Warm aerial haze pooling toward the top of the screen (desert only). The retro
+    /// palette quantises warm grades into mottling, so the haze is much fainter there.</summary>
     private static CanvasLayer MakeHaze()
     {
+        float k = RetroLook.Enabled ? 0.3f : 1f;
         var layer = new CanvasLayer { Layer = -1, Name = "Haze" };
         var rect = new TextureRect
         {
@@ -196,7 +198,7 @@ public partial class MatchScene : Node3D
             {
                 Gradient = new Gradient
                 {
-                    Colors = new[] { new Color(0.93f, 0.83f, 0.66f, 0f), new Color(0.93f, 0.83f, 0.66f, 0.14f), new Color(0.94f, 0.85f, 0.7f, 0.3f) },
+                    Colors = new[] { new Color(0.93f, 0.83f, 0.66f, 0f), new Color(0.93f, 0.83f, 0.66f, 0.055f * k), new Color(0.94f, 0.85f, 0.7f, 0.13f * k) },
                     Offsets = new[] { 0f, 0.55f, 1f },
                 },
                 Fill = GradientTexture2D.FillEnum.Linear,

@@ -106,8 +106,9 @@ public partial class TerrainView : Node3D
         if (theme == "desert")
         {
             // Warm late-afternoon grade; the haze itself is a screen-space gradient in MatchScene
-            // (Environment fog is unreliable in the Compatibility renderer).
-            sun.LightColor = new Color(1f, 0.9f, 0.76f);
+            // (Environment fog is unreliable in the Compatibility renderer). Under the retro
+            // palette the warmth mottles into few colour steps, so keep the sun near-neutral.
+            sun.LightColor = RetroLook.Enabled ? new Color(0.98f, 0.94f, 0.86f) : new Color(1f, 0.93f, 0.82f);
             sun.LightEnergy = 1.05f;
         }
         else
@@ -528,9 +529,11 @@ uniform sampler2D marks_tex : filter_linear;
 uniform bool marks = false;
 varying vec3 world_pos;
 varying vec4 wts;
+varying vec3 wnorm;
 void vertex() {
     world_pos = VERTEX;
     wts = vec4(UV, UV2);
+    wnorm = NORMAL;
     // Ground textures are laid flat along world X and Z, so that's the tangent frame.
     TANGENT = vec3(1.0, 0.0, 0.0);
     BINORMAL = vec3(0.0, 0.0, 1.0);
@@ -567,7 +570,10 @@ void fragment() {
         // its height) gives crisp edges, so pebbles poke through the dirt instead of smearing.
         float mixk = smoothstep(0.35, 0.65, n2(w * 0.021 + 3.0));
         vec2 p = w / tile;
-        vec2 pr = (w + vec2(world_pos.y * 0.7)) / (tile * 1.3);
+        // Cliffs: project the rock onto the dominant side plane (zy or xy) so steep ground
+        // keeps the rock's strata instead of stretching one texel row into vertical streaks.
+        vec3 anrm = abs(normalize(wnorm));
+        vec2 pr = (anrm.x > anrm.z ? world_pos.zy : world_pos.xy) / (tile * 1.3);
         vec3 cs = col2(tex_shore, p, mixk), cl = col2(tex_low, p, mixk), cp = col2(tex_patch, p, mixk);
         vec3 ch = col2(tex_high, p, mixk), cr = col2(tex_rock, pr, mixk);
         float patchy = smoothstep(0.52, 0.78, n2(w * 0.07 + 17.0) * 0.55 + n2(w * 0.23 + 5.0) * 0.3 + n2(w * 0.9 + 2.0) * 0.15) * patch_amount;
@@ -627,7 +633,7 @@ void fragment() {
     /// <summary>Per-theme strength of the patch layer's ragged blotches (shader default 1).</summary>
     private static readonly Dictionary<string, float> PatchAmount = new()
     {
-        ["desert"] = 0.45f,
+        ["desert"] = 0.3f,
     };
 
     /// <summary>Gives the ground shader the theme's texture set: colour and normal maps for shore, ground, patches, high ground and cliffs.</summary>
