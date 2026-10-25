@@ -3,19 +3,20 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cjfblsina3nu"
-path="res://.godot/imported/lattice_heavy_assault_body.png-bd1212fe95d2d6f865fc8b74f7a1512a.ctex"
+path.s3tc="res://.godot/imported/lattice_heavy_assault_body.png-bd1212fe95d2d6f865fc8b74f7a1512a.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://models/lattice_heavy_assault_body.png"
-dest_files=["res://.godot/imported/lattice_heavy_assault_body.png-bd1212fe95d2d6f865fc8b74f7a1512a.ctex"]
+dest_files=["res://.godot/imported/lattice_heavy_assault_body.png-bd1212fe95d2d6f865fc8b74f7a1512a.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/hdr_compression=1

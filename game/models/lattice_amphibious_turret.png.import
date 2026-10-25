@@ -3,19 +3,20 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ds2y7emk7imjp"
-path="res://.godot/imported/lattice_amphibious_turret.png-6020e681b6815cad875d5199509318b3.ctex"
+path.s3tc="res://.godot/imported/lattice_amphibious_turret.png-6020e681b6815cad875d5199509318b3.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://models/lattice_amphibious_turret.png"
-dest_files=["res://.godot/imported/lattice_amphibious_turret.png-6020e681b6815cad875d5199509318b3.ctex"]
+dest_files=["res://.godot/imported/lattice_amphibious_turret.png-6020e681b6815cad875d5199509318b3.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/hdr_compression=1

@@ -3,19 +3,20 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cjtb2lx3s1h3x"
-path="res://.godot/imported/crucible_experimental_body.png-74ee4aec8ef27f6e50f78689c84215bb.ctex"
+path.s3tc="res://.godot/imported/crucible_experimental_body.png-74ee4aec8ef27f6e50f78689c84215bb.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://models/crucible_experimental_body.png"
-dest_files=["res://.godot/imported/crucible_experimental_body.png-74ee4aec8ef27f6e50f78689c84215bb.ctex"]
+dest_files=["res://.godot/imported/crucible_experimental_body.png-74ee4aec8ef27f6e50f78689c84215bb.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/hdr_compression=1

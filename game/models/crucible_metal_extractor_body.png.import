@@ -3,19 +3,20 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bt4lywkphbktd"
-path="res://.godot/imported/crucible_metal_extractor_body.png-04cdbe9f834bafaa9c28df2d3563d9ca.ctex"
+path.s3tc="res://.godot/imported/crucible_metal_extractor_body.png-04cdbe9f834bafaa9c28df2d3563d9ca.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://models/crucible_metal_extractor_body.png"
-dest_files=["res://.godot/imported/crucible_metal_extractor_body.png-04cdbe9f834bafaa9c28df2d3563d9ca.ctex"]
+dest_files=["res://.godot/imported/crucible_metal_extractor_body.png-04cdbe9f834bafaa9c28df2d3563d9ca.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/hdr_compression=1

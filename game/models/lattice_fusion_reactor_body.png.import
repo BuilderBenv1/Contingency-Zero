@@ -3,19 +3,20 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ccjx3r7tq8vod"
-path="res://.godot/imported/lattice_fusion_reactor_body.png-2cf6bafe8bef2c54b903c0f434f3f843.ctex"
+path.s3tc="res://.godot/imported/lattice_fusion_reactor_body.png-2cf6bafe8bef2c54b903c0f434f3f843.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://models/lattice_fusion_reactor_body.png"
-dest_files=["res://.godot/imported/lattice_fusion_reactor_body.png-2cf6bafe8bef2c54b903c0f434f3f843.ctex"]
+dest_files=["res://.godot/imported/lattice_fusion_reactor_body.png-2cf6bafe8bef2c54b903c0f434f3f843.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/hdr_compression=1

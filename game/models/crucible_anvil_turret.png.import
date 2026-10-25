@@ -3,19 +3,20 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cdxh4vkbnruwy"
-path="res://.godot/imported/crucible_anvil_turret.png-a3f390838ec84f6ce95b671f109c1faf.ctex"
+path.s3tc="res://.godot/imported/crucible_anvil_turret.png-a3f390838ec84f6ce95b671f109c1faf.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://models/crucible_anvil_turret.png"
-dest_files=["res://.godot/imported/crucible_anvil_turret.png-a3f390838ec84f6ce95b671f109c1faf.ctex"]
+dest_files=["res://.godot/imported/crucible_anvil_turret.png-a3f390838ec84f6ce95b671f109c1faf.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/hdr_compression=1

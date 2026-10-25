@@ -3,19 +3,20 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cfcvpvxufvx00"
-path="res://.godot/imported/lattice_bomber_body.png-d256093fc739a4202b3c32e867b2c96d.ctex"
+path.s3tc="res://.godot/imported/lattice_bomber_body.png-d256093fc739a4202b3c32e867b2c96d.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://models/lattice_bomber_body.png"
-dest_files=["res://.godot/imported/lattice_bomber_body.png-d256093fc739a4202b3c32e867b2c96d.ctex"]
+dest_files=["res://.godot/imported/lattice_bomber_body.png-d256093fc739a4202b3c32e867b2c96d.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/hdr_compression=1

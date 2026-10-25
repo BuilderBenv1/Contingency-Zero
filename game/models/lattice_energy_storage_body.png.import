@@ -3,19 +3,20 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://juwmlxtrcrjm"
-path="res://.godot/imported/lattice_energy_storage_body.png-44adbae862bcfaaac5fe5e0f6e10de9f.ctex"
+path.s3tc="res://.godot/imported/lattice_energy_storage_body.png-44adbae862bcfaaac5fe5e0f6e10de9f.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://models/lattice_energy_storage_body.png"
-dest_files=["res://.godot/imported/lattice_energy_storage_body.png-44adbae862bcfaaac5fe5e0f6e10de9f.ctex"]
+dest_files=["res://.godot/imported/lattice_energy_storage_body.png-44adbae862bcfaaac5fe5e0f6e10de9f.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/hdr_compression=1

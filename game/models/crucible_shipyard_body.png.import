@@ -3,19 +3,20 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cg24l2seelle7"
-path="res://.godot/imported/crucible_shipyard_body.png-9cc45026fd36591cf768046197c43049.ctex"
+path.s3tc="res://.godot/imported/crucible_shipyard_body.png-9cc45026fd36591cf768046197c43049.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://models/crucible_shipyard_body.png"
-dest_files=["res://.godot/imported/crucible_shipyard_body.png-9cc45026fd36591cf768046197c43049.ctex"]
+dest_files=["res://.godot/imported/crucible_shipyard_body.png-9cc45026fd36591cf768046197c43049.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/hdr_compression=1

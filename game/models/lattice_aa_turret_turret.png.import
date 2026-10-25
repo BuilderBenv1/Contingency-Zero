@@ -3,19 +3,20 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dhrjccty5wwbe"
-path="res://.godot/imported/lattice_aa_turret_turret.png-c370d1a4b7d541f963ba303354859b46.ctex"
+path.s3tc="res://.godot/imported/lattice_aa_turret_turret.png-c370d1a4b7d541f963ba303354859b46.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://models/lattice_aa_turret_turret.png"
-dest_files=["res://.godot/imported/lattice_aa_turret_turret.png-c370d1a4b7d541f963ba303354859b46.ctex"]
+dest_files=["res://.godot/imported/lattice_aa_turret_turret.png-c370d1a4b7d541f963ba303354859b46.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/hdr_compression=1
