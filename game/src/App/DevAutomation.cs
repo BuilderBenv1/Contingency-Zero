@@ -72,9 +72,14 @@ public partial class DevAutomation : Node
         }
         else if (_args.ContainsKey("--dev-showcase"))
         {
-            // A set-piece for promo screenshots: two bases on Proving Grounds and two armies ordered
-            // to attack-move into each other. Everything after the orders is the normal sim.
-            MapData map = GameData.Maps().First(m => m.Key == "proving_grounds").Load();
+            // A set-piece for promo screenshots: two bases and two armies ordered to attack-move
+            // into each other. Everything after the orders is the normal sim. Optionally
+            // --dev-showcase=<map key> to run the same set-piece on another map (e.g. a desert
+            // one); spawn coordinates scale with the map size. The seed is fixed, so every run
+            // of the same map is identical - before/after screenshots line up.
+            string mapKey = Arg("--dev-showcase", "proving_grounds");
+            MapData map = GameData.Maps().First(m => m.Key == mapKey).Load();
+            int scale = map.Width / 512;
             var spawns = new List<Spawn>();
             void Side(string f, int owner, int dir)
             {
@@ -86,12 +91,12 @@ public partial class DevAutomation : Node
                     ("light_turret", 340, 165), ("fusion_reactor", 260, 30), ("radar_tower", 455, 75), ("aa_turret", 75, 75),
                 };
                 foreach (var (t, x, y) in basePieces)
-                    spawns.Add(new Spawn(t == "bot_lab" || t == "vehicle_plant" ? $"{f}_{t}" : $"{f}_{t}", owner, FixVec2.FromInts(x, Y(y))));
+                    spawns.Add(new Spawn(t == "bot_lab" || t == "vehicle_plant" ? $"{f}_{t}" : $"{f}_{t}", owner, FixVec2.FromInts(x * scale, Y(y) * scale)));
                 string tank = f == "lattice" ? "lattice_strider" : "crucible_anvil";
                 int k = owner * 1000;
                 // Loose, uneven groups rather than parade lines.
                 int J(int i, int amp) { uint h = (uint)((k + i) * 2654435761u); return (int)(h >> 16) % (2 * amp + 1) - amp; }
-                void Add(string type, int x, int y) { k++; spawns.Add(new Spawn(type, owner, FixVec2.FromInts(x + J(k, 7), Y(y + J(k + 77, 6))))); }
+                void Add(string type, int x, int y) { k++; spawns.Add(new Spawn(type, owner, FixVec2.FromInts((x + J(k, 7)) * scale, (Y(y) + J(k + 77, 6)) * scale))); }
                 for (int i = 0; i < 12; i++) Add(tank, 150 + i * 19, 212);
                 for (int i = 0; i < 6; i++) Add($"{f}_heavy_assault", 175 + i * 30, 200);
                 for (int i = 0; i < 14; i++) Add($"{f}_assault_bot", 140 + i * 17, 224);
@@ -113,14 +118,14 @@ public partial class DevAutomation : Node
                 var d = w.Catalog[w.Units.TypeIndex[id]];
                 if (!d.CanMove || d.CanBuild || !d.IsArmed) continue;
                 int owner = w.Units.Owner[id];
-                orders.Add(new Command(0, owner, CommandType.Fight, id, FixVec2.FromInts(256, owner == 0 ? 430 : 82)));
+                orders.Add(new Command(0, owner, CommandType.Fight, id, FixVec2.FromInts(map.Width / 2, (owner == 0 ? 430 : 82) * scale)));
             }
-            int ff = int.Parse(Arg("--dev-fastforward", "0"));
+            int ff2 = int.Parse(Arg("--dev-fastforward", "0"));
             w.Step(orders);
-            for (int i = 1; i < ff * 15; i++) w.Step();
+            for (int i = 1; i < ff2 * 15; i++) w.Step();
             _match.Units.Snapshot();
             _match.Units.Snapshot();
-            var look = Arg("--dev-look", "256,256").Split(',');
+            var look = Arg("--dev-look", $"{map.Width / 2},{map.Height / 2}").Split(',');
             _match.Rig.JumpTo(new Vector3(float.Parse(look[0], System.Globalization.CultureInfo.InvariantCulture), 0,
                 float.Parse(look[1], System.Globalization.CultureInfo.InvariantCulture)));
             if (Arg("--dev-zoom") is { Length: > 0 } sz)
