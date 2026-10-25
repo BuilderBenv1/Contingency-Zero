@@ -10,7 +10,7 @@ public static class TextureSet
     public static readonly Dictionary<string, Color[]> GroundAverages = new()
     {
         ["temperate"] = new[] { new Color(0.3451f, 0.2902f, 0.2275f), new Color(0.6f, 0.5804f, 0.349f), new Color(0.4275f, 0.4078f, 0.3569f), new Color(0.502f, 0.498f, 0.4157f), new Color(0.3098f, 0.298f, 0.2706f) },
-        ["desert"] = new[] { new Color(0.7765f, 0.6275f, 0.4745f), new Color(0.7137f, 0.5686f, 0.3843f), new Color(0.8275f, 0.7176f, 0.5725f), new Color(0.6039f, 0.5922f, 0.5529f), new Color(0.3882f, 0.3843f, 0.3765f) },
+        ["desert"] = new[] { new Color(0.6471f, 0.5843f, 0.4353f), new Color(0.6471f, 0.5843f, 0.4353f), new Color(0.4902f, 0.3686f, 0.2157f), new Color(0.8118f, 0.6627f, 0.5059f), new Color(0.5137f, 0.4118f, 0.3137f) },
         ["arctic"] = new[] { new Color(0.4902f, 0.5529f, 0.5451f), new Color(0.9255f, 0.949f, 0.9725f), new Color(0.6235f, 0.6235f, 0.6157f), new Color(0.851f, 0.8392f, 0.8078f), new Color(0.5176f, 0.5176f, 0.5098f) },
         ["lava"] = new[] { new Color(0.3529f, 0.3216f, 0.3137f), new Color(0.2902f, 0.2863f, 0.2745f), new Color(0.2431f, 0.2039f, 0.1725f), new Color(0.2275f, 0.2275f, 0.2275f), new Color(0.1373f, 0.1255f, 0.1059f) },
     };

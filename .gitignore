@@ -11,3 +11,7 @@ TestResults/
 mono_crash.*
 build/
 __pycache__/
+
+# Local dev screenshots and raw texture downloads
+.shots/
+tools/source_textures/*/raw/
