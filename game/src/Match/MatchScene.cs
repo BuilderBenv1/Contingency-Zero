@@ -31,6 +31,7 @@ public partial class MatchScene : Node3D
     public UnitView Units { get; private set; } = null!;
     public FeatureView Features { get; private set; } = null!;
     public EffectsView Effects { get; private set; } = null!;
+    public GroundMarks Marks { get; private set; } = null!;
     public OverlayView Overlay { get; private set; } = null!;
     public CameraRig Rig { get; private set; } = null!;
     public InputController Input { get; private set; } = null!;
@@ -91,6 +92,10 @@ public partial class MatchScene : Node3D
         AddChild(props);
         props.Init(world, Terrain);
 
+        Marks = new GroundMarks { Name = "GroundMarks" };
+        AddChild(Marks);
+        Marks.Init(world, Terrain);
+
         Overlay = new OverlayView { Name = "Overlay" };
         AddChild(Overlay);
 
@@ -113,6 +118,7 @@ public partial class MatchScene : Node3D
 
         Overlay.Init(world, Terrain, Units, Selection, Rig.Camera, session.LocalPlayer, _viewerTeam);
         Effects.Init(world, Terrain, Units, Rig.Camera, () => Rig.Focus, _viewerTeam, session.LocalPlayer);
+        Effects.Marks = Marks;
 
         Input = new InputController { Name = "Input" };
         AddChild(Input);

@@ -513,6 +513,8 @@ uniform vec3 avg_rock = vec3(0.5);
 uniform float tile = 9.0;
 uniform float tint = 0.45;
 uniform float bump = 1.0;
+uniform sampler2D marks_tex : filter_linear;
+uniform bool marks = false;
 varying vec3 world_pos;
 varying vec4 wts;
 void vertex() {
@@ -593,6 +595,12 @@ void fragment() {
         c = mix(c, c * 0.62, stones * 0.6);
         ROUGHNESS = 0.95;
         SPECULAR = 0.0;
+    }
+    if (marks) {
+        // The battle so far: tank tracks and craters darken the ground; blasted bowls read lighter.
+        vec2 mk = texture(marks_tex, uv).rg;
+        c *= 1.0 - mk.r * 0.55;
+        c = mix(c, c * 1.12 + vec3(0.03, 0.025, 0.02), mk.g * 0.45);
     }
     ALBEDO = c * light;
 }";

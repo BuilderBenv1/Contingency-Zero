@@ -79,6 +79,10 @@ public partial class EffectsView : Node3D
 
     public void SetViewerTeam(int team) => _viewerTeam = team;
 
+    /// <summary>The ground-marks layer: tank tracks accumulate in <see cref="GroundMarks.Sync"/>;
+    /// explosions and wrecks stamp craters here.</summary>
+    public GroundMarks? Marks { get; set; }
+
     /// <summary>Raised after a crater reshaped the ground (features and decals re-seat themselves).</summary>
     public event Action? TerrainChanged;
 
@@ -276,7 +280,11 @@ public partial class EffectsView : Node3D
                 Life = 0.5f + _rng.Randf() * 0.4f, Max = 0.9f, Size = 0.4f, Gravity = 20f,
             });
         }
-        if (scorch && size >= 2.5f) Scorch(p, size * 1.6f);
+        if (scorch && size >= 2.5f)
+        {
+            Scorch(p, size * 1.6f);
+            Marks?.StampCrater(new Vector2(p.X, p.Z), size * 0.75f);
+        }
     }
 
     private void Debris(Vector3 p, int count, float size)
