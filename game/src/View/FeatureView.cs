@@ -56,11 +56,21 @@ public partial class FeatureView : Node3D
         }
     }
 
+    private readonly Dictionary<string, Texture2D?> _details = new();
+
     private MultiMesh Batch(string key, Func<Mesh> mesh)
     {
         if (_batches.TryGetValue(key, out var mm)) return mm;
         mm = MultiMeshUtil.Create(mesh(), 64);
-        AddChild(new MultiMeshInstance3D { Multimesh = mm, MaterialOverride = _material });
+        Material mat = _material;
+        if (_details.TryGetValue(key, out var detail) && detail is not null)
+        {
+            var dm = (ShaderMaterial)_material.Duplicate();
+            dm.SetShaderParameter("detail_tex", detail);
+            dm.SetShaderParameter("detailed", true);
+            mat = dm;
+        }
+        AddChild(new MultiMeshInstance3D { Multimesh = mm, MaterialOverride = mat });
         _batches[key] = mm;
         return mm;
     }
@@ -73,6 +83,16 @@ public partial class FeatureView : Node3D
         for (int j = -1; j <= 1; j++)
             h = Mathf.Min(h, _terrain.HeightAt(x + i * half * 0.8f, z + j * half * 0.8f));
         return h;
+    }
+
+    /// <summary>Swaps in the hand-built model of that name, if there is one.</summary>
+    private void Hand(ref string key, ref Func<Mesh> make, string name)
+    {
+        if (NatureModels.Get(name) is not { } m) return;
+        key = "m:" + name;
+        _details[key] = m.Detail;
+        ArrayMesh mesh = m.Mesh;
+        make = () => mesh;
     }
 
     private static float Hash(int i) => ((uint)(i * 2654435761u) >> 8) / 16777216f;
@@ -99,16 +119,19 @@ public partial class FeatureView : Node3D
                 case FeatureKind.Tree:
                     key = $"tree{variant}";
                     make = () => UnitModels.Tree(theme, variant);
+                    Hand(ref key, ref make, $"tree_{theme}_{variant}");
                     scale = 0.85f + Hash(f.Id + 17) * 0.4f;
                     break;
                 case FeatureKind.Rock:
                     key = $"rock{variant}";
                     make = () => UnitModels.Rock(theme, variant);
+                    Hand(ref key, ref make, $"rock_{theme}_{variant}");
                     scale = 0.7f + Math.Min(1.2f, f.Metal.Raw / 65536f / 60f);
                     break;
                 case FeatureKind.Rubble:
                     key = $"rubble{variant}";
                     make = () => UnitModels.Rubble(variant);
+                    Hand(ref key, ref make, $"rubble_{variant}");
                     scale = 0.8f + Hash(f.Id + 23) * 0.5f;
                     break;
                 case FeatureKind.Wreck when f.SourceTypeIndex >= 0 && _world.Catalog[f.SourceTypeIndex].IsStructure:
@@ -130,6 +153,12 @@ public partial class FeatureView : Node3D
                     key = $"wreck{size}";
                     make = () => UnitModels.Wreck(size);
                     scale = 1f;
+                    // Hand-built debris piles are authored about 6 across and scaled to the wreck.
+                    if (NatureModels.Get($"wreck_{variant}") is { } wm)
+                    {
+                        Hand(ref key, ref make, $"wreck_{variant}");
+                        scale = size / Mathf.Max(1f, wm.Size);
+                    }
                     break;
                 }
             }

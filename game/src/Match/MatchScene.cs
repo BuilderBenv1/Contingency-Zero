@@ -87,6 +87,10 @@ public partial class MatchScene : Node3D
         AddChild(Features);
         Features.Init(world, Terrain, _viewerTeam);
 
+        var props = new PropView { Name = "Props" };
+        AddChild(props);
+        props.Init(world, Terrain);
+
         Overlay = new OverlayView { Name = "Overlay" };
         AddChild(Overlay);
 

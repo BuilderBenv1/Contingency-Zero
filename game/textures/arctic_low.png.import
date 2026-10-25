@@ -3,19 +3,20 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bndxvnssq62o5"
-path="res://.godot/imported/arctic_low.png-73933c8fef0d58dbdc642f1615b45861.ctex"
+path.s3tc="res://.godot/imported/arctic_low.png-73933c8fef0d58dbdc642f1615b45861.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://textures/arctic_low.png"
-dest_files=["res://.godot/imported/arctic_low.png-73933c8fef0d58dbdc642f1615b45861.ctex"]
+dest_files=["res://.godot/imported/arctic_low.png-73933c8fef0d58dbdc642f1615b45861.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/hdr_compression=1

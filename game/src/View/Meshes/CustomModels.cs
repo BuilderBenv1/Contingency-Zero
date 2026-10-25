@@ -68,7 +68,7 @@ internal static class CustomModels
         }
     }
 
-    private static MeshInstance3D? Find(Node n, string name)
+    internal static MeshInstance3D? Find(Node n, string name)
     {
         if (n is MeshInstance3D mi && n.Name == name) return mi;
         foreach (Node c in n.GetChildren())
@@ -77,7 +77,7 @@ internal static class CustomModels
     }
 
     /// <summary>Copies the first surface into a material-less mesh, scaled into world units.</summary>
-    private static ArrayMesh Rebuild(Mesh mesh, float scale, out Vector3 min, out Vector3 max)
+    internal static ArrayMesh Rebuild(Mesh mesh, float scale, out Vector3 min, out Vector3 max)
     {
         var arrays = mesh.SurfaceGetArrays(0);
         var verts = arrays[(int)Mesh.ArrayType.Vertex].AsVector3Array();

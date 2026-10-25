@@ -3,19 +3,20 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://du1cet8cholg6"
-path="res://.godot/imported/arctic_high.png-e7d312ca31e5985100ba5083efeec77c.ctex"
+path.s3tc="res://.godot/imported/arctic_high.png-e7d312ca31e5985100ba5083efeec77c.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://textures/arctic_high.png"
-dest_files=["res://.godot/imported/arctic_high.png-e7d312ca31e5985100ba5083efeec77c.ctex"]
+dest_files=["res://.godot/imported/arctic_high.png-e7d312ca31e5985100ba5083efeec77c.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/hdr_compression=1

@@ -267,6 +267,17 @@ public partial class TerrainView : Node3D
         return _ground;
     }
 
+    /// <summary>Ground texture weights at a corner: (shore, low ground), (high ground, cliff rock).</summary>
+    public (Vector2 A, Vector2 B) WeightsAt(int cx, int cy)
+    {
+        int vx = Map.TilesX + 1;
+        int i = Math.Clamp(cy, 0, Map.TilesY) * vx + Math.Clamp(cx, 0, Map.TilesX);
+        return i < _weightsA.Length ? (_weightsA[i], _weightsB[i]) : (Vector2.Zero, Vector2.Zero);
+    }
+
+    /// <summary>The fog-of-war texture (R = in sight, G = explored), for other ground-level shaders.</summary>
+    public Texture2D FogTexture => _fogTexture;
+
     /// <summary>Recomputes normals and colours for corners in an inclusive corner rectangle.</summary>
     private void RecomputeCorners(int x0, int y0, int x1, int y1)
     {
@@ -282,6 +293,7 @@ public partial class TerrainView : Node3D
             var n = new Vector3(hl - hr, 2 * MapData.TileSize, hd - hu).Normalized();
             _normals[i] = n;
             Color c = GroundColour(_pal, _bands, h, n, x, y);
+            float baseLum = Math.Max(0.02f, (c.R + c.G + c.B) / 3f);
             float dug = _original.Length > i ? _original[i] - h : 0;
             if (dug > 0.2f)
             {
@@ -299,6 +311,8 @@ public partial class TerrainView : Node3D
                 // Burnt ground: darker, a little browner, and duller.
                 c = c.Lerp(new Color(0.09f, 0.08f, 0.07f), Mathf.Min(0.8f, sc * 0.85f));
             }
+            // Alpha: how much of its brightness damage left (the textured ground darkens by it).
+            c.A = Mathf.Clamp((c.R + c.G + c.B) / 3f / baseLum, 0.05f, 1f);
             _colours[i] = c;
             (_weightsA[i], _weightsB[i]) = GroundWeights(_bands, h, n);
         }
@@ -476,34 +490,52 @@ public partial class TerrainView : Node3D
 
     private const string GroundShader = @"
 shader_type spatial;
-render_mode diffuse_lambert, specular_disabled;
+render_mode diffuse_lambert, specular_schlick_ggx;
 uniform sampler2D fog_tex : filter_linear;
 uniform vec2 map_size;
 uniform bool retro = false;
 uniform bool textured = false;
-uniform sampler2D tex_shore : source_color, filter_linear_mipmap, repeat_enable;
-uniform sampler2D tex_low : source_color, filter_linear_mipmap, repeat_enable;
-uniform sampler2D tex_high : source_color, filter_linear_mipmap, repeat_enable;
-uniform sampler2D tex_rock : source_color, filter_linear_mipmap, repeat_enable;
+uniform sampler2D tex_shore : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D tex_low : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D tex_patch : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D tex_high : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D tex_rock : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D nrm_shore : hint_normal, filter_linear_mipmap, repeat_enable;
+uniform sampler2D nrm_low : hint_normal, filter_linear_mipmap, repeat_enable;
+uniform sampler2D nrm_patch : hint_normal, filter_linear_mipmap, repeat_enable;
+uniform sampler2D nrm_high : hint_normal, filter_linear_mipmap, repeat_enable;
+uniform sampler2D nrm_rock : hint_normal, filter_linear_mipmap, repeat_enable;
 uniform vec3 avg_shore = vec3(0.5);
 uniform vec3 avg_low = vec3(0.5);
+uniform vec3 avg_patch = vec3(0.5);
 uniform vec3 avg_high = vec3(0.5);
 uniform vec3 avg_rock = vec3(0.5);
-uniform float tile = 30.0;
+uniform float tile = 9.0;
+uniform float tint = 0.45;
+uniform float bump = 1.0;
 varying vec3 world_pos;
 varying vec4 wts;
-void vertex() { world_pos = VERTEX; wts = vec4(UV, UV2); }
-// One texture, sampled twice at unrelated scales and blended by slow noise, so the repeat
-// doesn't show as a grid.
-vec3 untiled(sampler2D t, vec2 p, float k) {
-    vec3 a = texture(t, p).rgb;
-    vec3 b = texture(t, p * 0.43 + vec2(0.37, 0.71)).rgb;
-    return mix(a, b, k);
+void vertex() {
+    world_pos = VERTEX;
+    wts = vec4(UV, UV2);
+    // Ground textures are laid flat along world X and Z, so that's the tangent frame.
+    TANGENT = vec3(1.0, 0.0, 0.0);
+    BINORMAL = vec3(0.0, 0.0, 1.0);
 }
 float h2(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
 float n2(vec2 x) {
     vec2 i = floor(x); vec2 f = fract(x); f = f * f * (3.0 - 2.0 * f);
     return mix(mix(h2(i), h2(i + vec2(1.0, 0.0)), f.x), mix(h2(i + vec2(0.0, 1.0)), h2(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+// A texture sampled at two unrelated scales and rotations, blended by slow noise, so the
+// repeat never lines up into a visible grid.
+const mat2 ROT = mat2(vec2(0.8, 0.6), vec2(-0.6, 0.8));
+vec3 col2(sampler2D t, vec2 p, float k) { return mix(texture(t, p).rgb, texture(t, ROT * p * 0.61 + vec2(0.37, 0.71)).rgb, k); }
+vec3 nrm2(sampler2D t, vec2 p, float k) {
+    vec3 a = texture(t, p).rgb, b = texture(t, ROT * p * 0.61 + vec2(0.37, 0.71)).rgb;
+    // Rotate the second sample's normal back by the same rotation it was sampled with.
+    vec2 bxy = transpose(ROT) * (b.xy * 2.0 - 1.0) * 0.5 + 0.5;
+    return mix(a, vec3(bxy, b.z), k);
 }
 void fragment() {
     vec2 uv = world_pos.xz / map_size;
@@ -513,43 +545,70 @@ void fragment() {
         + (texture(fog_tex, uv + vec2(px.x, 0.0)).rg + texture(fog_tex, uv - vec2(px.x, 0.0)).rg
          + texture(fog_tex, uv + vec2(0.0, px.y)).rg + texture(fog_tex, uv - vec2(0.0, px.y)).rg) * 0.15;
     float light = mix(mix(0.16, 0.5, fog.g), 1.0, fog.r);
-    // Ground texture from layered noise: broad mottling, grit, scattered stones and dry patches.
     vec2 w = world_pos.xz;
-    float d = n2(w * 0.06) * 0.42 + n2(w * 0.23) * 0.28 + n2(w * 0.9) * 0.18 + n2(w * 3.1) * 0.12;
-    float stones = smoothstep(0.84, 0.92, n2(w * 1.1 + 13.0)) * smoothstep(0.5, 0.8, n2(w * 0.08 + 5.0));
-    float dry = smoothstep(0.55, 0.78, n2(w * 0.035 + 7.0));
-    vec3 c = COLOR.rgb * (0.7 + 0.55 * d);
-    c = mix(c, mix(COLOR.rgb * 0.65, vec3(0.3, 0.26, 0.21), 0.5) * (0.85 + 0.3 * d), dry * 0.45);
-    if (retro && textured) {
-        // Photo-sourced ground textures, as 1997 maps used, blended by height band and slope.
-        // The vertex colour still tints them toward the theme and carries craters and scorching.
-        vec4 k = wts / max(dot(wts, vec4(1.0)), 0.001);
+    vec3 c;
+    if (textured) {
+        // Five ground-scale photo layers: shore, ground, patches through the ground, high ground,
+        // cliffs. The corner weights pick the band; the patch layer comes through the ground in
+        // ragged noise blotches; then a height blend (each texture's brightness standing in for
+        // its height) gives crisp edges, so pebbles poke through the dirt instead of smearing.
         float mixk = smoothstep(0.35, 0.65, n2(w * 0.021 + 3.0));
         vec2 p = w / tile;
-        vec3 tex = untiled(tex_shore, p, mixk) * k.x + untiled(tex_low, p, mixk) * k.y
-                 + untiled(tex_high, p, mixk) * k.z
-                 + untiled(tex_rock, (w + world_pos.y * 0.8) / (tile * 0.8), mixk) * k.w;
-        vec3 av = avg_shore * k.x + avg_low * k.y + avg_high * k.z + avg_rock * k.w;
-        c = tex * mix(vec3(1.0), COLOR.rgb / max(av, vec3(0.05)), 0.7);
-        c *= 0.88 + 0.24 * n2(w * 0.05 + 11.0);
+        vec2 pr = (w + vec2(world_pos.y * 0.7)) / (tile * 1.3);
+        vec3 cs = col2(tex_shore, p, mixk), cl = col2(tex_low, p, mixk), cp = col2(tex_patch, p, mixk);
+        vec3 ch = col2(tex_high, p, mixk), cr = col2(tex_rock, pr, mixk);
+        float patchy = smoothstep(0.52, 0.78, n2(w * 0.07 + 17.0) * 0.55 + n2(w * 0.23 + 5.0) * 0.3 + n2(w * 0.9 + 2.0) * 0.15);
+        vec4 k = wts / max(dot(wts, vec4(1.0)), 0.001);
+        float wl = k.y * (1.0 - patchy), wp = k.y * patchy;
+        float hs = dot(cs, vec3(0.333)) / dot(avg_shore, vec3(0.333)), hl = dot(cl, vec3(0.333)) / dot(avg_low, vec3(0.333));
+        float hp = dot(cp, vec3(0.333)) / dot(avg_patch, vec3(0.333)), hh = dot(ch, vec3(0.333)) / dot(avg_high, vec3(0.333));
+        float hr = dot(cr, vec3(0.333)) / dot(avg_rock, vec3(0.333));
+        vec4 a1 = vec4(k.x, wl, wp, k.z) * 1.6 + vec4(hs, hl, hp, hh) * 0.4;
+        float a2 = k.w * 1.6 + hr * 0.4;
+        float top = max(max(max(a1.x, a1.y), max(a1.z, a1.w)), a2) - 0.35;
+        vec4 b1 = max(a1 - top, 0.0) * step(0.001, vec4(k.x, wl, wp, k.z));
+        float b2 = max(a2 - top, 0.0) * step(0.001, k.w);
+        float sum = max(dot(b1, vec4(1.0)) + b2, 0.0001);
+        b1 /= sum; b2 /= sum;
+        vec3 tex = cs * b1.x + cl * b1.y + cp * b1.z + ch * b1.w + cr * b2;
+        vec3 av = avg_shore * b1.x + avg_low * b1.y + avg_patch * b1.z + avg_high * b1.w + avg_rock * b2;
+        vec3 n = nrm2(nrm_shore, p, mixk) * b1.x + nrm2(nrm_low, p, mixk) * b1.y + nrm2(nrm_patch, p, mixk) * b1.z
+               + nrm2(nrm_high, p, mixk) * b1.w + nrm2(nrm_rock, pr, mixk) * b2;
+        // Vertex RGB is the theme's band colour after craters and scorching; alpha is how much
+        // of its brightness the damage left, so burns darken the photo texture too.
+        vec3 band = COLOR.rgb / max(COLOR.a, 0.05);
+        c = tex * mix(vec3(1.0), band / max(av, vec3(0.05)), tint);
+        c *= COLOR.a;
+        c *= 0.9 + 0.2 * n2(w * 0.03 + 11.0);
+        NORMAL_MAP = n;
+        NORMAL_MAP_DEPTH = bump * (0.6 + 0.6 * b2);
+        ROUGHNESS = 0.85 - 0.25 * (b1.x + b2 * 0.3);
+        SPECULAR = 0.25;
     } else {
+        float d = n2(w * 0.06) * 0.42 + n2(w * 0.23) * 0.28 + n2(w * 0.9) * 0.18 + n2(w * 3.1) * 0.12;
+        float stones = smoothstep(0.84, 0.92, n2(w * 1.1 + 13.0)) * smoothstep(0.5, 0.8, n2(w * 0.08 + 5.0));
+        float dry = smoothstep(0.55, 0.78, n2(w * 0.035 + 7.0));
+        c = COLOR.rgb * (0.7 + 0.55 * d);
+        c = mix(c, mix(COLOR.rgb * 0.65, vec3(0.3, 0.26, 0.21), 0.5) * (0.85 + 0.3 * d), dry * 0.45);
         c = mix(c, c * 0.62, stones * 0.6);
+        ROUGHNESS = 0.95;
+        SPECULAR = 0.0;
     }
     ALBEDO = c * light;
-    ROUGHNESS = 0.95;
 }";
 
     /// <summary>Gives the ground shader the theme's texture set (shore, low, high, rock), when the old-school look is on.</summary>
+    /// <summary>Gives the ground shader the theme's texture set: colour and normal maps for shore, ground, patches, high ground and cliffs.</summary>
     public static void ApplyGroundTextures(ShaderMaterial mat, string theme)
     {
-        if (!RetroLook.Enabled) return;
         if (!TextureSet.GroundAverages.ContainsKey(theme)) theme = "temperate";
         Color[] avg = TextureSet.GroundAverages[theme];
-        string[] slots = { "shore", "low", "high", "rock" };
-        for (int i = 0; i < 4; i++)
+        string[] slots = { "shore", "low", "patch", "high", "rock" };
+        for (int i = 0; i < slots.Length; i++)
         {
             if (ResourceLoader.Load<Texture2D>($"res://textures/{theme}_{slots[i]}.png") is not { } tex) return;
             mat.SetShaderParameter($"tex_{slots[i]}", tex);
+            mat.SetShaderParameter($"nrm_{slots[i]}", ResourceLoader.Load<Texture2D>($"res://textures/{theme}_{slots[i]}_n.png"));
             mat.SetShaderParameter($"avg_{slots[i]}", new Vector3(avg[i].R, avg[i].G, avg[i].B));
         }
         mat.SetShaderParameter("textured", true);

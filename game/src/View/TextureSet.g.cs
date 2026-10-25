@@ -4,15 +4,15 @@ using Godot;
 
 namespace ContingencyZero.Game.View;
 
-/// <summary>Average colour of each ground texture (shore, low, high, rock) per theme, and of the hull detail map.</summary>
+/// <summary>Average colour of each ground texture (shore, low, patch, high, rock) per theme, and of the hull detail map.</summary>
 public static class TextureSet
 {
     public static readonly Dictionary<string, Color[]> GroundAverages = new()
     {
-        ["temperate"] = new[] { new Color(0.3451f, 0.2941f, 0.2275f), new Color(0.3176f, 0.3216f, 0.149f), new Color(0.4314f, 0.4118f, 0.3608f), new Color(0.3137f, 0.302f, 0.2745f) },
-        ["desert"] = new[] { new Color(0.7804f, 0.6275f, 0.4745f), new Color(0.7176f, 0.5686f, 0.3843f), new Color(0.6078f, 0.5961f, 0.5569f), new Color(0.3882f, 0.3882f, 0.3804f) },
-        ["arctic"] = new[] { new Color(0.4902f, 0.5529f, 0.5451f), new Color(0.6235f, 0.6235f, 0.6157f), new Color(0.851f, 0.8392f, 0.8078f), new Color(0.5176f, 0.5176f, 0.5098f) },
-        ["lava"] = new[] { new Color(0.3529f, 0.3216f, 0.3176f), new Color(0.2941f, 0.2863f, 0.2745f), new Color(0.2275f, 0.2275f, 0.2275f), new Color(0.1451f, 0.1333f, 0.1137f) },
+        ["temperate"] = new[] { new Color(0.3451f, 0.2902f, 0.2275f), new Color(0.6f, 0.5804f, 0.349f), new Color(0.4275f, 0.4078f, 0.3569f), new Color(0.502f, 0.498f, 0.4157f), new Color(0.3098f, 0.298f, 0.2706f) },
+        ["desert"] = new[] { new Color(0.7765f, 0.6275f, 0.4745f), new Color(0.7137f, 0.5686f, 0.3843f), new Color(0.8275f, 0.7176f, 0.5725f), new Color(0.6039f, 0.5922f, 0.5529f), new Color(0.3882f, 0.3843f, 0.3765f) },
+        ["arctic"] = new[] { new Color(0.4902f, 0.5529f, 0.5451f), new Color(0.9255f, 0.949f, 0.9725f), new Color(0.6235f, 0.6235f, 0.6157f), new Color(0.851f, 0.8392f, 0.8078f), new Color(0.5176f, 0.5176f, 0.5098f) },
+        ["lava"] = new[] { new Color(0.3529f, 0.3216f, 0.3137f), new Color(0.2902f, 0.2863f, 0.2745f), new Color(0.2431f, 0.2039f, 0.1725f), new Color(0.2275f, 0.2275f, 0.2275f), new Color(0.1373f, 0.1255f, 0.1059f) },
     };
-    public static readonly Color HullAverage = new(0.5176f, 0.0941f, 0.1647f);
+    public static readonly Color HullAverage = new(0.5176f, 0.0863f, 0.1647f);
 }
