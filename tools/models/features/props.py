@@ -214,9 +214,8 @@ def prop_lava_ash_1(rng):
 
 def prop_lava_cinder_0(rng):
     """A glowing cinder: a black clinker split by cracks of orange heat."""
-    bm = hull_bm(blob_points(rng, (0, 0, 0.08), 0.32, 0.27, 0.22, 12, 0.25, floor=-0.04), floor=-0.04)
+    bm = hull_bm(blob_points(rng, (0, 0, 0.08), 0.32, 0.27, 0.22, 10, 0.25, floor=-0.04), floor=-0.04)
     segs = cut_lines(bm, (0.03, 0, 0.1), (1, 0.4, 0.2), zmin=0.0)
-    segs += cut_lines(bm, (0, 0, 0.17), (0.1, 0.2, 1), zmin=0.0)
     p = [from_bm('cinder', bm, shade('l_char_lt', 'l_char', 'l_char', rng)),
          from_bm('cracks', crack_bm(segs, 0.04, rng, lift=0.008), 'ember')]
     p.append(lump('glow', rng, (0.3, 0.1, 0.0), 0.08, 0.07, 0.05, 'ember', n=6, floor=-0.02))

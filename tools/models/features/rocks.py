@@ -27,11 +27,12 @@ THEMES = {
 }
 
 
-def stone(theme, name, rng, c, rx, ry, rz, n=20, jit=0.2, rot=None, flat_top=None):
+def stone(theme, name, rng, c, rx, ry, rz, n=20, jit=0.26, rot=None, flat_top=None):
     """One faceted stone, painted for the theme: strata in the desert, snow caps in the arctic,
     moss in the temperate lands, glowing cracks in the lava fields (returned as extra parts)."""
     T = THEMES[theme]
     rot = rng.random() * TAU if rot is None else rot
+    n = int(n * 1.8)
     bm = hull_bm(blob_points(rng, c, rx, ry, rz, n, jit, floor=-0.18, rot=rot, flat_top=flat_top), floor=-0.18)
     extra = []
     base = shade(T['lt'], T['mid'], T['dk'], rng, spread=0.1)
@@ -59,9 +60,8 @@ def stone(theme, name, rng, c, rx, ry, rz, n=20, jit=0.2, rot=None, flat_top=Non
         for k in range(2):
             a = rng.random() * TAU
             no = (math.cos(a), math.sin(a), rng.uniform(-0.4, 0.4))
-            segs += cut_lines(bm, (c[0] + rng.uniform(-0.3, 0.3) * rx, c[1] + rng.uniform(-0.3, 0.3) * ry, c[2]), no, zmin=0.0, keep=0.85, rng=rng)
-        segs += cut_lines(bm, (0, 0, c[2] + rz * rng.uniform(-0.1, 0.3)), (rng.uniform(-0.2, 0.2), rng.uniform(-0.2, 0.2), 1), zmin=0.0, keep=0.7, rng=rng)
-        extra.append(from_bm(name + '_cracks', crack_bm(segs, 0.075, rng), 'ember'))
+            segs += cut_lines(bm, (c[0] + rng.uniform(-0.3, 0.3) * rx, c[1] + rng.uniform(-0.3, 0.3) * ry, c[2]), no, zmin=0.0, keep=0.75 if k == 0 else 0.45, rng=rng)
+        extra.append(from_bm(name + '_cracks', crack_bm(segs, 0.05, rng), 'ember'))
         paint = base
     else:
         paint = with_top(base, T['top'], nz=T['top_nz'], rng=rng, chance=T['top_chance'])
@@ -69,10 +69,10 @@ def stone(theme, name, rng, c, rx, ry, rz, n=20, jit=0.2, rot=None, flat_top=Non
 
 
 def ore(rng, c, rx, ry, rz, a, size=0.9, n=3):
-    """Ore crystals breaking out of a stone's flank at angle a."""
+    """Ore crystals breaking out of a stone's upper flank at angle a, jutting out and up."""
     d = Vector((math.cos(a), math.sin(a), 0))
-    p = Vector(c) + Vector((d.x * rx * 0.72, d.y * ry * 0.72, max(0.1, c[2] + rz * 0.15)))
-    return ore_cluster('ore', rng, p, n=n, size=size, out=d + Vector((0, 0, 0.6)))
+    p = Vector(c) + Vector((d.x * rx * 0.55, d.y * ry * 0.55, rz * 0.45))
+    return ore_cluster('ore', rng, p, n=n, size=size * 1.5, out=d + Vector((0, 0, 0.9)))
 
 
 def foot(theme, p, rng, spots):
@@ -101,7 +101,7 @@ def build(theme, variant, rng):
         p += stone(theme, 'boulder', rng, (0, 0, 0.35), 1.65, 1.35, 1.25, n=28)
         p += stone(theme, 'shoulder', rng, (-0.9, 0.55, 0.15), 0.95, 0.85, 0.85, n=16)
         p += stone(theme, 'chip', rng, (1.45, -0.75, 0.0), 0.45, 0.38, 0.32, n=10)
-        p.append(ore(rng, (0, 0, 0.35), 1.65, 1.35, 1.25, rng.uniform(-1.4, -0.4), 1.0))
+        p.append(ore(rng, (0, 0, 0.35), 1.65, 1.35, 1.25, rng.uniform(-1.4, -0.4), 1.0, n=4))
         foot(theme, p, rng, [(1.2, 0.6, 0.6), (-1.3, -0.6, 0.55)])
     elif variant == 1:
         p += stone(theme, 'slab', rng, (0, 0, 0.05), 2.0, 1.45, 0.5, n=24, flat_top=0.8)
