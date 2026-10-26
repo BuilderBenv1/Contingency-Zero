@@ -96,9 +96,19 @@ public static class RetroLook
     {
         if (Luts.TryGetValue(theme, out var cached)) return cached;
         List<Color> pal = Palette();
+        if (theme == "desert")
+            for (int i = 0; i < pal.Count; i++)
+            {
+                // Sandstone and brick must not fall into saturated UI/explosion warm ramps.
+                // Neutralise rust, orange and yellow highlights; pure team red stays intact.
+                Color c = pal[i];
+                c.ToHsv(out float h, out float s, out float v);
+                if (h is > 0.025f and < 0.18f && s > 0.38f)
+                    pal[i] = Color.FromHsv(h, s * 0.28f, v);
+            }
         if (theme.Length > 0 && TextureSet.GroundAverages.TryGetValue(theme, out Color[]? avgs))
             foreach (Color a in avgs)
-                foreach (float v in new[] { 0.7f, 0.85f, 1f, 1.15f, 1.3f })
+                foreach (float v in new[] { 0.7f, 0.85f, 1f, 1.15f, 1.3f, 1.45f, 1.6f })
                     pal.Add(new Color(Mathf.Clamp(a.R * v, 0, 1), Mathf.Clamp(a.G * v, 0, 1), Mathf.Clamp(a.B * v, 0, 1)));
         const int N = 32;
         var img = Image.CreateEmpty(N * N, N, false, Image.Format.Rgb8);
