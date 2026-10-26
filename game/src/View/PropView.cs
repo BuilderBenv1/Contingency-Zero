@@ -180,7 +180,7 @@ public partial class PropView : Node3D
             {
                 if (kind < 0.28f) ClusterTemperateFarm(placed, lists, chunksX, cx, cy, wx, wz);
                 else if (kind < 0.46f) ClusterFieldWalls(placed, cx, cy, wx, wz);
-                else if (kind < 0.60f) ClusterHedgerow(placed, cx, cy, wx, wz);
+                else if (kind < 0.60f) ClusterHedgerow(placed, lists, chunksX, cx, cy, wx, wz);
                 else ClusterCopse(placed, lists, chunksX, cx, cy, wx, wz);
             }
             else if (kind < 0.34f) ClusterVillage(placed, cx, cy, wx, wz);
@@ -262,23 +262,30 @@ public partial class PropView : Node3D
                 wz + dir.Y * i * 8.7f + dir.X * side + 13f,
                 Mathf.Atan2(-dir.Y, dir.X) + (Hash(cx, cy + i, s + 5) - 0.5f) * 0.18f, 1f);
         }
-        ClusterHedgerow(placed, cx + 31, cy, wx - 18f, wz + 2f);
+        ClusterHedgerow(placed, lists, chunksX, cx + 31, cy, wx - 18f, wz + 2f);
     }
 
-    /// <summary>Overlapping matte, rounded bushes make a continuous hedge with a gently uneven line.</summary>
-    private void ClusterHedgerow(Dictionary<string, List<Transform3D>> placed, int cx, int cy, float wx, float wz)
+    /// <summary>Broken, varied hedge clumps with small emergent trees, not a continuous green tube.</summary>
+    private void ClusterHedgerow(Dictionary<string, List<Transform3D>> placed, Dictionary<(int, string), List<Transform3D>> lists,
+        int chunksX, int cx, int cy, float wx, float wz)
     {
         float yaw = Hash(cx, cy, ClutterSalt + 210) * Mathf.Tau;
         var dir = new Vector2(Mathf.Cos(yaw), Mathf.Sin(yaw));
-        int n = 8 + (int)(Hash(cx, cy, ClutterSalt + 211) * 4f);
+        int n = 9 + (int)(Hash(cx, cy, ClutterSalt + 211) * 4f);
         for (int i = 0; i < n; i++)
         {
             float along = (i - (n - 1) * 0.5f) * 2.05f;
-            float side = (Hash(cx + i, cy, ClutterSalt + 212) - 0.5f) * 0.65f;
+            float side = (Hash(cx + i, cy, ClutterSalt + 212) - 0.5f) * 1.1f;
             float px = wx + dir.X * along - dir.Y * side, pz = wz + dir.Y * along + dir.X * side;
+            // Real gaps interrupt the run; broad and narrow clumps vary independently in height.
+            if (i > 0 && i < n - 1 && Hash(cx + i, cy, ClutterSalt + 215) < 0.14f) continue;
+            float s = 0.72f + Hash(cx + i, cy, ClutterSalt + 214) * 0.52f;
             PlaceClutter(placed, "clutter_hedge", px, pz,
-                Mathf.Atan2(-dir.Y, dir.X) + (Hash(cx, cy + i, ClutterSalt + 213) - 0.5f) * 0.12f,
-                0.95f + Hash(cx + i, cy, ClutterSalt + 214) * 0.2f);
+                Mathf.Atan2(-dir.Y, dir.X) + (Hash(cx, cy + i, ClutterSalt + 213) - 0.5f) * 0.24f,
+                s, new Vector3(1f, 0.72f + Hash(cx + i, cy, ClutterSalt + 216) * 0.65f, 1f));
+            if (i % 4 == 1)
+                PlaceClutterAt(lists, chunksX, "tree_temperate_2", px - dir.Y * 0.7f, pz + dir.X * 0.7f,
+                    Hash(cx + i, cy, ClutterSalt + 217) * Mathf.Tau, 0.45f + Hash(cx, cy + i, ClutterSalt + 218) * 0.2f);
         }
     }
 
@@ -294,7 +301,7 @@ public partial class PropView : Node3D
             PlaceClutterAt(lists, chunksX, "tree_temperate_2", wx + Mathf.Cos(a) * r, wz + Mathf.Sin(a) * r,
                 Hash(cx, cy + i, ClutterSalt + 224) * Mathf.Tau, 1.05f + Hash(cx + i, cy, ClutterSalt + 225) * 0.35f);
         }
-        ClusterHedgerow(placed, cx + 47, cy + 13, wx, wz);
+        ClusterHedgerow(placed, lists, chunksX, cx + 47, cy + 13, wx, wz);
     }
 
     /// <summary>Flat, dry, unblocked ground, clear of start positions and metal spots.</summary>
@@ -351,10 +358,10 @@ public partial class PropView : Node3D
         return false;
     }
 
-    private void PlaceClutter(Dictionary<string, List<Transform3D>> placed, string name, float wx, float wz, float yaw, float scale)
+    private void PlaceClutter(Dictionary<string, List<Transform3D>> placed, string name, float wx, float wz, float yaw, float scale, Vector3? stretch = null)
     {
         float h = _terrain.HeightAt(wx, wz);
-        var basis = new Basis(Vector3.Up, yaw).Scaled(new Vector3(scale, scale, scale));
+        var basis = new Basis(Vector3.Up, yaw).Scaled(new Vector3(scale, scale, scale) * (stretch ?? Vector3.One));
         if (!placed.TryGetValue(name, out var list)) placed[name] = list = new List<Transform3D>();
         list.Add(new Transform3D(basis, new Vector3(wx, h - 0.04f, wz)));
     }
@@ -449,6 +456,7 @@ public partial class PropView : Node3D
     private void SyncCliffFoot(Dictionary<(int, string), List<Transform3D>> lists, int chunksX)
     {
         MapData map = _terrain.Map;
+        bool temperate = map.Theme == "temperate";
         (int X, int Y)[] dirs = { (1, 0), (-1, 0), (0, 1), (0, -1) };
         for (int y = 1; y < map.TilesY - 1; y++)
         for (int x = 1; x < map.TilesX - 1; x++)
@@ -461,31 +469,33 @@ public partial class PropView : Node3D
             {
                 var dir = dirs[d];
                 float nh = _terrain.HeightAt(cx + dir.X * MapData.TileSize, cz + dir.Y * MapData.TileSize);
-                if (nh - h < 3f || Hash(x, y, 700 + d) > 0.28f) continue;
+                if (nh - h < 3f || Hash(x, y, 700 + d) > (temperate ? 0.5f : 0.28f)) continue;
                 float along = (Hash(x, y, 710 + d) - 0.5f) * 4.5f;
                 float inset = 1.7f + Hash(x, y, 720 + d) * 1.1f;
                 float px = cx + dir.X * inset - dir.Y * along;
                 float pz = cz + dir.Y * inset + dir.X * along;
                 if (_terrain.NormalAt(px, pz).Y < 0.82f || _terrain.HeightAt(px, pz) < _terrain.WaterHeight + 0.1f) continue;
-                bool boulder = Hash(x, y, 730 + d) < 0.2f;
-                string? name = boulder
+                bool boulder = Hash(x, y, 730 + d) < (temperate ? 0.45f : 0.2f);
+                string? name = temperate ? (boulder ? "clutter_cliff_boulder" : "clutter_cliff_rubble") : boulder
                     ? $"rock_{map.Theme}_{(int)(Hash(x, y, 740 + d) * 3f)}"
                     : Pick(false, Hash(x, y, 750 + d));
-                if (name is null || NatureModels.Get(name) is null) continue;
-                float scale = boulder ? 0.8f + Hash(x, y, 760 + d) * 0.8f : 0.8f + Hash(x, y, 770 + d) * 0.8f;
-                PlaceClutterAt(lists, chunksX, name, px, pz, Hash(x, y, 780 + d) * Mathf.Tau, scale);
+                if (name is null || (temperate ? ClutterModels.Get(name) is null : NatureModels.Get(name) is null)) continue;
+                float scale = temperate
+                    ? boulder ? 1.2f + Hash(x, y, 760 + d) * 0.8f : 0.9f + Hash(x, y, 770 + d) * 0.6f
+                    : boulder ? 0.8f + Hash(x, y, 760 + d) * 0.8f : 0.8f + Hash(x, y, 770 + d) * 0.8f;
+                PlaceClutterAt(lists, chunksX, name, px, pz, Hash(x, y, 780 + d) * Mathf.Tau, scale, temperate ? 0.18f : 0f);
             }
         }
     }
 
     /// <summary>Adds a scatter-pass (chunked, detail-textured) model at a spot.</summary>
-    private void PlaceClutterAt(Dictionary<(int, string), List<Transform3D>> lists, int chunksX, string name, float px, float pz, float yaw, float s)
+    private void PlaceClutterAt(Dictionary<(int, string), List<Transform3D>> lists, int chunksX, string name, float px, float pz, float yaw, float s, float sink = 0f)
     {
         float h = _terrain.HeightAt(px, pz);
         int chunk = ((int)(pz / MapData.TileSize) / ChunkTiles) * chunksX + (int)(px / MapData.TileSize) / ChunkTiles;
         var basis = new Basis(Vector3.Up, yaw).Scaled(new Vector3(s, s, s));
         if (!lists.TryGetValue((chunk, name), out var list)) lists[(chunk, name)] = list = new List<Transform3D>();
-        list.Add(new Transform3D(basis, new Vector3(px, h - 0.02f, pz)));
+        list.Add(new Transform3D(basis, new Vector3(px, h - 0.02f - sink * s, pz)));
     }
 
     private readonly List<Node3D> _oasisExtras = new();
@@ -601,16 +611,18 @@ void fragment() {
     private MultiMesh Batch((int Chunk, string Name) key)
     {
         if (_batches.TryGetValue(key, out var mm)) return mm;
-        var model = NatureModels.Get(key.Name)!.Value;
-        mm = MultiMeshUtil.Create(model.Mesh, 32);
+        bool clutter = key.Name.StartsWith("clutter_", StringComparison.Ordinal);
+        mm = clutter
+            ? MultiMeshUtil.Create(ClutterModels.Get(key.Name)!, 32)
+            : MultiMeshUtil.Create(NatureModels.Get(key.Name)!.Value.Mesh, 32);
         if (!_materials.TryGetValue(key.Name, out var mat))
         {
             mat = new ShaderMaterial { Shader = SharedShader };
             mat.SetShaderParameter("fog_tex", _terrain.FogTexture);
             mat.SetShaderParameter("map_size", new Vector2(_terrain.Map.Width, _terrain.Map.Height));
-            if (model.Detail is not null)
+            if (!clutter && NatureModels.Get(key.Name)!.Value.Detail is { } detail)
             {
-                mat.SetShaderParameter("detail_tex", model.Detail);
+                mat.SetShaderParameter("detail_tex", detail);
                 mat.SetShaderParameter("detailed", true);
             }
             _materials[key.Name] = mat;

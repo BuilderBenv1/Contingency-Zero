@@ -35,8 +35,8 @@ public partial class TerrainView : Node3D
         "arctic" => new TerrainPalette(new Color(0.5f, 0.53f, 0.56f), new Color(0.58f, 0.61f, 0.65f), new Color(0.66f, 0.69f, 0.73f),
             new Color(0.76f, 0.78f, 0.81f), new Color(0.48f, 0.52f, 0.58f), new Color(0.35f, 0.55f, 0.7f, 0.8f), new Color(0.12f, 0.25f, 0.4f), false,
             new Color(0.6f, 0.68f, 0.76f)),
-        _ => new TerrainPalette(new Color(0.42f, 0.45f, 0.35f), new Color(0.33f, 0.42f, 0.28f), new Color(0.37f, 0.43f, 0.31f),
-            new Color(0.44f, 0.48f, 0.37f), new Color(0.48f, 0.47f, 0.43f), new Color(0.2f, 0.32f, 0.36f, 0.82f), new Color(0.06f, 0.12f, 0.15f), false,
+        _ => new TerrainPalette(new Color(0.462f, 0.495f, 0.385f), new Color(0.363f, 0.462f, 0.308f), new Color(0.407f, 0.473f, 0.341f),
+            new Color(0.484f, 0.528f, 0.407f), new Color(0.48f, 0.47f, 0.43f), new Color(0.2f, 0.32f, 0.36f, 0.82f), new Color(0.06f, 0.12f, 0.15f), false,
             new Color(0.56f, 0.59f, 0.58f)),
     };
 
@@ -532,6 +532,7 @@ uniform vec3 avg_patch = vec3(0.5);
 uniform vec3 avg_high = vec3(0.5);
 uniform vec3 avg_rock = vec3(0.5);
 uniform vec3 cliff_band = vec3(0.0);
+uniform float cliff_grey = 0.0;
 uniform float tile = 9.0;
 uniform float tint = 0.45;
 uniform float bump = 1.0;
@@ -605,6 +606,8 @@ void fragment() {
         vec3 cp = mix(col2(tex_patch, p, mixk), tri_col(tex_patch, world_pos, tw, tile, mixk), side);
         vec3 ch = mix(col2(tex_high, p, mixk), tri_col(tex_high, world_pos, tw, tile, mixk), side);
         vec3 cr = mix(col2(tex_rock, p, mixk), tri_col(tex_rock, world_pos, tw, rock_tile, mixk), side);
+        float rock_luma = dot(cr, vec3(0.299, 0.587, 0.114));
+        cr = mix(cr, vec3(rock_luma) * vec3(0.96, 1.0, 0.94), cliff_grey * 0.8);
         float patchy = smoothstep(0.52, 0.78, n2(w * 0.07 + 17.0) * 0.55 + n2(w * 0.23 + 5.0) * 0.3 + n2(w * 0.9 + 2.0) * 0.15) * patch_amount;
         vec4 k = wts / max(dot(wts, vec4(1.0)), 0.001);
         k.xyz *= 1.0 - cliff;
@@ -643,11 +646,12 @@ void fragment() {
         c *= 1.0 + cliff * (0.16 + strata * 0.16);
         // Smooth corner normals turn up at a crest while the face normal stays steep.
         float crest = smoothstep(0.5, 0.95, normalize(wnorm).y) * cliff;
-        c += vec3(0.12, 0.095, 0.06) * crest;
+        vec3 crest_colour = mix(vec3(0.12, 0.095, 0.06), vec3(0.065, 0.07, 0.06), cliff_grey);
+        c += crest_colour * crest;
         NORMAL_MAP = n;
         NORMAL_MAP_DEPTH = bump * (0.6 + 0.6 * b2);
         ROUGHNESS = 0.85 - 0.25 * (b1.x + b2 * 0.3);
-        SPECULAR = 0.25;
+        SPECULAR = mix(0.25, 0.12, cliff_grey * cliff);
     } else {
         float d = n2(w * 0.06) * 0.42 + n2(w * 0.23) * 0.28 + n2(w * 0.9) * 0.18 + n2(w * 3.1) * 0.12;
         float stones = smoothstep(0.84, 0.92, n2(w * 1.1 + 13.0)) * smoothstep(0.5, 0.8, n2(w * 0.08 + 5.0));
@@ -675,7 +679,7 @@ void fragment() {
         // Desert reads calmest with large, softly tinted tiles and few dark patches:
         // the battle, not the ground, is busy.
         ["desert"] = new Vector3(18f, 0.6f, 0.7f),
-        ["temperate"] = new Vector3(17f, 0.82f, 0.72f),
+        ["temperate"] = new Vector3(17f, 0.82f, 0.86f),
     };
 
     /// <summary>Per-theme strength of the patch layer's ragged blotches (shader default 1).</summary>
@@ -700,8 +704,10 @@ void fragment() {
         }
         if (theme == "temperate")
         {
-            Color rock = PaletteFor(theme).Rock * 1.02f;
-            mat.SetShaderParameter("cliff_band", new Vector3(rock.R, rock.G, rock.B));
+            Color rock = PaletteFor(theme).Rock;
+            var greyMoss = new Vector3(rock.R * 0.63f, rock.G * 0.68f, rock.B * 0.62f);
+            mat.SetShaderParameter("cliff_band", greyMoss);
+            mat.SetShaderParameter("cliff_grey", 1f);
         }
         if (GroundTune.TryGetValue(theme, out Vector3 tune))
         {

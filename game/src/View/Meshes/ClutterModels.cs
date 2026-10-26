@@ -23,6 +23,8 @@ internal static class ClutterModels
         "clutter_house_ruin" or "clutter_farm_ruin" => new Vector2(9.5f, 8.5f),
         "clutter_field_wall" or "clutter_stone_wall" => new Vector2(11f, 2.6f),
         "clutter_hedge" => new Vector2(4f, 2.4f),
+        "clutter_cliff_boulder" => new Vector2(2.5f, 2.2f),
+        "clutter_cliff_rubble" => new Vector2(2.2f, 1.8f),
         "clutter_well" => new Vector2(3.4f, 3.4f),
         "clutter_barrels" => new Vector2(4.2f, 3.6f),
         "clutter_crates" => new Vector2(3.6f, 3.2f),
@@ -42,6 +44,8 @@ internal static class ClutterModels
             case "clutter_field_wall": FieldWall(b); break;
             case "clutter_stone_wall": StoneWall(b); break;
             case "clutter_hedge": Hedge(b); break;
+            case "clutter_cliff_boulder": CliffStone(b, true); break;
+            case "clutter_cliff_rubble": CliffStone(b, false); break;
             case "clutter_well": Well(b); break;
             case "clutter_barrels": Barrels(b); break;
             case "clutter_crates": Crates(b); break;
@@ -189,17 +193,36 @@ internal static class ClutterModels
         }
     }
 
-    /// <summary>A continuous, bushy hedge segment: overlapping rounded foliage, dark underneath.</summary>
+    /// <summary>Irregular, faceted leaf clumps with gaps and a shaded woody base.</summary>
     private static void Hedge(Builder b)
     {
         Color leaf = new(0.24f, 0.36f, 0.16f);
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < 7; i++)
         {
-            float x = (i - 2) * 0.72f;
-            float y = 0.92f + Hash(410 + (uint)i) * 0.18f;
-            b.Ellipsoid(new Vector3(x, y, (Hash(420 + (uint)i) - 0.5f) * 0.28f),
-                new Vector3(1.05f + Hash(430 + (uint)i) * 0.22f, 0.88f + Hash(440 + (uint)i) * 0.18f,
-                    0.82f + Hash(450 + (uint)i) * 0.18f), Jitter(leaf, 460 + (uint)i));
+            if (i == 3) continue;
+            float x = (i - 3) * 0.58f;
+            float y = 0.58f + Hash(410 + (uint)i) * 0.58f;
+            b.Ellipsoid(new Vector3(x, y, (Hash(420 + (uint)i) - 0.5f) * 0.62f),
+                new Vector3(0.58f + Hash(430 + (uint)i) * 0.58f, 0.48f + Hash(440 + (uint)i) * 0.54f,
+                    0.55f + Hash(450 + (uint)i) * 0.42f), Jitter(leaf, 460 + (uint)i));
+        }
+        b.Box(new Vector3(-1.75f, 0.02f, -0.16f), new Vector3(1.75f, 0.24f, 0.16f), leaf * 0.42f);
+    }
+
+    /// <summary>Grey, angular fieldstone fallen from a cliff; the lower faces sit in the grass.</summary>
+    private static void CliffStone(Builder b, bool boulder)
+    {
+        Color light = new(0.46f, 0.45f, 0.41f), dark = new(0.24f, 0.23f, 0.21f);
+        int count = boulder ? 3 : 5;
+        for (int i = 0; i < count; i++)
+        {
+            uint seed = 510 + (uint)i + (boulder ? 20u : 0u);
+            float size = boulder ? 0.65f + Hash(seed) * 0.42f : 0.26f + Hash(seed) * 0.34f;
+            float x = (Hash(seed + 1) - 0.5f) * (boulder ? 0.85f : 1.55f);
+            float z = (Hash(seed + 2) - 0.5f) * (boulder ? 0.7f : 1.25f);
+            b.Ellipsoid(new Vector3(x, size * 0.52f, z),
+                new Vector3(size, size * (0.65f + Hash(seed + 3) * 0.25f), size * (0.72f + Hash(seed + 4) * 0.35f)),
+                Jitter(dark.Lerp(light, Hash(seed + 5)), seed + 6), segments: 8, rings: 5);
         }
     }
 
@@ -511,7 +534,7 @@ internal static class ClutterModels
             }
         }
 
-        /// <summary>A smooth-normal ellipsoid for foliage; lower vertices are shaded as a dark underside.</summary>
+        /// <summary>Noisy, flat-shaded ellipsoid for leafy clumps and broken stone.</summary>
         public void Ellipsoid(Vector3 centre, Vector3 radii, Color col, int segments = 12, int rings = 8)
         {
             var grid = new Vector3[rings + 1][];
@@ -522,8 +545,9 @@ internal static class ClutterModels
                 for (int s = 0; s < segments; s++)
                 {
                     float lon = s * Mathf.Tau / segments;
+                    float jitter = 0.82f + Hash((uint)(r * 97 + s * 17 + segments * 131)) * 0.32f;
                     grid[r][s] = centre + new Vector3(Mathf.Cos(lat) * Mathf.Cos(lon) * radii.X,
-                        Mathf.Sin(lat) * radii.Y, Mathf.Cos(lat) * Mathf.Sin(lon) * radii.Z);
+                        Mathf.Sin(lat) * radii.Y, Mathf.Cos(lat) * Mathf.Sin(lon) * radii.Z) * jitter;
                 }
             }
             for (int r = 0; r < rings; r++)
@@ -532,15 +556,11 @@ internal static class ClutterModels
                 int next = (s + 1) % segments;
                 Face(grid[r][s], grid[r][next], grid[r + 1][next], grid[r + 1][s], col);
                 int i = Vertices.Count - 4;
-                for (int k = 0; k < 4; k++)
-                {
-                    Vector3 local = (Vertices[i + k] - centre) / radii;
-                    Normals[i + k] = local.Normalized();
-                    float shade = Mathf.Lerp(0.58f, 1.08f, Mathf.Clamp(local.Y * 0.5f + 0.5f, 0, 1));
-                    Color shaded = col * shade;
-                    shaded.A = 1f; // alpha 0.5 is the prop shader's glow marker, not transparency
-                    Colours[i + k] = shaded;
-                }
+                float height = (grid[r][s].Y + grid[r + 1][next].Y - 2f * centre.Y) / (2f * radii.Y);
+                float shade = Mathf.Lerp(0.44f, 1.04f, Mathf.Clamp(height * 0.5f + 0.5f, 0, 1));
+                Color shaded = col * shade * (0.9f + Hash((uint)(r * 43 + s * 71 + rings * 193)) * 0.2f);
+                shaded.A = 1f; // alpha 0.5 is the prop shader's glow marker, not transparency
+                for (int k = 0; k < 4; k++) Colours[i + k] = shaded;
             }
         }
 

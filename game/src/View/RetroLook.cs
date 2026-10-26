@@ -118,6 +118,19 @@ public static class RetroLook
             foreach (Color a in avgs)
                 foreach (float v in new[] { 0.7f, 0.85f, 1f, 1.15f, 1.3f, 1.45f, 1.6f })
                     pal.Add(new Color(Mathf.Clamp(a.R * v, 0, 1), Mathf.Clamp(a.G * v, 0, 1), Mathf.Clamp(a.B * v, 0, 1)));
+            if (theme == "temperate")
+            {
+                // Tree crowns and hedge leaves occupy different greens from the meadow. Without
+                // these displayed foliage tones their lit faces snap to the generic yellow ramp.
+                Color[] foliage =
+                {
+                    new(0.12f, 0.21f, 0.08f), new(0.21f, 0.32f, 0.11f),
+                    new(0.34f, 0.44f, 0.16f), new(0.24f, 0.36f, 0.16f),
+                };
+                foreach (Color a in foliage)
+                foreach (float v in new[] { 0.65f, 0.85f, 1f, 1.2f, 1.45f, 1.7f })
+                    pal.Add(new Color(Mathf.Clamp(a.R * v, 0, 1), Mathf.Clamp(a.G * v, 0, 1), Mathf.Clamp(a.B * v, 0, 1)));
+            }
         }
         // Keep desert gently warm like the unquantised scene. Temperate uses its displayed
         // meadow bands directly: warming those seeds makes green patches snap to mustard.
