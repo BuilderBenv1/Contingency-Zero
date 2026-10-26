@@ -555,6 +555,21 @@ vec3 nrm2(sampler2D t, vec2 p, float k) {
     vec2 bxy = transpose(ROT) * (b.xy * 2.0 - 1.0) * 0.5 + 0.5;
     return mix(a, vec3(bxy, b.z), k);
 }
+vec3 tri_weights(vec3 n) {
+    vec3 b = pow(abs(n), vec3(5.0));
+    return b / max(dot(b, vec3(1.0)), 0.0001);
+}
+// Every layer gets a real side projection on steep faces. A one-tile wall must not interpolate
+// flat-ground corner weights and stretch a single row of sand down its face.
+vec3 tri_col(sampler2D t, vec3 p, vec3 b, float scale, float k) {
+    return col2(t, p.zy / scale, k) * b.x + col2(t, p.xz / scale, k) * b.y + col2(t, p.xy / scale, k) * b.z;
+}
+vec3 tri_nrm(sampler2D t, vec3 p, vec3 b, float scale, float k) {
+    vec3 x = nrm2(t, p.zy / scale, k) * 2.0 - 1.0;
+    vec3 y = nrm2(t, p.xz / scale, k) * 2.0 - 1.0;
+    vec3 z = nrm2(t, p.xy / scale, k) * 2.0 - 1.0;
+    return normalize(vec3(x.z, x.y, x.x) * b.x + vec3(y.x, y.z, y.y) * b.y + z * b.z);
+}
 void fragment() {
     vec2 uv = world_pos.xz / map_size;
     // Five taps soften the tile-shaped edge of what's in sight.
@@ -565,21 +580,27 @@ void fragment() {
     float light = mix(mix(0.16, 0.5, fog.g), 1.0, fog.r);
     vec2 w = world_pos.xz;
     vec3 c;
+    float cliff = 0.0;
+    vec3 geometric = normalize(cross(dFdx(world_pos), dFdy(world_pos)));
+    geometric *= sign(geometric.y + 0.00001);
     if (textured) {
-        // Five ground-scale photo layers: shore, ground, patches through the ground, high ground,
-        // cliffs. The corner weights pick the band; the patch layer comes through the ground in
-        // ragged noise blotches; then a height blend (each texture's brightness standing in for
-        // its height) gives crisp edges, so pebbles poke through the dirt instead of smearing.
+        // Corner weights supply height bands only; geometric steepness is decided per fragment.
         float mixk = smoothstep(0.35, 0.65, n2(w * 0.021 + 3.0));
         vec2 p = w / tile;
-        // Cliffs: project the rock onto the dominant side plane (zy or xy) so steep ground
-        // keeps the rock's strata instead of stretching one texel row into vertical streaks.
-        vec3 anrm = abs(normalize(wnorm));
-        vec2 pr = (anrm.x > anrm.z ? world_pos.zy : world_pos.xy) / (tile * 1.3);
-        vec3 cs = col2(tex_shore, p, mixk), cl = col2(tex_low, p, mixk), cp = col2(tex_patch, p, mixk);
-        vec3 ch = col2(tex_high, p, mixk), cr = col2(tex_rock, pr, mixk);
+        vec3 anrm = abs(geometric);
+        vec3 tw = tri_weights(geometric);
+        float side = 1.0 - smoothstep(0.75, 0.98, anrm.y);
+        cliff = 1.0 - smoothstep(0.76, 0.94, anrm.y);
+        float rock_tile = tile * 1.3;
+        vec3 cs = mix(col2(tex_shore, p, mixk), tri_col(tex_shore, world_pos, tw, tile, mixk), side);
+        vec3 cl = mix(col2(tex_low, p, mixk), tri_col(tex_low, world_pos, tw, tile, mixk), side);
+        vec3 cp = mix(col2(tex_patch, p, mixk), tri_col(tex_patch, world_pos, tw, tile, mixk), side);
+        vec3 ch = mix(col2(tex_high, p, mixk), tri_col(tex_high, world_pos, tw, tile, mixk), side);
+        vec3 cr = mix(col2(tex_rock, p, mixk), tri_col(tex_rock, world_pos, tw, rock_tile, mixk), side);
         float patchy = smoothstep(0.52, 0.78, n2(w * 0.07 + 17.0) * 0.55 + n2(w * 0.23 + 5.0) * 0.3 + n2(w * 0.9 + 2.0) * 0.15) * patch_amount;
         vec4 k = wts / max(dot(wts, vec4(1.0)), 0.001);
+        k.xyz *= 1.0 - cliff;
+        k.w = cliff;
         float wl = k.y * (1.0 - patchy), wp = k.y * patchy;
         float hs = dot(cs, vec3(0.333)) / dot(avg_shore, vec3(0.333)), hl = dot(cl, vec3(0.333)) / dot(avg_low, vec3(0.333));
         float hp = dot(cp, vec3(0.333)) / dot(avg_patch, vec3(0.333)), hh = dot(ch, vec3(0.333)) / dot(avg_high, vec3(0.333));
@@ -593,20 +614,26 @@ void fragment() {
         b1 /= sum; b2 /= sum;
         vec3 tex = cs * b1.x + cl * b1.y + cp * b1.z + ch * b1.w + cr * b2;
         vec3 av = avg_shore * b1.x + avg_low * b1.y + avg_patch * b1.z + avg_high * b1.w + avg_rock * b2;
-        // The rock normal is sampled on a side plane (zy or xy); rotate it into world space
-        // with that plane's frame, then back into the ground's flat tangent frame, or the
-        // strata light up as vertical smears.
-        vec3 rt = nrm2(nrm_rock, pr, mixk).xyz * 2.0 - 1.0;
-        vec3 rw = anrm.x > anrm.z ? vec3(rt.z, rt.y, rt.x) : rt;
-        vec3 rts = normalize(vec3(rw.x, rw.z, rw.y)) * 0.5 + 0.5;
-        vec3 n = nrm2(nrm_shore, p, mixk) * b1.x + nrm2(nrm_low, p, mixk) * b1.y + nrm2(nrm_patch, p, mixk) * b1.z
-               + nrm2(nrm_high, p, mixk) * b1.w + rts * b2;
-        // Vertex RGB is the theme's band colour after craters and scorching; alpha is how much
-        // of its brightness the damage left, so burns darken the photo texture too.
+        vec3 ns = mix(nrm2(nrm_shore, p, mixk), tri_nrm(nrm_shore, world_pos, tw, tile, mixk) * 0.5 + 0.5, side);
+        vec3 nl = mix(nrm2(nrm_low, p, mixk), tri_nrm(nrm_low, world_pos, tw, tile, mixk) * 0.5 + 0.5, side);
+        vec3 np = mix(nrm2(nrm_patch, p, mixk), tri_nrm(nrm_patch, world_pos, tw, tile, mixk) * 0.5 + 0.5, side);
+        vec3 nh = mix(nrm2(nrm_high, p, mixk), tri_nrm(nrm_high, world_pos, tw, tile, mixk) * 0.5 + 0.5, side);
+        vec3 nr = mix(nrm2(nrm_rock, p, mixk), tri_nrm(nrm_rock, world_pos, tw, rock_tile, mixk) * 0.5 + 0.5, side);
+        vec3 nt = ns * b1.x + nl * b1.y + np * b1.z + nh * b1.w + nr * b2;
+        // Convert the mixed world normal back to the declared X/Z tangent frame.
+        vec3 nw = nt * 2.0 - 1.0;
+        vec3 n = normalize(vec3(nw.x, nw.z, nw.y)) * 0.5 + 0.5;
+        // Cliffs ignore interpolated sand tint and retain lighter sandstone albedo.
         vec3 band = COLOR.rgb / max(COLOR.a, 0.05);
+        band = mix(band, avg_rock * 1.18, cliff);
         c = tex * mix(vec3(1.0), band / max(av, vec3(0.05)), tint);
         c *= COLOR.a;
         c *= 0.9 + 0.2 * n2(w * 0.03 + 11.0);
+        float strata = sin(world_pos.y * 2.1 + n2(w * 0.055) * 2.4) * 0.5 + 0.5;
+        c *= 1.0 + cliff * (0.16 + strata * 0.16);
+        // Smooth corner normals turn up at a crest while the face normal stays steep.
+        float crest = smoothstep(0.5, 0.95, normalize(wnorm).y) * cliff;
+        c += vec3(0.12, 0.095, 0.06) * crest;
         NORMAL_MAP = n;
         NORMAL_MAP_DEPTH = bump * (0.6 + 0.6 * b2);
         ROUGHNESS = 0.85 - 0.25 * (b1.x + b2 * 0.3);
@@ -628,6 +655,8 @@ void fragment() {
         c = mix(c, c * 1.12 + vec3(0.03, 0.025, 0.02), mk.g * 0.45);
     }
     ALBEDO = c * light;
+    // Local sky bounce keeps shade-side sandstone readable without washing out open ground.
+    EMISSION = c * light * cliff * 0.28;
 }";
 
     /// <summary>Per-theme ground shader tuning (tile size, band tint, normal depth); unset themes use the shader defaults.</summary>

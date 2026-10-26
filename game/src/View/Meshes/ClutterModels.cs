@@ -42,6 +42,7 @@ internal static class ClutterModels
             case "clutter_barrels": Barrels(b); break;
             case "clutter_crates": Crates(b); break;
             case "clutter_palm": Palm(b); break;
+            case "clutter_reeds": Reeds(b); break;
             default: return null;
         }
         var mesh = new ArrayMesh();
@@ -291,6 +292,23 @@ internal static class ClutterModels
             float s = 0.1f + Hash(seed + 40 + (uint)i) * 0.22f;
             Color col = Hash(seed + 60 + (uint)i) < 0.6f ? Jitter(MudBrickDark, seed + (uint)i) : Jitter(StoneDark, seed + (uint)i);
             b.Box(new Vector3(u - s, 0, v - s * 0.8f), new Vector3(u + s, s * (0.5f + Hash(seed + 80 + (uint)i)), v + s * 0.8f), col, yaw: Hash(seed + 100 + (uint)i) * Mathf.Tau);
+        }
+    }
+
+    /// <summary>A few sparse reed stems and seed heads for an oasis bank.</summary>
+    private static void Reeds(Builder b)
+    {
+        Color stem = new(0.32f, 0.4f, 0.2f);
+        Color head = new(0.4f, 0.3f, 0.17f);
+        for (int i = 0; i < 9; i++)
+        {
+            float a = i * 2.39996f;
+            float r = 0.15f + (i % 3) * 0.16f;
+            float x = Mathf.Cos(a) * r, z = Mathf.Sin(a) * r;
+            float h = 0.85f + (i % 4) * 0.18f;
+            b.Box(new Vector3(x - 0.025f, 0, z - 0.025f), new Vector3(x + 0.025f, h, z + 0.025f), Jitter(stem, (uint)(700 + i)));
+            if (i % 2 == 0)
+                b.Box(new Vector3(x - 0.055f, h - 0.08f, z - 0.055f), new Vector3(x + 0.055f, h + 0.18f, z + 0.055f), head);
         }
     }
 

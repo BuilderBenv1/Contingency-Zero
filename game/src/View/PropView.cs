@@ -346,7 +346,7 @@ public partial class PropView : Node3D
         // Damp sand disc and the pool itself, as a little node placed once per cluster.
         wx0 = wx; wz0 = wz; _baseY = _terrain.HeightAt(wx, wz);
         var node = new Node3D { Position = new Vector3(wx, _baseY + 0.05f, wz) };
-        node.AddChild(new MeshInstance3D { Mesh = ClutterModels.DrapedDisc(5.6f, 0.1f, poolRings, (dx, dz) => _terrain.HeightAt(wx0 + dx, wz0 + dz) - _baseY), MaterialOverride = ClutterMaterial(), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
+        node.AddChild(new MeshInstance3D { Mesh = ClutterModels.DrapedDisc(5.6f, 0.1f, poolRings, (dx, dz) => _terrain.HeightAt(wx0 + dx, wz0 + dz) - _baseY), MaterialOverride = PoolMaterial(), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
         AddChild(node);
         _oasisExtras.Add(node);
 
@@ -359,6 +359,15 @@ public partial class PropView : Node3D
             float h = _terrain.HeightAt(px, pz);
             if (h < _terrain.WaterHeight + 0.3f) continue; // palms stand on the bank, not in the pool
             PlaceClutter(placed, "clutter_palm", px, pz, Hash(cx, cy + i, ClutterSalt + 55) * Mathf.Tau, 1.1f + Hash(cx + i, cy + i, ClutterSalt + 54) * 0.55f);
+        }
+        // Sparse reed clumps sit on the damp bank, never out in the water.
+        for (int i = 0; i < 3; i++)
+        {
+            float a = Hash(cx + i, cy, ClutterSalt + 160) * Mathf.Tau;
+            float r = 4.0f + Hash(cx, cy + i, ClutterSalt + 161) * 0.8f;
+            float px = wx + Mathf.Cos(a) * r, pz = wz + Mathf.Sin(a) * r;
+            if (_terrain.HeightAt(px, pz) < _terrain.WaterHeight + 0.15f) continue;
+            PlaceClutter(placed, "clutter_reeds", px, pz, a, 0.8f + Hash(cx + i, cy, ClutterSalt + 162) * 0.35f);
         }
         // Scrub and stones at the water's edge.
         for (int i = 0; i < 5; i++)
@@ -386,6 +395,7 @@ public partial class PropView : Node3D
 
     private readonly List<Node3D> _oasisExtras = new();
     private ShaderMaterial? _clutterMaterial;
+    private ShaderMaterial? _poolMaterial;
     private static readonly (float r, Color c)[] dampRings =
     {
         (3.0f, new Color(0.66f, 0.54f, 0.39f)),
@@ -396,8 +406,8 @@ public partial class PropView : Node3D
     {
         (2.7f, new Color(0.24f, 0.37f, 0.41f)),
         (3.6f, new Color(0.42f, 0.54f, 0.52f)),
-        (4.8f, new Color(0.56f, 0.47f, 0.36f)),
-        (5.6f, new Color(0.63f, 0.54f, 0.42f)),
+        (4.8f, new Color(0.65f, 0.56f, 0.43f)),
+        (5.6f, new Color(0.7f, 0.61f, 0.47f)),
     };
 
     private float wx0, wz0, _baseY;
@@ -408,6 +418,39 @@ public partial class PropView : Node3D
         _clutterMaterial.SetShaderParameter("map_size", new Vector2(_terrain.Map.Width, _terrain.Map.Height));
         return _clutterMaterial;
     }
+
+    private ShaderMaterial PoolMaterial()
+    {
+        _poolMaterial ??= new ShaderMaterial { Shader = PoolShader };
+        _poolMaterial.SetShaderParameter("fog_tex", _terrain.FogTexture);
+        _poolMaterial.SetShaderParameter("map_size", new Vector2(_terrain.Map.Width, _terrain.Map.Height));
+        return _poolMaterial;
+    }
+
+    private static Shader? _poolShader;
+    private static Shader PoolShader => _poolShader ??= new Shader { Code = PoolShaderCode };
+    private const string PoolShaderCode = @"
+shader_type spatial;
+render_mode diffuse_lambert, specular_schlick_ggx, cull_disabled;
+uniform sampler2D fog_tex : filter_linear;
+uniform vec2 map_size = vec2(512.0);
+varying vec3 pool_pos;
+void vertex() { pool_pos = VERTEX; }
+void fragment() {
+    vec3 wp = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
+    vec2 fog = texture(fog_tex, wp.xz / map_size).rg;
+    float light = mix(mix(0.16, 0.5, fog.g), 1.0, fog.r);
+    float r = length(pool_pos.xz);
+    float water = 1.0 - smoothstep(3.0, 3.8, r);
+    float wet = smoothstep(3.1, 3.8, r) * (1.0 - smoothstep(4.8, 5.6, r));
+    float ripple = sin(pool_pos.x * 2.4 + TIME * 0.7) * sin(pool_pos.z * 2.0 - TIME * 0.5);
+    vec3 col = mix(COLOR.rgb, vec3(0.72, 0.64, 0.5), wet * 0.32);
+    col += water * pow(max(ripple, 0.0), 12.0) * 0.055;
+    ALBEDO = col * light;
+    ROUGHNESS = mix(0.88, 0.2, water);
+    SPECULAR = mix(0.05, 0.5, water);
+    NORMAL = normalize(NORMAL + vec3(ripple * 0.035 * water, 0.0, ripple * 0.025 * water));
+}";
 
     private readonly Dictionary<string, MultiMesh> _shadowBatches = new();
     private static Shader? _shadowShader;
