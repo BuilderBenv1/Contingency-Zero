@@ -35,8 +35,8 @@ public partial class TerrainView : Node3D
         "arctic" => new TerrainPalette(new Color(0.5f, 0.53f, 0.56f), new Color(0.58f, 0.61f, 0.65f), new Color(0.66f, 0.69f, 0.73f),
             new Color(0.76f, 0.78f, 0.81f), new Color(0.48f, 0.52f, 0.58f), new Color(0.35f, 0.55f, 0.7f, 0.8f), new Color(0.12f, 0.25f, 0.4f), false,
             new Color(0.6f, 0.68f, 0.76f)),
-        _ => new TerrainPalette(new Color(0.38f, 0.4f, 0.32f), new Color(0.27f, 0.34f, 0.23f), new Color(0.32f, 0.37f, 0.27f),
-            new Color(0.4f, 0.43f, 0.34f), new Color(0.48f, 0.47f, 0.43f), new Color(0.2f, 0.32f, 0.36f, 0.82f), new Color(0.06f, 0.12f, 0.15f), false,
+        _ => new TerrainPalette(new Color(0.42f, 0.45f, 0.35f), new Color(0.33f, 0.42f, 0.28f), new Color(0.37f, 0.43f, 0.31f),
+            new Color(0.44f, 0.48f, 0.37f), new Color(0.48f, 0.47f, 0.43f), new Color(0.2f, 0.32f, 0.36f, 0.82f), new Color(0.06f, 0.12f, 0.15f), false,
             new Color(0.56f, 0.59f, 0.58f)),
     };
 
@@ -531,6 +531,7 @@ uniform vec3 avg_low = vec3(0.5);
 uniform vec3 avg_patch = vec3(0.5);
 uniform vec3 avg_high = vec3(0.5);
 uniform vec3 avg_rock = vec3(0.5);
+uniform vec3 cliff_band = vec3(0.0);
 uniform float tile = 9.0;
 uniform float tint = 0.45;
 uniform float bump = 1.0;
@@ -630,9 +631,11 @@ void fragment() {
         // Convert the mixed world normal back to the declared X/Z tangent frame.
         vec3 nw = nt * 2.0 - 1.0;
         vec3 n = normalize(vec3(nw.x, nw.z, nw.y)) * 0.5 + 0.5;
-        // Cliffs ignore interpolated sand tint and retain lighter sandstone albedo.
+        // Cliffs ignore interpolated ground tint. Temperate supplies a neutral fieldstone
+        // band; desert keeps its lighter sandstone source average.
         vec3 band = COLOR.rgb / max(COLOR.a, 0.05);
-        band = mix(band, avg_rock * 1.18, cliff);
+        vec3 rock_band = cliff_band.r > 0.001 ? cliff_band : avg_rock * 1.18;
+        band = mix(band, rock_band, cliff);
         c = tex * mix(vec3(1.0), band / max(av, vec3(0.05)), tint);
         c *= COLOR.a;
         c *= 0.9 + 0.2 * n2(w * 0.03 + 11.0);
@@ -694,6 +697,11 @@ void fragment() {
             mat.SetShaderParameter($"tex_{slots[i]}", tex);
             mat.SetShaderParameter($"nrm_{slots[i]}", ResourceLoader.Load<Texture2D>($"res://textures/{theme}_{slots[i]}_n.png"));
             mat.SetShaderParameter($"avg_{slots[i]}", new Vector3(avg[i].R, avg[i].G, avg[i].B));
+        }
+        if (theme == "temperate")
+        {
+            Color rock = PaletteFor(theme).Rock * 1.02f;
+            mat.SetShaderParameter("cliff_band", new Vector3(rock.R, rock.G, rock.B));
         }
         if (GroundTune.TryGetValue(theme, out Vector3 tune))
         {
