@@ -22,6 +22,7 @@ internal static class ClutterModels
         "clutter_wall_ruin" => new Vector2(8.4f, 3f),
         "clutter_house_ruin" or "clutter_farm_ruin" => new Vector2(9.5f, 8.5f),
         "clutter_field_wall" or "clutter_stone_wall" => new Vector2(11f, 2.6f),
+        "clutter_hedge" => new Vector2(4f, 2.4f),
         "clutter_well" => new Vector2(3.4f, 3.4f),
         "clutter_barrels" => new Vector2(4.2f, 3.6f),
         "clutter_crates" => new Vector2(3.6f, 3.2f),
@@ -39,7 +40,8 @@ internal static class ClutterModels
             case "clutter_house_ruin": HouseRuin(b); break;
             case "clutter_farm_ruin": HouseRuin(b); break;
             case "clutter_field_wall": FieldWall(b); break;
-            case "clutter_stone_wall": FieldWall(b); break;
+            case "clutter_stone_wall": StoneWall(b); break;
+            case "clutter_hedge": Hedge(b); break;
             case "clutter_well": Well(b); break;
             case "clutter_barrels": Barrels(b); break;
             case "clutter_crates": Crates(b); break;
@@ -150,6 +152,55 @@ internal static class ClutterModels
         b.Box(new Vector3(L / 2 - 0.2f, 0, -0.5f), new Vector3(L / 2 + 0.7f, 0.8f, 0.5f), Jitter(StoneDark, seed + 90));
         b.Box(new Vector3(L / 2 - 0.05f, 0.8f, -0.4f), new Vector3(L / 2 + 0.55f, 1.35f, 0.4f), Jitter(Stone, seed + 91), yaw: 0.15f);
         Rubble(b, seed + 95, L * 0.7f, 1.1f);
+    }
+
+    /// <summary>Weathered fieldstone: unequal blocks, collapsed gaps, a bent course and fallen stones.</summary>
+    private static void StoneWall(Builder b)
+    {
+        const uint seed = 173;
+        float x = -4.8f;
+        for (int i = 0; i < 9; i++)
+        {
+            float width = 0.65f + Hash(seed + (uint)i) * 0.75f;
+            float gap = i == 4 ? 0.65f : 0.08f + Hash(seed + 20 + (uint)i) * 0.18f;
+            float z = Mathf.Sin((x + 4.8f) * 0.55f) * 0.28f;
+            float h = 0.48f + Hash(seed + 40 + (uint)i) * 0.42f;
+            float depth = 0.55f + Hash(seed + 60 + (uint)i) * 0.28f;
+            Color col = Jitter(Hash(seed + 80 + (uint)i) < 0.5f ? Stone : StoneDark, seed + 100 + (uint)i);
+            b.Box(new Vector3(x, 0, z - depth * 0.5f), new Vector3(x + width, h, z + depth * 0.5f), col,
+                yaw: (Hash(seed + 120 + (uint)i) - 0.5f) * 0.2f);
+            if (i is not (2 or 4 or 7))
+            {
+                float upper = width * (0.65f + Hash(seed + 140 + (uint)i) * 0.2f);
+                b.Box(new Vector3(x + 0.08f, h - 0.03f, z - depth * 0.4f),
+                    new Vector3(x + 0.08f + upper, h + 0.3f + Hash(seed + 160 + (uint)i) * 0.18f, z + depth * 0.35f),
+                    Jitter(Stone, seed + 180 + (uint)i), yaw: (Hash(seed + 200 + (uint)i) - 0.5f) * 0.18f);
+            }
+            x += width + gap;
+        }
+        for (int i = 0; i < 8; i++)
+        {
+            float px = -4.2f + Hash(seed + 230 + (uint)i) * 8.4f;
+            float pz = (Hash(seed + 250 + (uint)i) < 0.5f ? -1f : 1f) * (0.55f + Hash(seed + 270 + (uint)i) * 0.75f);
+            float s = 0.22f + Hash(seed + 290 + (uint)i) * 0.25f;
+            b.Box(new Vector3(px - s, 0.02f, pz - s * 0.65f), new Vector3(px + s, s * 0.85f, pz + s * 0.65f),
+                Jitter(StoneDark, seed + 310 + (uint)i), yaw: Hash(seed + 330 + (uint)i) * Mathf.Tau,
+                pitch: (Hash(seed + 350 + (uint)i) - 0.5f) * 0.35f);
+        }
+    }
+
+    /// <summary>A continuous, bushy hedge segment: overlapping rounded foliage, dark underneath.</summary>
+    private static void Hedge(Builder b)
+    {
+        Color leaf = new(0.24f, 0.36f, 0.16f);
+        for (int i = 0; i < 5; i++)
+        {
+            float x = (i - 2) * 0.72f;
+            float y = 0.92f + Hash(410 + (uint)i) * 0.18f;
+            b.Ellipsoid(new Vector3(x, y, (Hash(420 + (uint)i) - 0.5f) * 0.28f),
+                new Vector3(1.05f + Hash(430 + (uint)i) * 0.22f, 0.88f + Hash(440 + (uint)i) * 0.18f,
+                    0.82f + Hash(450 + (uint)i) * 0.18f), Jitter(leaf, 460 + (uint)i));
+        }
     }
 
     /// <summary>A stone well: ring of blocks, two posts, a crossbar and a little pitched roof.</summary>
@@ -456,6 +507,39 @@ internal static class ClutterModels
                     Vertices.Add(c); Vertices.Add(c + r0); Vertices.Add(c + r1);
                     for (int k = 0; k < 3; k++) { Normals.Add(n); Colours.Add(col); }
                     Indices.Add(i0); Indices.Add(i0 + 1); Indices.Add(i0 + 2);
+                }
+            }
+        }
+
+        /// <summary>A smooth-normal ellipsoid for foliage; lower vertices are shaded as a dark underside.</summary>
+        public void Ellipsoid(Vector3 centre, Vector3 radii, Color col, int segments = 12, int rings = 8)
+        {
+            var grid = new Vector3[rings + 1][];
+            for (int r = 0; r <= rings; r++)
+            {
+                float lat = -Mathf.Pi / 2f + Mathf.Pi * r / rings;
+                grid[r] = new Vector3[segments];
+                for (int s = 0; s < segments; s++)
+                {
+                    float lon = s * Mathf.Tau / segments;
+                    grid[r][s] = centre + new Vector3(Mathf.Cos(lat) * Mathf.Cos(lon) * radii.X,
+                        Mathf.Sin(lat) * radii.Y, Mathf.Cos(lat) * Mathf.Sin(lon) * radii.Z);
+                }
+            }
+            for (int r = 0; r < rings; r++)
+            for (int s = 0; s < segments; s++)
+            {
+                int next = (s + 1) % segments;
+                Face(grid[r][s], grid[r][next], grid[r + 1][next], grid[r + 1][s], col);
+                int i = Vertices.Count - 4;
+                for (int k = 0; k < 4; k++)
+                {
+                    Vector3 local = (Vertices[i + k] - centre) / radii;
+                    Normals[i + k] = local.Normalized();
+                    float shade = Mathf.Lerp(0.58f, 1.08f, Mathf.Clamp(local.Y * 0.5f + 0.5f, 0, 1));
+                    Color shaded = col * shade;
+                    shaded.A = 1f; // alpha 0.5 is the prop shader's glow marker, not transparency
+                    Colours[i + k] = shaded;
                 }
             }
         }

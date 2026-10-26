@@ -119,14 +119,15 @@ public static class RetroLook
                 foreach (float v in new[] { 0.7f, 0.85f, 1f, 1.15f, 1.3f, 1.45f, 1.6f })
                     pal.Add(new Color(Mathf.Clamp(a.R * v, 0, 1), Mathf.Clamp(a.G * v, 0, 1), Mathf.Clamp(a.B * v, 0, 1)));
         }
-        // Keep the old-school grade gently warm like the unquantised scene, on every theme.
-        // This follows the desert-specific desaturation and per-theme ramps so neither is undone.
-        for (int i = 0; i < pal.Count; i++)
-        {
-            Color c = pal[i];
-            pal[i] = new Color(Mathf.Clamp(c.R * 1.025f + 0.004f, 0, 1),
-                Mathf.Clamp(c.G * 1.01f + 0.002f, 0, 1), Mathf.Clamp(c.B * 0.975f, 0, 1), c.A);
-        }
+        // Keep desert gently warm like the unquantised scene. Temperate uses its displayed
+        // meadow bands directly: warming those seeds makes green patches snap to mustard.
+        if (theme != "temperate")
+            for (int i = 0; i < pal.Count; i++)
+            {
+                Color c = pal[i];
+                pal[i] = new Color(Mathf.Clamp(c.R * 1.025f + 0.004f, 0, 1),
+                    Mathf.Clamp(c.G * 1.01f + 0.002f, 0, 1), Mathf.Clamp(c.B * 0.975f, 0, 1), c.A);
+            }
         const int N = 32;
         var img = Image.CreateEmpty(N * N, N, false, Image.Format.Rgb8);
         for (int b = 0; b < N; b++)

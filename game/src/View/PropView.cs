@@ -180,8 +180,8 @@ public partial class PropView : Node3D
             {
                 if (kind < 0.28f) ClusterTemperateFarm(placed, lists, chunksX, cx, cy, wx, wz);
                 else if (kind < 0.46f) ClusterFieldWalls(placed, cx, cy, wx, wz);
-                else if (kind < 0.72f) ClusterHedgerow(lists, chunksX, cx, cy, wx, wz);
-                else ClusterCopse(lists, chunksX, cx, cy, wx, wz);
+                else if (kind < 0.60f) ClusterHedgerow(placed, cx, cy, wx, wz);
+                else ClusterCopse(placed, lists, chunksX, cx, cy, wx, wz);
             }
             else if (kind < 0.34f) ClusterVillage(placed, cx, cy, wx, wz);
             else if (kind < 0.52f) ClusterFieldWalls(placed, cx, cy, wx, wz);
@@ -256,40 +256,45 @@ public partial class PropView : Node3D
         float yaw = Hash(cx, cy, s + 3) * Mathf.Tau;
         var dir = new Vector2(Mathf.Cos(yaw), Mathf.Sin(yaw));
         for (int i = -1; i <= 1; i++)
-            PlaceClutter(placed, "clutter_stone_wall", wx + dir.X * i * 9f, wz + dir.Y * i * 9f + 13f,
-                Mathf.Atan2(-dir.Y, dir.X), 1f);
-        ClusterHedgerow(lists, chunksX, cx + 31, cy, wx - 18f, wz + 2f);
+        {
+            float side = (Hash(cx + i, cy, s + 4) - 0.5f) * 1.8f;
+            PlaceClutter(placed, "clutter_stone_wall", wx + dir.X * i * 8.7f - dir.Y * side,
+                wz + dir.Y * i * 8.7f + dir.X * side + 13f,
+                Mathf.Atan2(-dir.Y, dir.X) + (Hash(cx, cy + i, s + 5) - 0.5f) * 0.18f, 1f);
+        }
+        ClusterHedgerow(placed, cx + 31, cy, wx - 18f, wz + 2f);
     }
 
-    /// <summary>A slightly ragged, low hedgerow rather than a row of identical cubes.</summary>
-    private void ClusterHedgerow(Dictionary<(int, string), List<Transform3D>> lists, int chunksX, int cx, int cy, float wx, float wz)
+    /// <summary>Overlapping matte, rounded bushes make a continuous hedge with a gently uneven line.</summary>
+    private void ClusterHedgerow(Dictionary<string, List<Transform3D>> placed, int cx, int cy, float wx, float wz)
     {
         float yaw = Hash(cx, cy, ClutterSalt + 210) * Mathf.Tau;
         var dir = new Vector2(Mathf.Cos(yaw), Mathf.Sin(yaw));
-        int n = 7 + (int)(Hash(cx, cy, ClutterSalt + 211) * 4f);
+        int n = 8 + (int)(Hash(cx, cy, ClutterSalt + 211) * 4f);
         for (int i = 0; i < n; i++)
         {
-            float along = (i - (n - 1) * 0.5f) * 2.2f;
-            float side = (Hash(cx + i, cy, ClutterSalt + 212) - 0.5f) * 1.2f;
+            float along = (i - (n - 1) * 0.5f) * 2.05f;
+            float side = (Hash(cx + i, cy, ClutterSalt + 212) - 0.5f) * 0.65f;
             float px = wx + dir.X * along - dir.Y * side, pz = wz + dir.Y * along + dir.X * side;
-            PlaceClutterAt(lists, chunksX, "prop_temperate_bush_0", px, pz, Hash(cx, cy + i, ClutterSalt + 213) * Mathf.Tau,
-                1.7f + Hash(cx + i, cy, ClutterSalt + 214) * 1.1f);
+            PlaceClutter(placed, "clutter_hedge", px, pz,
+                Mathf.Atan2(-dir.Y, dir.X) + (Hash(cx, cy + i, ClutterSalt + 213) - 0.5f) * 0.12f,
+                0.95f + Hash(cx + i, cy, ClutterSalt + 214) * 0.2f);
         }
     }
 
-    /// <summary>A small broadleaf copse with an open middle and uneven spacing.</summary>
-    private void ClusterCopse(Dictionary<(int, string), List<Transform3D>> lists, int chunksX, int cx, int cy, float wx, float wz)
+    /// <summary>A broadleaf copse of full-sized trees with an open middle and uneven spacing.</summary>
+    private void ClusterCopse(Dictionary<string, List<Transform3D>> placed, Dictionary<(int, string), List<Transform3D>> lists,
+        int chunksX, int cx, int cy, float wx, float wz)
     {
-        int n = 6 + (int)(Hash(cx, cy, ClutterSalt + 220) * 4f);
+        int n = 7 + (int)(Hash(cx, cy, ClutterSalt + 220) * 4f);
         for (int i = 0; i < n; i++)
         {
             float a = Hash(cx + i, cy, ClutterSalt + 221) * Mathf.Tau;
             float r = 4f + Hash(cx, cy + i, ClutterSalt + 222) * 10f;
-            string name = $"tree_temperate_{(int)(Hash(cx + i, cy, ClutterSalt + 223) * 3f)}";
-            PlaceClutterAt(lists, chunksX, name, wx + Mathf.Cos(a) * r, wz + Mathf.Sin(a) * r,
-                Hash(cx, cy + i, ClutterSalt + 224) * Mathf.Tau, 0.8f + Hash(cx + i, cy, ClutterSalt + 225) * 0.55f);
+            PlaceClutterAt(lists, chunksX, "tree_temperate_2", wx + Mathf.Cos(a) * r, wz + Mathf.Sin(a) * r,
+                Hash(cx, cy + i, ClutterSalt + 224) * Mathf.Tau, 1.05f + Hash(cx + i, cy, ClutterSalt + 225) * 0.35f);
         }
-        ClusterHedgerow(lists, chunksX, cx + 47, cy + 13, wx, wz);
+        ClusterHedgerow(placed, cx + 47, cy + 13, wx, wz);
     }
 
     /// <summary>Flat, dry, unblocked ground, clear of start positions and metal spots.</summary>
