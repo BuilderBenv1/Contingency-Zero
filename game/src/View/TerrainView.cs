@@ -607,7 +607,7 @@ void fragment() {
         vec3 ch = mix(col2(tex_high, p, mixk), tri_col(tex_high, world_pos, tw, tile, mixk), side);
         vec3 cr = mix(col2(tex_rock, p, mixk), tri_col(tex_rock, world_pos, tw, rock_tile, mixk), side);
         float rock_luma = dot(cr, vec3(0.299, 0.587, 0.114));
-        cr = mix(cr, vec3(rock_luma) * vec3(0.96, 1.0, 0.94), cliff_grey * 0.8);
+        cr = mix(cr, vec3(rock_luma), cliff_grey * 0.92);
         float patchy = smoothstep(0.52, 0.78, n2(w * 0.07 + 17.0) * 0.55 + n2(w * 0.23 + 5.0) * 0.3 + n2(w * 0.9 + 2.0) * 0.15) * patch_amount;
         vec4 k = wts / max(dot(wts, vec4(1.0)), 0.001);
         k.xyz *= 1.0 - cliff;
@@ -644,9 +644,15 @@ void fragment() {
         c *= 0.9 + 0.2 * n2(w * 0.03 + 11.0);
         float strata = sin(world_pos.y * 2.1 + n2(w * 0.055) * 2.4) * 0.5 + 0.5;
         c *= 1.0 + cliff * (0.16 + strata * 0.16);
+        // Temperate moss is a restrained detail in dark seams and on upward-facing ledges,
+        // never a green tint over the whole rock face.
+        float moss_pockets = smoothstep(0.58, 0.82, n2(w * 0.11 + world_pos.y * 0.07));
+        float moss_sites = max((1.0 - strata) * 0.55, smoothstep(0.12, 0.5, geometric.y));
+        float moss = cliff_grey * cliff * moss_pockets * moss_sites * 0.11;
+        c = mix(c, c * vec3(0.82, 0.94, 0.76), moss);
         // Smooth corner normals turn up at a crest while the face normal stays steep.
         float crest = smoothstep(0.5, 0.95, normalize(wnorm).y) * cliff;
-        vec3 crest_colour = mix(vec3(0.12, 0.095, 0.06), vec3(0.065, 0.07, 0.06), cliff_grey);
+        vec3 crest_colour = mix(vec3(0.12, 0.095, 0.06), vec3(0.065, 0.064, 0.058), cliff_grey);
         c += crest_colour * crest;
         NORMAL_MAP = n;
         NORMAL_MAP_DEPTH = bump * (0.6 + 0.6 * b2);
@@ -705,8 +711,8 @@ void fragment() {
         if (theme == "temperate")
         {
             Color rock = PaletteFor(theme).Rock;
-            var greyMoss = new Vector3(rock.R * 0.63f, rock.G * 0.68f, rock.B * 0.62f);
-            mat.SetShaderParameter("cliff_band", greyMoss);
+            var greyRock = new Vector3(rock.R * 0.70f, rock.G * 0.65f, rock.B * 0.58f);
+            mat.SetShaderParameter("cliff_band", greyRock);
             mat.SetShaderParameter("cliff_grey", 1f);
         }
         if (GroundTune.TryGetValue(theme, out Vector3 tune))
