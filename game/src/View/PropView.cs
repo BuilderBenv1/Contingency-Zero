@@ -126,6 +126,7 @@ public partial class PropView : Node3D
             }
         }
 
+        SyncCliffFoot(lists, chunksX);
         SyncClutter(lists);
         foreach (var (key, list) in lists)
         {
@@ -158,7 +159,7 @@ public partial class PropView : Node3D
         MapData map = _terrain.Map;
         foreach (Node3D old in _oasisExtras) old.QueueFree();
         _oasisExtras.Clear();
-        if (map.Theme != "desert")
+        if (map.Theme is not ("desert" or "temperate"))
         {
             foreach (var (_, mm) in _clutterBatches) mm.VisibleInstanceCount = 0;
             foreach (var (_, mm) in _shadowBatches) mm.VisibleInstanceCount = 0;
@@ -175,7 +176,14 @@ public partial class PropView : Node3D
             float wz = (cy + 0.25f + Hash(cx, cy, ClutterSalt + 2) * 0.5f) * ClusterCellTiles * MapData.TileSize;
             if (!ClusterSpotOK(wx, wz)) continue;
             float kind = Hash(cx, cy, ClutterSalt + 3);
-            if (kind < 0.34f) ClusterVillage(placed, cx, cy, wx, wz);
+            if (map.Theme == "temperate")
+            {
+                if (kind < 0.28f) ClusterTemperateFarm(placed, lists, chunksX, cx, cy, wx, wz);
+                else if (kind < 0.46f) ClusterFieldWalls(placed, cx, cy, wx, wz);
+                else if (kind < 0.72f) ClusterHedgerow(lists, chunksX, cx, cy, wx, wz);
+                else ClusterCopse(lists, chunksX, cx, cy, wx, wz);
+            }
+            else if (kind < 0.34f) ClusterVillage(placed, cx, cy, wx, wz);
             else if (kind < 0.52f) ClusterFieldWalls(placed, cx, cy, wx, wz);
             else if (kind < 0.68f) ClusterRuin(placed, cx, cy, wx, wz);
             else if (kind < 0.86f) ClusterSupplies(placed, cx, cy, wx, wz);
@@ -235,6 +243,53 @@ public partial class PropView : Node3D
         string supply = Hash(cx, cy, s + 12) < 0.5f ? "clutter_barrels" : "clutter_crates";
         float sa = Hash(cx + 5, cy, s + 13) * Mathf.Tau;
         PlaceClutter(placed, supply, wx + Mathf.Cos(sa) * 5f, wz + Mathf.Sin(sa) * 5f, Hash(cx, cy + 5, s + 14) * Mathf.Tau, 1f);
+    }
+
+    /// <summary>A derelict temperate farm: stone outbuildings, a broken field wall and a hedge.</summary>
+    private void ClusterTemperateFarm(Dictionary<string, List<Transform3D>> placed, Dictionary<(int, string), List<Transform3D>> lists,
+        int chunksX, int cx, int cy, float wx, float wz)
+    {
+        int s = ClutterSalt + 200;
+        PlaceClutter(placed, "clutter_farm_ruin", wx - 5f, wz - 3f, Hash(cx, cy, s) * Mathf.Tau, 1.05f);
+        PlaceClutter(placed, "clutter_farm_ruin", wx + 10f, wz + 7f, Hash(cx, cy, s + 1) * Mathf.Tau, 0.8f);
+        PlaceClutter(placed, "clutter_crates", wx + 3f, wz + 4f, Hash(cx, cy, s + 2) * Mathf.Tau, 0.9f);
+        float yaw = Hash(cx, cy, s + 3) * Mathf.Tau;
+        var dir = new Vector2(Mathf.Cos(yaw), Mathf.Sin(yaw));
+        for (int i = -1; i <= 1; i++)
+            PlaceClutter(placed, "clutter_stone_wall", wx + dir.X * i * 9f, wz + dir.Y * i * 9f + 13f,
+                Mathf.Atan2(-dir.Y, dir.X), 1f);
+        ClusterHedgerow(lists, chunksX, cx + 31, cy, wx - 18f, wz + 2f);
+    }
+
+    /// <summary>A slightly ragged, low hedgerow rather than a row of identical cubes.</summary>
+    private void ClusterHedgerow(Dictionary<(int, string), List<Transform3D>> lists, int chunksX, int cx, int cy, float wx, float wz)
+    {
+        float yaw = Hash(cx, cy, ClutterSalt + 210) * Mathf.Tau;
+        var dir = new Vector2(Mathf.Cos(yaw), Mathf.Sin(yaw));
+        int n = 7 + (int)(Hash(cx, cy, ClutterSalt + 211) * 4f);
+        for (int i = 0; i < n; i++)
+        {
+            float along = (i - (n - 1) * 0.5f) * 2.2f;
+            float side = (Hash(cx + i, cy, ClutterSalt + 212) - 0.5f) * 1.2f;
+            float px = wx + dir.X * along - dir.Y * side, pz = wz + dir.Y * along + dir.X * side;
+            PlaceClutterAt(lists, chunksX, "prop_temperate_bush_0", px, pz, Hash(cx, cy + i, ClutterSalt + 213) * Mathf.Tau,
+                1.7f + Hash(cx + i, cy, ClutterSalt + 214) * 1.1f);
+        }
+    }
+
+    /// <summary>A small broadleaf copse with an open middle and uneven spacing.</summary>
+    private void ClusterCopse(Dictionary<(int, string), List<Transform3D>> lists, int chunksX, int cx, int cy, float wx, float wz)
+    {
+        int n = 6 + (int)(Hash(cx, cy, ClutterSalt + 220) * 4f);
+        for (int i = 0; i < n; i++)
+        {
+            float a = Hash(cx + i, cy, ClutterSalt + 221) * Mathf.Tau;
+            float r = 4f + Hash(cx, cy + i, ClutterSalt + 222) * 10f;
+            string name = $"tree_temperate_{(int)(Hash(cx + i, cy, ClutterSalt + 223) * 3f)}";
+            PlaceClutterAt(lists, chunksX, name, wx + Mathf.Cos(a) * r, wz + Mathf.Sin(a) * r,
+                Hash(cx, cy + i, ClutterSalt + 224) * Mathf.Tau, 0.8f + Hash(cx + i, cy, ClutterSalt + 225) * 0.55f);
+        }
+        ClusterHedgerow(lists, chunksX, cx + 47, cy + 13, wx, wz);
     }
 
     /// <summary>Flat, dry, unblocked ground, clear of start positions and metal spots.</summary>
@@ -304,11 +359,12 @@ public partial class PropView : Node3D
         float yaw = Hash(cx, cy, ClutterSalt + 10) * Mathf.Tau;
         var dir = new Vector2(Mathf.Cos(yaw), Mathf.Sin(yaw));
         int n = 3 + (int)(Hash(cx, cy, ClutterSalt + 11) * 3f);
+        string wall = _terrain.Map.Theme == "temperate" ? "clutter_stone_wall" : "clutter_field_wall";
         for (int i = 0; i < n; i++)
         {
             float along = (i - (n - 1) / 2f) * 9.2f;
             float side = (Hash(cx * 7 + i, cy, ClutterSalt + 12) - 0.5f) * 3f;
-            PlaceClutter(placed, "clutter_field_wall", wx + dir.X * along - dir.Y * side, wz + dir.Y * along + dir.X * side,
+            PlaceClutter(placed, wall, wx + dir.X * along - dir.Y * side, wz + dir.Y * along + dir.X * side,
                 Mathf.Atan2(-dir.Y, dir.X), 1.1f + Hash(cx + i, cy, ClutterSalt + 13) * 0.2f);
         }
     }
@@ -380,6 +436,40 @@ public partial class PropView : Node3D
             float h = _terrain.HeightAt(px, pz);
             if (h < _terrain.WaterHeight + 0.25f) continue;
             PlaceClutterAt(lists, chunksX, name, px, pz, Hash(cx, cy + i, ClutterSalt + 60) * Mathf.Tau, 0.9f + Hash(cx + i, cy, ClutterSalt + 61) * 0.5f);
+        }
+    }
+
+    /// <summary>Rubble and occasional boulders collect on the flat floor beside cliff walls.
+    /// This is deliberately separate from the ordinary scatter, which rejects steep corners.</summary>
+    private void SyncCliffFoot(Dictionary<(int, string), List<Transform3D>> lists, int chunksX)
+    {
+        MapData map = _terrain.Map;
+        (int X, int Y)[] dirs = { (1, 0), (-1, 0), (0, 1), (0, -1) };
+        for (int y = 1; y < map.TilesY - 1; y++)
+        for (int x = 1; x < map.TilesX - 1; x++)
+        {
+            if (_blocked[y * map.TilesX + x]) continue;
+            float cx = (x + 0.5f) * MapData.TileSize, cz = (y + 0.5f) * MapData.TileSize;
+            float h = _terrain.HeightAt(cx, cz);
+            if (h < _terrain.WaterHeight + 0.15f) continue;
+            for (int d = 0; d < dirs.Length; d++)
+            {
+                var dir = dirs[d];
+                float nh = _terrain.HeightAt(cx + dir.X * MapData.TileSize, cz + dir.Y * MapData.TileSize);
+                if (nh - h < 3f || Hash(x, y, 700 + d) > 0.28f) continue;
+                float along = (Hash(x, y, 710 + d) - 0.5f) * 4.5f;
+                float inset = 1.7f + Hash(x, y, 720 + d) * 1.1f;
+                float px = cx + dir.X * inset - dir.Y * along;
+                float pz = cz + dir.Y * inset + dir.X * along;
+                if (_terrain.NormalAt(px, pz).Y < 0.82f || _terrain.HeightAt(px, pz) < _terrain.WaterHeight + 0.1f) continue;
+                bool boulder = Hash(x, y, 730 + d) < 0.2f;
+                string? name = boulder
+                    ? $"rock_{map.Theme}_{(int)(Hash(x, y, 740 + d) * 3f)}"
+                    : Pick(false, Hash(x, y, 750 + d));
+                if (name is null || NatureModels.Get(name) is null) continue;
+                float scale = boulder ? 0.8f + Hash(x, y, 760 + d) * 0.8f : 0.8f + Hash(x, y, 770 + d) * 0.8f;
+                PlaceClutterAt(lists, chunksX, name, px, pz, Hash(x, y, 780 + d) * Mathf.Tau, scale);
+            }
         }
     }
 

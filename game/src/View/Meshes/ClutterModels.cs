@@ -20,8 +20,8 @@ internal static class ClutterModels
     public static Vector2 Footprint(string name) => name switch
     {
         "clutter_wall_ruin" => new Vector2(8.4f, 3f),
-        "clutter_house_ruin" => new Vector2(9.5f, 8.5f),
-        "clutter_field_wall" => new Vector2(11f, 2.6f),
+        "clutter_house_ruin" or "clutter_farm_ruin" => new Vector2(9.5f, 8.5f),
+        "clutter_field_wall" or "clutter_stone_wall" => new Vector2(11f, 2.6f),
         "clutter_well" => new Vector2(3.4f, 3.4f),
         "clutter_barrels" => new Vector2(4.2f, 3.6f),
         "clutter_crates" => new Vector2(3.6f, 3.2f),
@@ -37,13 +37,21 @@ internal static class ClutterModels
         {
             case "clutter_wall_ruin": WallRuin(b); break;
             case "clutter_house_ruin": HouseRuin(b); break;
+            case "clutter_farm_ruin": HouseRuin(b); break;
             case "clutter_field_wall": FieldWall(b); break;
+            case "clutter_stone_wall": FieldWall(b); break;
             case "clutter_well": Well(b); break;
             case "clutter_barrels": Barrels(b); break;
             case "clutter_crates": Crates(b); break;
             case "clutter_palm": Palm(b); break;
             case "clutter_reeds": Reeds(b); break;
             default: return null;
+        }
+        if (name is "clutter_farm_ruin" or "clutter_stone_wall")
+        {
+            // The same brick construction reads as weathered grey fieldstone on temperate maps.
+            var grey = new Color(0.42f, 0.44f, 0.38f);
+            for (int i = 0; i < b.Colours.Count; i++) b.Colours[i] = b.Colours[i].Lerp(grey, 0.65f);
         }
         var mesh = new ArrayMesh();
         using Variant v = Variant.CreateFrom(b.Vertices.ToArray()), n = Variant.CreateFrom(b.Normals.ToArray()),

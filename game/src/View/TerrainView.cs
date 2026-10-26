@@ -35,9 +35,9 @@ public partial class TerrainView : Node3D
         "arctic" => new TerrainPalette(new Color(0.5f, 0.53f, 0.56f), new Color(0.58f, 0.61f, 0.65f), new Color(0.66f, 0.69f, 0.73f),
             new Color(0.76f, 0.78f, 0.81f), new Color(0.48f, 0.52f, 0.58f), new Color(0.35f, 0.55f, 0.7f, 0.8f), new Color(0.12f, 0.25f, 0.4f), false,
             new Color(0.6f, 0.68f, 0.76f)),
-        _ => new TerrainPalette(new Color(0.58f, 0.54f, 0.42f), new Color(0.35f, 0.39f, 0.25f), new Color(0.43f, 0.42f, 0.31f),
-            new Color(0.5f, 0.49f, 0.43f), new Color(0.4f, 0.38f, 0.35f), new Color(0.2f, 0.32f, 0.36f, 0.82f), new Color(0.06f, 0.12f, 0.15f), false,
-            new Color(0.5f, 0.52f, 0.53f)),
+        _ => new TerrainPalette(new Color(0.36f, 0.37f, 0.3f), new Color(0.19f, 0.24f, 0.18f), new Color(0.28f, 0.3f, 0.25f),
+            new Color(0.38f, 0.4f, 0.34f), new Color(0.48f, 0.47f, 0.43f), new Color(0.2f, 0.32f, 0.36f, 0.82f), new Color(0.06f, 0.12f, 0.15f), false,
+            new Color(0.56f, 0.59f, 0.58f)),
     };
 
     /// <summary>How heights map onto the palette's bands for one map.</summary>
@@ -112,6 +112,13 @@ public partial class TerrainView : Node3D
             sun.LightColor = RetroLook.Enabled ? new Color(0.98f, 0.94f, 0.86f) : new Color(1f, 0.93f, 0.82f);
             sun.LightEnergy = 1.05f;
             env.AmbientLightEnergy = 0.5f;
+        }
+        else if (theme == "temperate")
+        {
+            // Soft, near-neutral daylight: green ground stays calm and shaded rock keeps its strata.
+            sun.LightColor = new Color(0.98f, 0.98f, 0.94f);
+            sun.LightEnergy = 0.95f;
+            env.AmbientLightEnergy = 0.52f;
         }
         else
         {
@@ -665,12 +672,14 @@ void fragment() {
         // Desert reads calmest with large, softly tinted tiles and few dark patches:
         // the battle, not the ground, is busy.
         ["desert"] = new Vector3(18f, 0.6f, 0.7f),
+        ["temperate"] = new Vector3(17f, 0.82f, 0.72f),
     };
 
     /// <summary>Per-theme strength of the patch layer's ragged blotches (shader default 1).</summary>
     private static readonly Dictionary<string, float> PatchAmount = new()
     {
         ["desert"] = 0.3f,
+        ["temperate"] = 0.2f,
     };
 
     /// <summary>Gives the ground shader the theme's texture set: colour and normal maps for shore, ground, patches, high ground and cliffs.</summary>
