@@ -289,6 +289,14 @@ public partial class DevAutomation : Node
                         float.Parse(xz[1], System.Globalization.CultureInfo.InvariantCulture)));
                 }
             }
+            if (_match is not null && Arg("--dev-look") is { Length: > 0 })
+            {
+                // Aim at the terrain surface, not y=0 far below these elevated maps.
+                Vector3 focus = _match.Rig.Focus;
+                _match.Rig.JumpTo(new Vector3(focus.X, _match.Terrain.HeightAt(focus.X, focus.Z), focus.Z));
+            }
+            // Screenshot cameras must not edge-scroll away from --dev-look during the capture delay.
+            if (_match is not null && _shots is not null) _match.Rig.InputEnabled = false;
         }
 
         // ---- Multiplayer test hooks: --dev-host, --dev-join, --dev-net-* (see Net/NetDevDriver.cs) ----

@@ -39,4 +39,4 @@ All source colour and OpenGL normal maps below are from [Poly Haven](https://pol
 | Low ground | [`Gravel024`](https://ambientcg.com/view?id=Gravel024) |
 | Exposed patches | [`Ground045`](https://ambientcg.com/view?id=Ground045) |
 | High ground | [`Rock014`](https://ambientcg.com/view?id=Rock014) |
-| Cliffs | [`Rock033`](https://ambientcg.com/view?id=Rock033) |
+| Cliffs | [`Rock014`](https://ambientcg.com/view?id=Rock014) |

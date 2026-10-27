@@ -131,6 +131,7 @@ public partial class TerrainView : Node3D
         {
             sun.LightEnergy = theme == "lava" ? 0.85f : 1.0f;
             sun.LightColor = theme == "lava" ? new Color(1f, 0.8f, 0.66f) : new Color(1f, 0.95f, 0.86f);
+            if (theme == "lava") env.AmbientLightEnergy = 0.52f;
         }
     }
 
@@ -605,15 +606,19 @@ void fragment() {
         float mixk = smoothstep(0.35, 0.65, n2(w * 0.021 + 3.0));
         vec2 p = w / tile;
         vec3 anrm = abs(geometric);
-        vec3 tw = tri_weights(geometric);
-        float side = 1.0 - smoothstep(0.75, 0.98, anrm.y);
+        // Projection axes must vary continuously across shared triangle edges. The face normal
+        // still decides where rock is exposed, but must not select a different texture projection
+        // for each half of a heightmap quad.
+        vec3 tw = tri_weights(normalize(wnorm));
+        // Use the same world-space projection everywhere. On level triangles the Y weight is
+        // one, so this is identical to flat X/Z sampling; on slopes it avoids a per-triangle
+        // projection switch and its rectangular lighting and texture seams.
+        float side = 1.0;
         cliff = 1.0 - smoothstep(0.76, 0.94, anrm.y);
-        // Arctic snow blends only where the actual triangle turns upward. Interpolated corner
-        // normals used to put snow on vertical walls and disagree with the projection mask,
-        // producing a straight material seam. One continuous mask now drives both decisions.
-        float snow_drift = smoothstep(0.25, 0.75, geometric.y) * cliff_snow;
-        cliff *= 1.0 - snow_drift * 0.82;
-        side = mix(side, cliff, cliff_snow);
+        // Arctic material changes must be continuous across triangle edges. Its shared corner
+        // normals still turn steep on the wall, but do not leave a rectangular face-normal cap.
+        float arctic_cliff = 1.0 - smoothstep(0.58, 0.94, normalize(wnorm).y);
+        cliff = mix(cliff, arctic_cliff, cliff_snow);
         float rock_tile = tile * 1.3;
         vec3 cs = mix(col2(tex_shore, p, mixk), tri_col(tex_shore, world_pos, tw, tile, mixk), side);
         vec3 cl = mix(col2(tex_low, p, mixk), tri_col(tex_low, world_pos, tw, tile, mixk), side);
@@ -676,7 +681,7 @@ void fragment() {
         vec3 crest_colour = mix(vec3(0.12, 0.095, 0.06), vec3(0.065, 0.064, 0.058), cliff_grey);
         c += crest_colour * crest;
         // Crisp snow sits only on upward-facing ledges, never on sheer rock or in a broad halo.
-        float snow_ledge = smoothstep(0.45, 0.75, geometric.y) * cliff * cliff_snow;
+        float snow_ledge = smoothstep(0.55, 0.85, normalize(wnorm).y) * cliff * cliff_snow;
         vec3 snow_cap = vec3(0.64, 0.65, 0.65) * (0.97 + 0.05 * n2(w * 0.18 + 4.0));
         c = mix(c, snow_cap, snow_ledge * 0.82);
         NORMAL_MAP = n;
@@ -750,6 +755,11 @@ void fragment() {
             // Exposed rock stays distinctly darker than the surrounding snow, even in full sun.
             mat.SetShaderParameter("cliff_band", new Vector3(rock.R * 0.58f, rock.G * 0.58f, rock.B * 0.58f));
             mat.SetShaderParameter("cliff_snow", 1f);
+        }
+        if (theme == "lava")
+        {
+            // Basalt stays dark, but its strata and shade-side faces must not collapse to black.
+            mat.SetShaderParameter("cliff_band", new Vector3(0.25f, 0.24f, 0.23f));
         }
         if (GroundTune.TryGetValue(theme, out Vector3 tune))
         {

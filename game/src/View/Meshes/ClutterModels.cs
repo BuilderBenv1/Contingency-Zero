@@ -70,9 +70,9 @@ internal static class ClutterModels
         }
         if (name == "clutter_scorched_ruin")
         {
-            // Keep individual masonry relief while baking the whole shell to charcoal and dark rust.
-            var charcoal = new Color(0.12f, 0.105f, 0.095f);
-            for (int i = 0; i < b.Colours.Count; i++) b.Colours[i] = b.Colours[i].Lerp(charcoal, 0.78f);
+            // Keep individual masonry relief while baking the shell to readable charcoal and dark rust.
+            var charcoal = new Color(0.19f, 0.165f, 0.145f);
+            for (int i = 0; i < b.Colours.Count; i++) b.Colours[i] = b.Colours[i].Lerp(charcoal, 0.68f);
         }
         var mesh = new ArrayMesh();
         using Variant v = Variant.CreateFrom(b.Vertices.ToArray()), n = Variant.CreateFrom(b.Normals.ToArray()),

@@ -25,7 +25,7 @@ GROUND = {
     'temperate': ('Ground044', 'Ground037', 'Ground024', 'Ground013', 'Rock030'),
     'desert':    ('Ground026', 'Ground025', 'Ground035', 'Ground028', 'Rock022'),
     'arctic':    ('Ice004', 'Snow004', 'Rock026', 'Gravel023', 'Rock027'),
-    'lava':      ('Rocks016', 'Gravel024', 'Ground045', 'Rock014', 'Rock033'),
+    'lava':      ('Rocks016', 'Gravel024', 'Ground045', 'Rock014', 'Rock014'),
 }
 SLOTS = ('shore', 'low', 'patch', 'high', 'rock')
 SIZE = 1024
