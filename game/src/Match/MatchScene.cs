@@ -31,6 +31,7 @@ public partial class MatchScene : Node3D
     public UnitView Units { get; private set; } = null!;
     public FeatureView Features { get; private set; } = null!;
     public EffectsView Effects { get; private set; } = null!;
+    public GroundMarks Marks { get; private set; } = null!;
     public OverlayView Overlay { get; private set; } = null!;
     public CameraRig Rig { get; private set; } = null!;
     public InputController Input { get; private set; } = null!;
@@ -91,13 +92,18 @@ public partial class MatchScene : Node3D
         AddChild(props);
         props.Init(world, Terrain);
 
+        Marks = new GroundMarks { Name = "GroundMarks" };
+        AddChild(Marks);
+        Marks.Init(world, Terrain);
+
         Overlay = new OverlayView { Name = "Overlay" };
         AddChild(Overlay);
 
         Effects = new EffectsView { Name = "Effects" };
         AddChild(Effects);
         AddChild(MakeVignette());
-        if (RetroLook.Enabled) AddChild(RetroLook.MakeLayer());
+        if (world.Map.Theme is "desert" or "temperate" or "arctic" or "lava") AddChild(MakeHaze(world.Map.Theme));
+        if (RetroLook.Enabled) AddChild(RetroLook.MakeLayer(world.Map.Theme));
 
         // Start looking at our own Commander (or the middle when watching).
         Vector3 focus = new(world.Map.Width / 2f, 0, world.Map.Height / 2f);
@@ -113,6 +119,7 @@ public partial class MatchScene : Node3D
 
         Overlay.Init(world, Terrain, Units, Selection, Rig.Camera, session.LocalPlayer, _viewerTeam);
         Effects.Init(world, Terrain, Units, Rig.Camera, () => Rig.Focus, _viewerTeam, session.LocalPlayer);
+        Effects.Marks = Marks;
 
         Input = new InputController { Name = "Input" };
         AddChild(Input);
@@ -169,6 +176,46 @@ public partial class MatchScene : Node3D
                 FillFrom = new Vector2(0.5f, 0.5f),
                 FillTo = new Vector2(1.05f, 1.05f),
                 Width = 256,
+                Height = 256,
+            },
+            StretchMode = TextureRect.StretchModeEnum.Scale,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        rect.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        layer.AddChild(rect);
+        return layer;
+    }
+
+    /// <summary>Aerial haze pooling toward the top of the screen: dust, cold air, or the
+    /// restrained warm-grey smoke of a volcanic battlefield. Kept faint under palette quantisation.</summary>
+    private static CanvasLayer MakeHaze(string theme)
+    {
+        float k = RetroLook.Enabled ? 0.3f : 1f;
+        bool desert = theme == "desert";
+        Color haze = theme switch
+        {
+            "desert" => new Color(0.93f, 0.83f, 0.66f),
+            "arctic" => new Color(0.76f, 0.83f, 0.86f),
+            "lava" => new Color(0.32f, 0.25f, 0.23f),
+            _ => new Color(0.72f, 0.77f, 0.72f),
+        };
+        Color hazeTop = desert ? new Color(0.94f, 0.85f, 0.7f) : theme == "lava" ? new Color(0.42f, 0.29f, 0.23f) : haze;
+        float middle = desert ? 0.055f : theme == "arctic" ? 0.035f : theme == "lava" ? 0.055f : 0.025f;
+        float top = desert ? 0.13f : theme == "arctic" ? 0.09f : theme == "lava" ? 0.14f : 0.055f;
+        var layer = new CanvasLayer { Layer = -1, Name = "Haze" };
+        var rect = new TextureRect
+        {
+            Texture = new GradientTexture2D
+            {
+                Gradient = new Gradient
+                {
+                    Colors = new[] { new Color(haze, 0f), new Color(haze, middle * k), new Color(hazeTop, top * k) },
+                    Offsets = new[] { 0f, 0.55f, 1f },
+                },
+                Fill = GradientTexture2D.FillEnum.Linear,
+                FillFrom = new Vector2(0.5f, 1f),
+                FillTo = new Vector2(0.5f, 0f),
+                Width = 4,
                 Height = 256,
             },
             StretchMode = TextureRect.StretchModeEnum.Scale,

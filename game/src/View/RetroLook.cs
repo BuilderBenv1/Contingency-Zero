@@ -25,8 +25,6 @@ public static class RetroLook
     /// <summary>Screen pixels per world pixel. 2 at 1080p gives about a 960x540 picture.</summary>
     public static int PixelSize => Math.Max(1, (int)Math.Round(DisplayServer.WindowGetSize().Y / 540f));
 
-    private static ImageTexture? _lut;
-
     /// <summary>Gives a unit-shader material the hull detail texture, when the old-school look is on.</summary>
     public static void ApplyHullTexture(ShaderMaterial mat)
     {
@@ -37,12 +35,14 @@ public static class RetroLook
         mat.SetShaderParameter("hull_textured", true);
     }
 
+    private static readonly Dictionary<string, ImageTexture> Luts = new();
+
     /// <summary>A canvas layer that pixelates and palettises everything drawn beneath it (the 3D world).</summary>
-    public static CanvasLayer MakeLayer()
+    public static CanvasLayer MakeLayer(string theme = "")
     {
         var layer = new CanvasLayer { Layer = -5, Name = "Retro" };
         var mat = new ShaderMaterial { Shader = new Shader { Code = PostShader } };
-        mat.SetShaderParameter("lut", Lut());
+        mat.SetShaderParameter("lut", Lut(theme));
         mat.SetShaderParameter("pixel", (float)PixelSize);
         var rect = new ColorRect { Material = mat, MouseFilter = Control.MouseFilterEnum.Ignore };
         rect.SetAnchorsPreset(Control.LayoutPreset.FullRect);
@@ -86,10 +86,86 @@ public static class RetroLook
         return p;
     }
 
-    private static ImageTexture Lut()
+    /// <summary>
+    /// The palette lookup table for a theme. Each theme's actual ground tones (from
+    /// TextureSet) are added as shaded ramp entries so its terrain quantises to its own
+    /// colours - without them, warm mid-tones (like the desert patch layer) snap to the
+    /// generic saturated yellow ramp and read as big mustard blotches.
+    /// </summary>
+    private static ImageTexture Lut(string theme)
     {
-        if (_lut is not null) return _lut;
+        if (Luts.TryGetValue(theme, out var cached)) return cached;
         List<Color> pal = Palette();
+        if (theme == "desert")
+            for (int i = 0; i < pal.Count; i++)
+            {
+                // Sandstone and brick must not fall into saturated UI/explosion warm ramps.
+                // Neutralise rust, orange and yellow highlights; pure team red stays intact.
+                Color c = pal[i];
+                c.ToHsv(out float h, out float s, out float v);
+                if (h is > 0.025f and < 0.18f && s > 0.38f)
+                    pal[i] = Color.FromHsv(h, s * 0.28f, v);
+            }
+        if (theme.Length > 0 && TextureSet.GroundAverages.TryGetValue(theme, out Color[]? avgs))
+        {
+            // Ground sources are art-directed in the shader. Seed retro with those displayed
+            // bands rather than raw photo averages, which can snap to mustard or cold grey.
+            if (theme is "temperate" or "arctic" or "lava")
+            {
+                TerrainPalette p = TerrainView.PaletteFor(theme);
+                avgs = new[] { p.Shore, p.Low, p.High, p.Peak, p.Rock };
+            }
+            foreach (Color a in avgs)
+                foreach (float v in new[] { 0.7f, 0.85f, 1f, 1.15f, 1.3f, 1.45f, 1.6f })
+                    pal.Add(new Color(Mathf.Clamp(a.R * v, 0, 1), Mathf.Clamp(a.G * v, 0, 1), Mathf.Clamp(a.B * v, 0, 1)));
+            if (theme == "temperate")
+            {
+                // Tree crowns and hedge leaves occupy different greens from the meadow. Without
+                // these displayed foliage tones their lit faces snap to the generic yellow ramp.
+                Color[] foliage =
+                {
+                    new(0.12f, 0.21f, 0.08f), new(0.21f, 0.32f, 0.11f),
+                    new(0.34f, 0.44f, 0.16f), new(0.24f, 0.36f, 0.16f),
+                };
+                foreach (Color a in foliage)
+                foreach (float v in new[] { 0.65f, 0.85f, 1f, 1.2f, 1.45f, 1.7f })
+                    pal.Add(new Color(Mathf.Clamp(a.R * v, 0, 1), Mathf.Clamp(a.G * v, 0, 1), Mathf.Clamp(a.B * v, 0, 1)));
+            }
+            if (theme == "arctic")
+            {
+                // Preserve snow, blue-green needles, exposed stone and weathered wreck steel.
+                Color[] featureColours =
+                {
+                    new(0.88f, 0.89f, 0.89f), new(0.76f, 0.77f, 0.77f), new(0.62f, 0.65f, 0.69f),
+                    new(0.07f, 0.15f, 0.14f), new(0.12f, 0.23f, 0.21f), new(0.20f, 0.32f, 0.29f),
+                    new(0.30f, 0.32f, 0.35f), new(0.34f, 0.33f, 0.31f),
+                };
+                foreach (Color a in featureColours)
+                foreach (float v in new[] { 0.65f, 0.85f, 1f, 1.2f, 1.45f })
+                    pal.Add(new Color(Mathf.Clamp(a.R * v, 0, 1), Mathf.Clamp(a.G * v, 0, 1), Mathf.Clamp(a.B * v, 0, 1)));
+            }
+            if (theme == "lava")
+            {
+                // Keep charcoal ruins, basalt and burnt wood neutral; only actual lava uses ember colours.
+                Color[] featureColours =
+                {
+                    new(0.10f, 0.095f, 0.09f), new(0.17f, 0.155f, 0.14f), new(0.25f, 0.225f, 0.20f),
+                    new(0.34f, 0.30f, 0.27f), new(0.65f, 0.18f, 0.03f), new(0.95f, 0.38f, 0.05f),
+                };
+                foreach (Color a in featureColours)
+                foreach (float v in new[] { 0.65f, 0.85f, 1f, 1.2f, 1.45f })
+                    pal.Add(new Color(Mathf.Clamp(a.R * v, 0, 1), Mathf.Clamp(a.G * v, 0, 1), Mathf.Clamp(a.B * v, 0, 1)));
+            }
+        }
+        // Keep desert gently warm like the unquantised scene. Temperate and arctic use their
+        // displayed terrain bands directly: warming snaps meadow to mustard and snow to cyan.
+        if (theme == "desert")
+            for (int i = 0; i < pal.Count; i++)
+            {
+                Color c = pal[i];
+                pal[i] = new Color(Mathf.Clamp(c.R * 1.025f + 0.004f, 0, 1),
+                    Mathf.Clamp(c.G * 1.01f + 0.002f, 0, 1), Mathf.Clamp(c.B * 0.975f, 0, 1), c.A);
+            }
         const int N = 32;
         var img = Image.CreateEmpty(N * N, N, false, Image.Format.Rgb8);
         for (int b = 0; b < N; b++)
@@ -109,8 +185,9 @@ public static class RetroLook
             }
             img.SetPixel(r + b * N, g, best);
         }
-        _lut = ImageTexture.CreateFromImage(img);
-        return _lut;
+        var tex = ImageTexture.CreateFromImage(img);
+        Luts[theme] = tex;
+        return tex;
     }
 
     private const string PostShader = @"

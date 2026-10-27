@@ -11,3 +11,9 @@ TestResults/
 mono_crash.*
 build/
 __pycache__/
+
+# Local dev screenshots, review captures and raw texture downloads
+.shots/
+review_kimi*.jpg
+kimi-export-session*
+tools/source_textures/*/raw/

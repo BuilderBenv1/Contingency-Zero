@@ -71,3 +71,8 @@ Your settings, maps, replays and campaign progress are kept in
 Credits
 -------
 Ground and hull textures: ambientCG.com (CC0 1.0).
+Desert ground: Poly Haven (polyhaven.com, CC0): sand_01, damp_sand,
+mud_cracked_dry_03, rock_face_03.
+Temperate ground: Poly Haven (CC0): brown_mud_02, forest_ground_04,
+rocky_terrain_02, rock_face_03.
+Arctic ground: ambientCG (CC0): Snow004, Rock026, Gravel023, Rock027.

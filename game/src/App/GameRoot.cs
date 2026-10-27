@@ -167,11 +167,11 @@ public partial class GameRoot : Node
         return match;
     }
 
-    public void StartSkirmish(MapData map, IReadOnlyList<PlayerSetup> players, MatchOptions options)
+    public void StartSkirmish(MapData map, IReadOnlyList<PlayerSetup> players, MatchOptions options, ulong seed = 0)
     {
         SimSession Make()
         {
-            var scenario = new Scenario(map, (ulong)Time.GetTicksUsec(), players, options, new List<Spawn>());
+            var scenario = new Scenario(map, seed != 0 ? seed : (ulong)Time.GetTicksUsec(), players, options, new List<Spawn>());
             return new SimSession(scenario, GameData.Catalog, 0, new LocalChannel());
         }
         StartMatch(Make(), MatchKind.Skirmish, "Skirmish", Make);

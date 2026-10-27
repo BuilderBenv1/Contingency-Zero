@@ -26,18 +26,18 @@ public partial class TerrainView : Node3D
 
     public static TerrainPalette PaletteFor(string theme) => theme switch
     {
-        "desert" => new TerrainPalette(new Color(0.66f, 0.57f, 0.43f), new Color(0.6f, 0.47f, 0.34f), new Color(0.52f, 0.39f, 0.29f),
-            new Color(0.62f, 0.54f, 0.44f), new Color(0.55f, 0.36f, 0.25f), new Color(0.2f, 0.42f, 0.5f, 0.75f), new Color(0.08f, 0.2f, 0.3f), false,
+        "desert" => new TerrainPalette(new Color(0.64f, 0.56f, 0.44f), new Color(0.56f, 0.47f, 0.37f), new Color(0.5f, 0.41f, 0.33f),
+            new Color(0.6f, 0.53f, 0.44f), new Color(0.58f, 0.47f, 0.37f), new Color(0.2f, 0.42f, 0.5f, 0.75f), new Color(0.08f, 0.2f, 0.3f), false,
             new Color(0.62f, 0.5f, 0.4f)),
-        "lava" => new TerrainPalette(new Color(0.25f, 0.18f, 0.16f), new Color(0.24f, 0.22f, 0.22f), new Color(0.32f, 0.28f, 0.26f),
-            new Color(0.45f, 0.4f, 0.38f), new Color(0.18f, 0.15f, 0.15f), new Color(1.0f, 0.38f, 0.05f, 0.95f), new Color(0.9f, 0.15f, 0.02f), true,
-            new Color(0.22f, 0.12f, 0.1f)),
-        "arctic" => new TerrainPalette(new Color(0.5f, 0.53f, 0.56f), new Color(0.58f, 0.61f, 0.65f), new Color(0.66f, 0.69f, 0.73f),
-            new Color(0.76f, 0.78f, 0.81f), new Color(0.48f, 0.52f, 0.58f), new Color(0.35f, 0.55f, 0.7f, 0.8f), new Color(0.12f, 0.25f, 0.4f), false,
+        "lava" => new TerrainPalette(new Color(0.3f, 0.27f, 0.25f), new Color(0.27f, 0.25f, 0.24f), new Color(0.33f, 0.3f, 0.28f),
+            new Color(0.39f, 0.35f, 0.32f), new Color(0.24f, 0.22f, 0.21f), new Color(1.0f, 0.38f, 0.05f, 0.95f), new Color(0.9f, 0.15f, 0.02f), true,
+            new Color(0.28f, 0.22f, 0.2f)),
+        "arctic" => new TerrainPalette(new Color(0.58f, 0.59f, 0.59f), new Color(0.65f, 0.66f, 0.66f), new Color(0.69f, 0.7f, 0.7f),
+            new Color(0.75f, 0.76f, 0.76f), new Color(0.42f, 0.43f, 0.44f), new Color(0.35f, 0.55f, 0.7f, 0.8f), new Color(0.12f, 0.25f, 0.4f), false,
             new Color(0.6f, 0.68f, 0.76f)),
-        _ => new TerrainPalette(new Color(0.58f, 0.54f, 0.42f), new Color(0.35f, 0.39f, 0.25f), new Color(0.43f, 0.42f, 0.31f),
-            new Color(0.5f, 0.49f, 0.43f), new Color(0.4f, 0.38f, 0.35f), new Color(0.2f, 0.32f, 0.36f, 0.82f), new Color(0.06f, 0.12f, 0.15f), false,
-            new Color(0.5f, 0.52f, 0.53f)),
+        _ => new TerrainPalette(new Color(0.462f, 0.495f, 0.385f), new Color(0.363f, 0.462f, 0.308f), new Color(0.407f, 0.473f, 0.341f),
+            new Color(0.484f, 0.528f, 0.407f), new Color(0.48f, 0.47f, 0.43f), new Color(0.2f, 0.32f, 0.36f, 0.82f), new Color(0.06f, 0.12f, 0.15f), false,
+            new Color(0.56f, 0.59f, 0.58f)),
     };
 
     /// <summary>How heights map onto the palette's bands for one map.</summary>
@@ -66,7 +66,7 @@ public partial class TerrainView : Node3D
             : t < 0.3f ? pal.Low
             : t < 0.8f ? pal.Low.Lerp(pal.High, (t - 0.3f) / 0.5f)
             : pal.High.Lerp(pal.Peak, (t - 0.8f) / 0.2f);
-        float steep = Mathf.Clamp((1 - normal.Y) * 6f, 0, 1);
+        float steep = Mathf.Clamp((0.92f - normal.Y) * 10f, 0, 1);
         c = c.Lerp(pal.Rock, steep);
         if (h < b.Water) c = c.Darkened(0.35f);
         float noise = Hash(x, y) * 0.12f - 0.06f + Hash(x / 3, y / 3) * 0.08f - 0.04f;
@@ -84,7 +84,7 @@ public partial class TerrainView : Node3D
         float high = Mathf.SmoothStep(0.3f, 0.8f, t);
         float low = (1 - high) * (1 - shore);
         high *= 1 - shore;
-        float rock = Mathf.Clamp((1 - normal.Y) * 6f, 0, 1);
+        float rock = Mathf.Clamp((0.92f - normal.Y) * 10f, 0, 1);
         float keep = 1 - rock;
         return (new Vector2(shore * keep, low * keep), new Vector2(high * keep, rock));
     }
@@ -103,8 +103,36 @@ public partial class TerrainView : Node3D
         env.AmbientLightColor = palette.Sky.Lerp(new Color(0.6f, 0.6f, 0.6f), 0.6f);
         env.AmbientLightEnergy = 0.4f;
         env.TonemapMode = Godot.Environment.ToneMapper.Linear;
-        sun.LightEnergy = theme == "lava" ? 0.85f : 1.0f;
-        sun.LightColor = theme == "lava" ? new Color(1f, 0.8f, 0.66f) : new Color(1f, 0.95f, 0.86f);
+        if (theme == "desert")
+        {
+            // Warm late-afternoon grade; the haze itself is a screen-space gradient in MatchScene
+            // (Environment fog is unreliable in the Compatibility renderer). Under the retro
+            // palette the warmth mottles into few colour steps, so keep the sun near-neutral.
+            // The extra ambient keeps shade-side cliff faces readable.
+            sun.LightColor = RetroLook.Enabled ? new Color(0.98f, 0.94f, 0.86f) : new Color(1f, 0.93f, 0.82f);
+            sun.LightEnergy = 1.05f;
+            env.AmbientLightEnergy = 0.5f;
+        }
+        else if (theme == "temperate")
+        {
+            // Soft, near-neutral daylight: green ground stays calm and shaded rock keeps its strata.
+            sun.LightColor = new Color(0.98f, 0.98f, 0.94f);
+            sun.LightEnergy = 0.95f;
+            env.AmbientLightEnergy = 0.52f;
+        }
+        else if (theme == "arctic")
+        {
+            // Neutral sun keeps open snow white; the cooler ambient supplies blue only in shade.
+            sun.LightColor = new Color(1f, 0.99f, 0.97f);
+            sun.LightEnergy = 0.9f;
+            env.AmbientLightEnergy = 0.58f;
+        }
+        else
+        {
+            sun.LightEnergy = theme == "lava" ? 0.85f : 1.0f;
+            sun.LightColor = theme == "lava" ? new Color(1f, 0.8f, 0.66f) : new Color(1f, 0.95f, 0.86f);
+            if (theme == "lava") env.AmbientLightEnergy = 0.52f;
+        }
     }
 
     public void Build(MapData map)
@@ -250,6 +278,8 @@ public partial class TerrainView : Node3D
         _material.SetShaderParameter("fog_tex", _fogTexture);
         _material.SetShaderParameter("map_size", new Vector2(map.Width, map.Height));
         _material.SetShaderParameter("retro", RetroLook.Enabled);
+        _material.SetShaderParameter("water_level", water);
+        _material.SetShaderParameter("lava_distance_tex", LavaDistanceTexture(map));
         ApplyGroundTextures(_material, map.Theme);
 
         _ground = new Node3D { Name = "Ground" };
@@ -265,6 +295,48 @@ public partial class TerrainView : Node3D
             BuildChunk(cx, cy);
         }
         return _ground;
+    }
+
+    /// <summary>Horizontal distance to the lava, including on sheer banks where height is useless.</summary>
+    private static ImageTexture LavaDistanceTexture(MapData map)
+    {
+        int vx = map.TilesX + 1, vy = map.TilesY + 1;
+        var distance = new float[vx * vy];
+        const float far = 1e6f;
+        for (int i = 0; i < distance.Length; i++)
+            distance[i] = map.Theme == "lava" && map.Heights[i] < map.WaterLevel ? 0f : far;
+        if (map.Theme == "lava")
+        {
+            const float diagonal = 1.41421356f;
+            for (int y = 0; y < vy; y++)
+            for (int x = 0; x < vx; x++)
+            {
+                int i = y * vx + x;
+                float d = distance[i];
+                if (x > 0) d = Mathf.Min(d, distance[i - 1] + 1f);
+                if (y > 0) d = Mathf.Min(d, distance[i - vx] + 1f);
+                if (x > 0 && y > 0) d = Mathf.Min(d, distance[i - vx - 1] + diagonal);
+                if (x + 1 < vx && y > 0) d = Mathf.Min(d, distance[i - vx + 1] + diagonal);
+                distance[i] = d;
+            }
+            for (int y = vy - 1; y >= 0; y--)
+            for (int x = vx - 1; x >= 0; x--)
+            {
+                int i = y * vx + x;
+                float d = distance[i];
+                if (x + 1 < vx) d = Mathf.Min(d, distance[i + 1] + 1f);
+                if (y + 1 < vy) d = Mathf.Min(d, distance[i + vx] + 1f);
+                if (x + 1 < vx && y + 1 < vy) d = Mathf.Min(d, distance[i + vx + 1] + diagonal);
+                if (x > 0 && y + 1 < vy) d = Mathf.Min(d, distance[i + vx - 1] + diagonal);
+                distance[i] = d;
+            }
+        }
+        var bytes = new byte[distance.Length];
+        for (int i = 0; i < bytes.Length; i++)
+            bytes[i] = (byte)Mathf.RoundToInt(Mathf.Clamp(distance[i] * MapData.TileSize / 12f, 0f, 1f) * 255f);
+        var image = Image.CreateEmpty(vx, vy, false, Image.Format.R8);
+        image.SetData(vx, vy, false, Image.Format.R8, bytes);
+        return ImageTexture.CreateFromImage(image);
     }
 
     /// <summary>Ground texture weights at a corner: (shore, low ground), (high ground, cliff rock).</summary>
@@ -500,6 +572,7 @@ uniform sampler2D tex_low : source_color, filter_linear_mipmap_anisotropic, repe
 uniform sampler2D tex_patch : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D tex_high : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D tex_rock : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform float patch_amount = 1.0;
 uniform sampler2D nrm_shore : hint_normal, filter_linear_mipmap, repeat_enable;
 uniform sampler2D nrm_low : hint_normal, filter_linear_mipmap, repeat_enable;
 uniform sampler2D nrm_patch : hint_normal, filter_linear_mipmap, repeat_enable;
@@ -510,14 +583,24 @@ uniform vec3 avg_low = vec3(0.5);
 uniform vec3 avg_patch = vec3(0.5);
 uniform vec3 avg_high = vec3(0.5);
 uniform vec3 avg_rock = vec3(0.5);
+uniform vec3 cliff_band = vec3(0.0);
+uniform float cliff_grey = 0.0;
+uniform float cliff_snow = 0.0;
+uniform float lava_heat = 0.0;
+uniform float water_level = 0.0;
+uniform sampler2D lava_distance_tex : filter_linear, repeat_disable;
 uniform float tile = 9.0;
 uniform float tint = 0.45;
 uniform float bump = 1.0;
+uniform sampler2D marks_tex : filter_linear;
+uniform bool marks = false;
 varying vec3 world_pos;
 varying vec4 wts;
+varying vec3 wnorm;
 void vertex() {
     world_pos = VERTEX;
     wts = vec4(UV, UV2);
+    wnorm = NORMAL;
     // Ground textures are laid flat along world X and Z, so that's the tangent frame.
     TANGENT = vec3(1.0, 0.0, 0.0);
     BINORMAL = vec3(0.0, 0.0, 1.0);
@@ -526,6 +609,11 @@ float h2(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx +
 float n2(vec2 x) {
     vec2 i = floor(x); vec2 f = fract(x); f = f * f * (3.0 - 2.0 * f);
     return mix(mix(h2(i), h2(i + vec2(1.0, 0.0)), f.x), mix(h2(i + vec2(0.0, 1.0)), h2(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+// A thin, wandering level-set rather than a painted orange vein network.
+float crack(vec2 p) {
+    float v = n2(p) * 0.68 + n2(p * 2.07 + 13.0) * 0.32;
+    return 1.0 - smoothstep(0.003, 0.01, abs(v - 0.5));
 }
 // A texture sampled at two unrelated scales and rotations, blended by slow noise, so the
 // repeat never lines up into a visible grid.
@@ -537,6 +625,24 @@ vec3 nrm2(sampler2D t, vec2 p, float k) {
     vec2 bxy = transpose(ROT) * (b.xy * 2.0 - 1.0) * 0.5 + 0.5;
     return mix(a, vec3(bxy, b.z), k);
 }
+vec3 tri_weights(vec3 n) {
+    vec3 b = pow(abs(n), vec3(5.0));
+    return b / max(dot(b, vec3(1.0)), 0.0001);
+}
+float tri_noise(vec3 p, vec3 b, float scale) {
+    return n2(p.zy / scale) * b.x + n2(p.xz / scale) * b.y + n2(p.xy / scale) * b.z;
+}
+// Every layer gets a real side projection on steep faces. A one-tile wall must not interpolate
+// flat-ground corner weights and stretch a single row of sand down its face.
+vec3 tri_col(sampler2D t, vec3 p, vec3 b, float scale, float k) {
+    return col2(t, p.zy / scale, k) * b.x + col2(t, p.xz / scale, k) * b.y + col2(t, p.xy / scale, k) * b.z;
+}
+vec3 tri_nrm(sampler2D t, vec3 p, vec3 b, float scale, float k) {
+    vec3 x = nrm2(t, p.zy / scale, k) * 2.0 - 1.0;
+    vec3 y = nrm2(t, p.xz / scale, k) * 2.0 - 1.0;
+    vec3 z = nrm2(t, p.xy / scale, k) * 2.0 - 1.0;
+    return normalize(vec3(x.z, x.y, x.x) * b.x + vec3(y.x, y.z, y.y) * b.y + z * b.z);
+}
 void fragment() {
     vec2 uv = world_pos.xz / map_size;
     // Five taps soften the tile-shaped edge of what's in sight.
@@ -547,18 +653,40 @@ void fragment() {
     float light = mix(mix(0.16, 0.5, fog.g), 1.0, fog.r);
     vec2 w = world_pos.xz;
     vec3 c;
+    float cliff = 0.0;
+    vec3 lava_emit = vec3(0.0);
+    vec3 geometric = normalize(cross(dFdx(world_pos), dFdy(world_pos)));
+    geometric *= sign(geometric.y + 0.00001);
     if (textured) {
-        // Five ground-scale photo layers: shore, ground, patches through the ground, high ground,
-        // cliffs. The corner weights pick the band; the patch layer comes through the ground in
-        // ragged noise blotches; then a height blend (each texture's brightness standing in for
-        // its height) gives crisp edges, so pebbles poke through the dirt instead of smearing.
+        // Corner weights supply height bands only; geometric steepness is decided per fragment.
         float mixk = smoothstep(0.35, 0.65, n2(w * 0.021 + 3.0));
         vec2 p = w / tile;
-        vec2 pr = (w + vec2(world_pos.y * 0.7)) / (tile * 1.3);
-        vec3 cs = col2(tex_shore, p, mixk), cl = col2(tex_low, p, mixk), cp = col2(tex_patch, p, mixk);
-        vec3 ch = col2(tex_high, p, mixk), cr = col2(tex_rock, pr, mixk);
-        float patchy = smoothstep(0.52, 0.78, n2(w * 0.07 + 17.0) * 0.55 + n2(w * 0.23 + 5.0) * 0.3 + n2(w * 0.9 + 2.0) * 0.15);
+        vec3 anrm = abs(geometric);
+        // Projection axes must vary continuously across shared triangle edges. The face normal
+        // still decides where rock is exposed, but must not select a different texture projection
+        // for each half of a heightmap quad.
+        vec3 tw = tri_weights(normalize(wnorm));
+        // Use the same world-space projection everywhere. On level triangles the Y weight is
+        // one, so this is identical to flat X/Z sampling; on slopes it avoids a per-triangle
+        // projection switch and its rectangular lighting and texture seams.
+        float side = 1.0;
+        cliff = 1.0 - smoothstep(0.76, 0.94, anrm.y);
+        // Arctic material changes must be continuous across triangle edges. Its shared corner
+        // normals still turn steep on the wall, but do not leave a rectangular face-normal cap.
+        float arctic_cliff = 1.0 - smoothstep(0.58, 0.94, normalize(wnorm).y);
+        cliff = mix(cliff, arctic_cliff, cliff_snow);
+        float rock_tile = tile * 1.3;
+        vec3 cs = mix(col2(tex_shore, p, mixk), tri_col(tex_shore, world_pos, tw, tile, mixk), side);
+        vec3 cl = mix(col2(tex_low, p, mixk), tri_col(tex_low, world_pos, tw, tile, mixk), side);
+        vec3 cp = mix(col2(tex_patch, p, mixk), tri_col(tex_patch, world_pos, tw, tile, mixk), side);
+        vec3 ch = mix(col2(tex_high, p, mixk), tri_col(tex_high, world_pos, tw, tile, mixk), side);
+        vec3 cr = mix(col2(tex_rock, p, mixk), tri_col(tex_rock, world_pos, tw, rock_tile, mixk), side);
+        float rock_luma = dot(cr, vec3(0.299, 0.587, 0.114));
+        cr = mix(cr, vec3(rock_luma), cliff_grey * 0.92);
+        float patchy = smoothstep(0.52, 0.78, n2(w * 0.07 + 17.0) * 0.55 + n2(w * 0.23 + 5.0) * 0.3 + n2(w * 0.9 + 2.0) * 0.15) * patch_amount;
         vec4 k = wts / max(dot(wts, vec4(1.0)), 0.001);
+        k.xyz *= 1.0 - cliff;
+        k.w = cliff;
         float wl = k.y * (1.0 - patchy), wp = k.y * patchy;
         float hs = dot(cs, vec3(0.333)) / dot(avg_shore, vec3(0.333)), hl = dot(cl, vec3(0.333)) / dot(avg_low, vec3(0.333));
         float hp = dot(cp, vec3(0.333)) / dot(avg_patch, vec3(0.333)), hh = dot(ch, vec3(0.333)) / dot(avg_high, vec3(0.333));
@@ -572,18 +700,90 @@ void fragment() {
         b1 /= sum; b2 /= sum;
         vec3 tex = cs * b1.x + cl * b1.y + cp * b1.z + ch * b1.w + cr * b2;
         vec3 av = avg_shore * b1.x + avg_low * b1.y + avg_patch * b1.z + avg_high * b1.w + avg_rock * b2;
-        vec3 n = nrm2(nrm_shore, p, mixk) * b1.x + nrm2(nrm_low, p, mixk) * b1.y + nrm2(nrm_patch, p, mixk) * b1.z
-               + nrm2(nrm_high, p, mixk) * b1.w + nrm2(nrm_rock, pr, mixk) * b2;
-        // Vertex RGB is the theme's band colour after craters and scorching; alpha is how much
-        // of its brightness the damage left, so burns darken the photo texture too.
+        vec3 ns = mix(nrm2(nrm_shore, p, mixk), tri_nrm(nrm_shore, world_pos, tw, tile, mixk) * 0.5 + 0.5, side);
+        vec3 nl = mix(nrm2(nrm_low, p, mixk), tri_nrm(nrm_low, world_pos, tw, tile, mixk) * 0.5 + 0.5, side);
+        vec3 np = mix(nrm2(nrm_patch, p, mixk), tri_nrm(nrm_patch, world_pos, tw, tile, mixk) * 0.5 + 0.5, side);
+        vec3 nh = mix(nrm2(nrm_high, p, mixk), tri_nrm(nrm_high, world_pos, tw, tile, mixk) * 0.5 + 0.5, side);
+        vec3 nr = mix(nrm2(nrm_rock, p, mixk), tri_nrm(nrm_rock, world_pos, tw, rock_tile, mixk) * 0.5 + 0.5, side);
+        vec3 nt = ns * b1.x + nl * b1.y + np * b1.z + nh * b1.w + nr * b2;
+        // Convert the mixed world normal back to the declared X/Z tangent frame.
+        vec3 nw = nt * 2.0 - 1.0;
+        vec3 n = normalize(vec3(nw.x, nw.z, nw.y)) * 0.5 + 0.5;
+        // Cliffs ignore interpolated ground tint. Temperate supplies a neutral fieldstone
+        // band; desert keeps its lighter sandstone source average.
         vec3 band = COLOR.rgb / max(COLOR.a, 0.05);
+        vec3 rock_band = cliff_band.r > 0.001 ? cliff_band : avg_rock * 1.18;
+        band = mix(band, rock_band, cliff);
         c = tex * mix(vec3(1.0), band / max(av, vec3(0.05)), tint);
         c *= COLOR.a;
         c *= 0.9 + 0.2 * n2(w * 0.03 + 11.0);
+        float strata = sin(world_pos.y * 2.1 + n2(w * 0.055) * 2.4) * 0.5 + 0.5;
+        c *= 1.0 + cliff * (0.16 + strata * 0.16);
+        // Open arctic snow is white-to-pale-grey, not a tinted rock texture. Preserve broad
+        // height-band variation but remove source chroma and most high-frequency gravel grain.
+        float open_snow = cliff_snow * (1.0 - cliff);
+        float snow_luma = dot(c, vec3(0.299, 0.587, 0.114));
+        vec3 calm_snow = vec3(snow_luma) * (0.96 + 0.07 * n2(w * 0.035 + 8.0));
+        c = mix(c, calm_snow, open_snow * 0.8);
+        // Temperate moss is a restrained detail in dark seams and on upward-facing ledges,
+        // never a green tint over the whole rock face.
+        float moss_pockets = smoothstep(0.58, 0.82, n2(w * 0.11 + world_pos.y * 0.07));
+        float moss_sites = max((1.0 - strata) * 0.55, smoothstep(0.12, 0.5, geometric.y));
+        float moss = cliff_grey * cliff * moss_pockets * moss_sites * 0.11;
+        c = mix(c, c * vec3(0.82, 0.94, 0.76), moss);
+        // Smooth corner normals turn up at a crest while the face normal stays steep.
+        // Arctic uses actual snow geometry below rather than an additive white crest glow.
+        float crest = smoothstep(0.5, 0.95, normalize(wnorm).y) * cliff * (1.0 - cliff_snow);
+        vec3 crest_colour = mix(vec3(0.12, 0.095, 0.06), vec3(0.065, 0.064, 0.058), cliff_grey);
+        c += crest_colour * crest;
+        // Crisp snow sits only on upward-facing ledges, never on sheer rock or in a broad halo.
+        float snow_ledge = smoothstep(0.55, 0.85, normalize(wnorm).y) * cliff * cliff_snow;
+        vec3 snow_cap = vec3(0.64, 0.65, 0.65) * (0.97 + 0.05 * n2(w * 0.18 + 4.0));
+        c = mix(c, snow_cap, snow_ledge * 0.82);
+        if (lava_heat > 0.5) {
+            // Volcanic ash is darker than desert soil; exposed rock is charcoal basalt with a
+            // faint red-brown cast, not the pale tan source average used by ordinary cliffs.
+            c *= mix(0.85, 1.0, cliff);
+            float ash_luma = dot(c, vec3(0.299, 0.587, 0.114));
+            c = mix(c, vec3(ash_luma) * vec3(0.9, 0.87, 0.85), (1.0 - cliff) * 0.32);
+            float basalt_luma = dot(c, vec3(0.299, 0.587, 0.114));
+            c = mix(c, vec3(basalt_luma) * vec3(0.34, 0.33, 0.32), cliff * 0.9);
+            // Long vertical joints and shorter bedding fractures give the face a columnar rhythm.
+            float joints = crack(vec2((w.x + w.y * 0.63) * 0.18, world_pos.y * 0.025));
+            float bedding = crack(vec2((w.x - w.y) * 0.035, world_pos.y * 0.42));
+            c *= 1.0 - cliff * (joints * 0.5 + bedding * 0.24);
+            float above = max(world_pos.y - water_level, 0.0);
+            float bank_distance = texture(lava_distance_tex, uv).r * 12.0;
+            bank_distance += (tri_noise(world_pos + vec3(19.0, 0.0, 19.0), tw, 3.5) - 0.5) * 1.2;
+            float bank_shape = 1.0 - smoothstep(2.0, 16.0, bank_distance);
+            float walkable = 1.0 - cliff;
+            float bank = bank_shape * walkable;
+            // River heat belongs to walkable cooled crust. On sheer rock it would smear into
+            // vertical curtains, so faces receive only the narrow lava-line rim and thin cracks.
+            float crust_noise = 0.82 + 0.18 * tri_noise(world_pos, tw, 3.0);
+            c = mix(c, c * vec3(0.82, 0.84, 0.86) * crust_noise, bank * 0.22);
+            float glow_noise = 0.45 + 0.55 * tri_noise(world_pos + vec3(9.0), tw, 4.5);
+            lava_emit += vec3(1.0, 0.17, 0.012) * bank * sqrt(bank) * glow_noise * 0.65;
+            // Sparse open-ground fissures, gated by broad noise so they never cover the ash.
+            float fissure_sites = smoothstep(0.67, 0.83, n2(w * 0.035 + 31.0))
+                * smoothstep(0.35, 0.7, n2(w * 0.15 + 7.0));
+            float ground_fissure = crack(w * 0.12) * fissure_sites * walkable * (1.0 - bank);
+            c *= 1.0 - ground_fissure * 0.5;
+            lava_emit += vec3(1.0, 0.22, 0.018) * ground_fissure * 0.75;
+            // Only a few low cliff cracks remain molten; the upper basalt stays cold.
+            float low_face = 1.0 - smoothstep(1.5, 13.0, above);
+            float cliff_fissure = crack(vec2((w.x + w.y * 0.63) * 0.18, world_pos.y * 0.12))
+                * low_face * cliff * smoothstep(0.6, 0.78, n2(w * 0.06 + 4.0));
+            lava_emit += vec3(1.0, 0.12, 0.006) * cliff_fissure;
+            float lava_rim = 1.0 - smoothstep(0.1, 2.0, above);
+            lava_emit += vec3(1.0, 0.16, 0.01) * lava_rim * 0.3;
+            float face_ember = (1.0 - smoothstep(2.0, 10.0, above)) * cliff;
+            lava_emit += vec3(0.22, 0.07, 0.015) * face_ember;
+        }
         NORMAL_MAP = n;
-        NORMAL_MAP_DEPTH = bump * (0.6 + 0.6 * b2);
+        NORMAL_MAP_DEPTH = bump * (0.6 + 0.6 * b2) * mix(1.0, 0.3, open_snow);
         ROUGHNESS = 0.85 - 0.25 * (b1.x + b2 * 0.3);
-        SPECULAR = 0.25;
+        SPECULAR = mix(0.25, 0.12, cliff_grey * cliff);
     } else {
         float d = n2(w * 0.06) * 0.42 + n2(w * 0.23) * 0.28 + n2(w * 0.9) * 0.18 + n2(w * 3.1) * 0.12;
         float stones = smoothstep(0.84, 0.92, n2(w * 1.1 + 13.0)) * smoothstep(0.5, 0.8, n2(w * 0.08 + 5.0));
@@ -594,10 +794,37 @@ void fragment() {
         ROUGHNESS = 0.95;
         SPECULAR = 0.0;
     }
+    if (marks) {
+        // The battle so far: tank tracks and craters darken the ground; blasted bowls read lighter.
+        vec2 mk = texture(marks_tex, uv).rg;
+        c *= 1.0 - mk.r * 0.55;
+        c = mix(c, c * 1.12 + vec3(0.03, 0.025, 0.02), mk.g * 0.45);
+    }
     ALBEDO = c * light;
+    // Local sky bounce keeps shade-side rock readable without a luminous arctic snow outline.
+    EMISSION = c * light * cliff * mix(mix(0.28, 0.42, lava_heat), 0.08, cliff_snow) + lava_emit * light;
 }";
 
-    /// <summary>Gives the ground shader the theme's texture set (shore, low, high, rock), when the old-school look is on.</summary>
+    /// <summary>Per-theme ground shader tuning (tile size, band tint, normal depth); unset themes use the shader defaults.</summary>
+    private static readonly Dictionary<string, Vector3> GroundTune = new()
+    {
+        // Desert reads calmest with large, softly tinted tiles and few dark patches:
+        // the battle, not the ground, is busy.
+        ["desert"] = new Vector3(18f, 0.6f, 0.7f),
+        ["temperate"] = new Vector3(17f, 0.82f, 0.86f),
+        ["arctic"] = new Vector3(20f, 0.65f, 0.55f),
+        ["lava"] = new Vector3(16f, 0.75f, 0.8f),
+    };
+
+    /// <summary>Per-theme strength of the patch layer's ragged blotches (shader default 1).</summary>
+    private static readonly Dictionary<string, float> PatchAmount = new()
+    {
+        ["desert"] = 0.3f,
+        ["temperate"] = 0.2f,
+        ["arctic"] = 0f,
+        ["lava"] = 0.25f,
+    };
+
     /// <summary>Gives the ground shader the theme's texture set: colour and normal maps for shore, ground, patches, high ground and cliffs.</summary>
     public static void ApplyGroundTextures(ShaderMaterial mat, string theme)
     {
@@ -611,6 +838,33 @@ void fragment() {
             mat.SetShaderParameter($"nrm_{slots[i]}", ResourceLoader.Load<Texture2D>($"res://textures/{theme}_{slots[i]}_n.png"));
             mat.SetShaderParameter($"avg_{slots[i]}", new Vector3(avg[i].R, avg[i].G, avg[i].B));
         }
+        if (theme == "temperate")
+        {
+            Color rock = PaletteFor(theme).Rock;
+            var greyRock = new Vector3(rock.R * 0.70f, rock.G * 0.65f, rock.B * 0.58f);
+            mat.SetShaderParameter("cliff_band", greyRock);
+            mat.SetShaderParameter("cliff_grey", 1f);
+        }
+        if (theme == "arctic")
+        {
+            Color rock = PaletteFor(theme).Rock;
+            // Exposed rock stays distinctly darker than the surrounding snow, even in full sun.
+            mat.SetShaderParameter("cliff_band", new Vector3(rock.R * 0.58f, rock.G * 0.58f, rock.B * 0.58f));
+            mat.SetShaderParameter("cliff_snow", 1f);
+        }
+        if (theme == "lava")
+        {
+            // Basalt stays dark, but its strata and shade-side faces must not collapse to black.
+            mat.SetShaderParameter("cliff_band", new Vector3(0.09f, 0.088f, 0.085f));
+            mat.SetShaderParameter("lava_heat", 1f);
+        }
+        if (GroundTune.TryGetValue(theme, out Vector3 tune))
+        {
+            mat.SetShaderParameter("tile", tune.X);
+            mat.SetShaderParameter("tint", tune.Y);
+            mat.SetShaderParameter("bump", tune.Z);
+        }
+        if (PatchAmount.TryGetValue(theme, out float patch)) mat.SetShaderParameter("patch_amount", patch);
         mat.SetShaderParameter("textured", true);
     }
 
