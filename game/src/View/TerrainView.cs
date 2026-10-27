@@ -32,8 +32,8 @@ public partial class TerrainView : Node3D
         "lava" => new TerrainPalette(new Color(0.25f, 0.18f, 0.16f), new Color(0.24f, 0.22f, 0.22f), new Color(0.32f, 0.28f, 0.26f),
             new Color(0.45f, 0.4f, 0.38f), new Color(0.18f, 0.15f, 0.15f), new Color(1.0f, 0.38f, 0.05f, 0.95f), new Color(0.9f, 0.15f, 0.02f), true,
             new Color(0.22f, 0.12f, 0.1f)),
-        "arctic" => new TerrainPalette(new Color(0.5f, 0.53f, 0.56f), new Color(0.58f, 0.61f, 0.65f), new Color(0.66f, 0.69f, 0.73f),
-            new Color(0.76f, 0.78f, 0.81f), new Color(0.48f, 0.52f, 0.58f), new Color(0.35f, 0.55f, 0.7f, 0.8f), new Color(0.12f, 0.25f, 0.4f), false,
+        "arctic" => new TerrainPalette(new Color(0.62f, 0.67f, 0.69f), new Color(0.72f, 0.75f, 0.76f), new Color(0.76f, 0.78f, 0.78f),
+            new Color(0.84f, 0.85f, 0.84f), new Color(0.42f, 0.45f, 0.47f), new Color(0.35f, 0.55f, 0.7f, 0.8f), new Color(0.12f, 0.25f, 0.4f), false,
             new Color(0.6f, 0.68f, 0.76f)),
         _ => new TerrainPalette(new Color(0.462f, 0.495f, 0.385f), new Color(0.363f, 0.462f, 0.308f), new Color(0.407f, 0.473f, 0.341f),
             new Color(0.484f, 0.528f, 0.407f), new Color(0.48f, 0.47f, 0.43f), new Color(0.2f, 0.32f, 0.36f, 0.82f), new Color(0.06f, 0.12f, 0.15f), false,
@@ -119,6 +119,13 @@ public partial class TerrainView : Node3D
             sun.LightColor = new Color(0.98f, 0.98f, 0.94f);
             sun.LightEnergy = 0.95f;
             env.AmbientLightEnergy = 0.52f;
+        }
+        else if (theme == "arctic")
+        {
+            // Broad cold daylight without a hard blue cast; snow keeps detail in sun and shade.
+            sun.LightColor = new Color(0.96f, 0.98f, 1f);
+            sun.LightEnergy = 0.9f;
+            env.AmbientLightEnergy = 0.58f;
         }
         else
         {
@@ -533,6 +540,7 @@ uniform vec3 avg_high = vec3(0.5);
 uniform vec3 avg_rock = vec3(0.5);
 uniform vec3 cliff_band = vec3(0.0);
 uniform float cliff_grey = 0.0;
+uniform float cliff_snow = 0.0;
 uniform float tile = 9.0;
 uniform float tint = 0.45;
 uniform float bump = 1.0;
@@ -653,6 +661,7 @@ void fragment() {
         // Smooth corner normals turn up at a crest while the face normal stays steep.
         float crest = smoothstep(0.5, 0.95, normalize(wnorm).y) * cliff;
         vec3 crest_colour = mix(vec3(0.12, 0.095, 0.06), vec3(0.065, 0.064, 0.058), cliff_grey);
+        crest_colour = mix(crest_colour, vec3(0.17, 0.18, 0.19), cliff_snow);
         c += crest_colour * crest;
         NORMAL_MAP = n;
         NORMAL_MAP_DEPTH = bump * (0.6 + 0.6 * b2);
@@ -686,6 +695,7 @@ void fragment() {
         // the battle, not the ground, is busy.
         ["desert"] = new Vector3(18f, 0.6f, 0.7f),
         ["temperate"] = new Vector3(17f, 0.82f, 0.86f),
+        ["arctic"] = new Vector3(20f, 0.65f, 0.55f),
     };
 
     /// <summary>Per-theme strength of the patch layer's ragged blotches (shader default 1).</summary>
@@ -693,6 +703,7 @@ void fragment() {
     {
         ["desert"] = 0.3f,
         ["temperate"] = 0.2f,
+        ["arctic"] = 0.18f,
     };
 
     /// <summary>Gives the ground shader the theme's texture set: colour and normal maps for shore, ground, patches, high ground and cliffs.</summary>
@@ -714,6 +725,12 @@ void fragment() {
             var greyRock = new Vector3(rock.R * 0.70f, rock.G * 0.65f, rock.B * 0.58f);
             mat.SetShaderParameter("cliff_band", greyRock);
             mat.SetShaderParameter("cliff_grey", 1f);
+        }
+        if (theme == "arctic")
+        {
+            Color rock = PaletteFor(theme).Rock;
+            mat.SetShaderParameter("cliff_band", new Vector3(rock.R * 0.85f, rock.G * 0.85f, rock.B * 0.85f));
+            mat.SetShaderParameter("cliff_snow", 1f);
         }
         if (GroundTune.TryGetValue(theme, out Vector3 tune))
         {

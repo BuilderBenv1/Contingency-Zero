@@ -159,7 +159,7 @@ public partial class PropView : Node3D
         MapData map = _terrain.Map;
         foreach (Node3D old in _oasisExtras) old.QueueFree();
         _oasisExtras.Clear();
-        if (map.Theme is not ("desert" or "temperate"))
+        if (map.Theme is not ("desert" or "temperate" or "arctic"))
         {
             foreach (var (_, mm) in _clutterBatches) mm.VisibleInstanceCount = 0;
             foreach (var (_, mm) in _shadowBatches) mm.VisibleInstanceCount = 0;
@@ -182,6 +182,13 @@ public partial class PropView : Node3D
                 else if (kind < 0.46f) ClusterFieldWalls(placed, cx, cy, wx, wz);
                 else if (kind < 0.60f) ClusterHedgerow(placed, lists, chunksX, cx, cy, wx, wz);
                 else ClusterCopse(placed, lists, chunksX, cx, cy, wx, wz);
+            }
+            else if (map.Theme == "arctic")
+            {
+                if (kind < 0.28f) ClusterArcticHuts(placed, cx, cy, wx, wz);
+                else if (kind < 0.48f) ClusterArcticFuel(placed, cx, cy, wx, wz);
+                else if (kind < 0.68f) ClusterArcticWrecks(placed, cx, cy, wx, wz);
+                else ClusterPineStand(lists, chunksX, cx, cy, wx, wz);
             }
             else if (kind < 0.34f) ClusterVillage(placed, cx, cy, wx, wz);
             else if (kind < 0.52f) ClusterFieldWalls(placed, cx, cy, wx, wz);
@@ -302,6 +309,53 @@ public partial class PropView : Node3D
                 Hash(cx, cy + i, ClutterSalt + 224) * Mathf.Tau, 1.05f + Hash(cx + i, cy, ClutterSalt + 225) * 0.35f);
         }
         ClusterHedgerow(placed, lists, chunksX, cx + 47, cy + 13, wx, wz);
+    }
+
+    /// <summary>An abandoned arctic shelter with a drifted roof and a small fuel store.</summary>
+    private void ClusterArcticHuts(Dictionary<string, List<Transform3D>> placed, int cx, int cy, float wx, float wz)
+    {
+        int s = ClutterSalt + 230;
+        PlaceClutter(placed, "clutter_arctic_hut", wx - 3f, wz - 2f, Hash(cx, cy, s) * Mathf.Tau, 1f);
+        if (Hash(cx, cy, s + 1) > 0.45f)
+            PlaceClutter(placed, "clutter_arctic_hut", wx + 10f, wz + 6f, Hash(cx, cy, s + 2) * Mathf.Tau, 0.82f);
+        PlaceClutter(placed, "clutter_fuel_drums", wx + 5f, wz - 7f, Hash(cx, cy, s + 3) * Mathf.Tau, 0.85f);
+    }
+
+    /// <summary>A weathered fuel dump, half buried by wind-blown snow.</summary>
+    private void ClusterArcticFuel(Dictionary<string, List<Transform3D>> placed, int cx, int cy, float wx, float wz)
+    {
+        int s = ClutterSalt + 240;
+        for (int i = 0; i < 3; i++)
+        {
+            float a = i * 2.1f + Hash(cx, cy, s) * 0.7f;
+            PlaceClutter(placed, "clutter_fuel_drums", wx + Mathf.Cos(a) * 6f, wz + Mathf.Sin(a) * 5f,
+                Hash(cx + i, cy, s + 1) * Mathf.Tau, 0.85f + Hash(cx, cy + i, s + 2) * 0.25f);
+        }
+    }
+
+    /// <summary>Disabled vehicles disappearing into a drift beside a broken shelter.</summary>
+    private void ClusterArcticWrecks(Dictionary<string, List<Transform3D>> placed, int cx, int cy, float wx, float wz)
+    {
+        int s = ClutterSalt + 250;
+        PlaceClutter(placed, "clutter_snow_wreck", wx, wz, Hash(cx, cy, s) * Mathf.Tau, 1.1f);
+        PlaceClutter(placed, "clutter_snow_wreck", wx + 10f, wz - 6f, Hash(cx, cy, s + 1) * Mathf.Tau, 0.85f);
+        if (Hash(cx, cy, s + 2) > 0.5f)
+            PlaceClutter(placed, "clutter_arctic_hut", wx - 10f, wz + 5f, Hash(cx, cy, s + 3) * Mathf.Tau, 0.8f);
+    }
+
+    /// <summary>An uneven stand of snow-laden firs and spruces with open snow between trees.</summary>
+    private void ClusterPineStand(Dictionary<(int, string), List<Transform3D>> lists, int chunksX, int cx, int cy, float wx, float wz)
+    {
+        int s = ClutterSalt + 260;
+        int n = 9 + (int)(Hash(cx, cy, s) * 5f);
+        for (int i = 0; i < n; i++)
+        {
+            float a = Hash(cx + i, cy, s + 1) * Mathf.Tau;
+            float r = 3f + Hash(cx, cy + i, s + 2) * 13f;
+            string tree = $"tree_arctic_{(int)(Hash(cx + i, cy, s + 3) * 3f)}";
+            PlaceClutterAt(lists, chunksX, tree, wx + Mathf.Cos(a) * r, wz + Mathf.Sin(a) * r,
+                Hash(cx, cy + i, s + 4) * Mathf.Tau, 0.85f + Hash(cx + i, cy, s + 5) * 0.5f);
+        }
     }
 
     /// <summary>Flat, dry, unblocked ground, clear of start positions and metal spots.</summary>

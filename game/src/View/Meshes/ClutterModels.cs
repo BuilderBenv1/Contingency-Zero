@@ -25,6 +25,9 @@ internal static class ClutterModels
         "clutter_hedge" => new Vector2(4f, 2.4f),
         "clutter_cliff_boulder" => new Vector2(2.5f, 2.2f),
         "clutter_cliff_rubble" => new Vector2(2.2f, 1.8f),
+        "clutter_arctic_hut" => new Vector2(8f, 7f),
+        "clutter_fuel_drums" => new Vector2(5f, 4.5f),
+        "clutter_snow_wreck" => new Vector2(7f, 5f),
         "clutter_well" => new Vector2(3.4f, 3.4f),
         "clutter_barrels" => new Vector2(4.2f, 3.6f),
         "clutter_crates" => new Vector2(3.6f, 3.2f),
@@ -46,6 +49,9 @@ internal static class ClutterModels
             case "clutter_hedge": Hedge(b); break;
             case "clutter_cliff_boulder": CliffStone(b, true); break;
             case "clutter_cliff_rubble": CliffStone(b, false); break;
+            case "clutter_arctic_hut": ArcticHut(b); break;
+            case "clutter_fuel_drums": FuelDrums(b); break;
+            case "clutter_snow_wreck": SnowWreck(b); break;
             case "clutter_well": Well(b); break;
             case "clutter_barrels": Barrels(b); break;
             case "clutter_crates": Crates(b); break;
@@ -224,6 +230,66 @@ internal static class ClutterModels
                 new Vector3(size, size * (0.65f + Hash(seed + 3) * 0.25f), size * (0.72f + Hash(seed + 4) * 0.35f)),
                 Jitter(dark.Lerp(light, Hash(seed + 5)), seed + 6), segments: 8, rings: 5);
         }
+    }
+
+    /// <summary>A weathered arctic hut: dark timber, an open doorway and deep snow on the roof.</summary>
+    private static void ArcticHut(Builder b)
+    {
+        Color timber = new(0.25f, 0.27f, 0.27f), trim = new(0.15f, 0.17f, 0.18f);
+        Color snow = new(0.84f, 0.87f, 0.88f), dark = new(0.07f, 0.085f, 0.09f);
+        b.Box(new Vector3(-3f, 0, -2.3f), new Vector3(3f, 2.5f, -1.85f), timber);
+        b.Box(new Vector3(-3f, 0, -1.85f), new Vector3(-2.55f, 2.5f, 2.2f), timber * 0.9f);
+        b.Box(new Vector3(2.55f, 0, -1.85f), new Vector3(3f, 2.5f, 2.2f), timber);
+        b.Box(new Vector3(-3f, 0, 1.8f), new Vector3(-0.65f, 2.5f, 2.25f), timber);
+        b.Box(new Vector3(0.65f, 0, 1.8f), new Vector3(3f, 2.5f, 2.25f), timber * 0.92f);
+        b.Box(new Vector3(-0.62f, 0.02f, 2.24f), new Vector3(0.62f, 1.95f, 2.3f), dark);
+        b.Box(new Vector3(2.99f, 1.05f, 0.1f), new Vector3(3.04f, 1.75f, 1.15f), dark);
+        for (float y = 0.35f; y < 2.4f; y += 0.48f)
+        {
+            b.Box(new Vector3(-3.04f, y, -2.34f), new Vector3(3.04f, y + 0.055f, -2.29f), trim);
+            b.Box(new Vector3(-3.04f, y, 2.25f), new Vector3(-0.68f, y + 0.055f, 2.3f), trim);
+            b.Box(new Vector3(0.68f, y, 2.25f), new Vector3(3.04f, y + 0.055f, 2.3f), trim);
+        }
+        b.Box(new Vector3(-3.35f, 2.55f, -2.65f), new Vector3(3.35f, 2.78f, 0f), trim, pitch: 0.28f);
+        b.Box(new Vector3(-3.35f, 2.55f, 0f), new Vector3(3.35f, 2.78f, 2.65f), trim, pitch: -0.28f);
+        b.Box(new Vector3(-3.38f, 2.76f, -2.68f), new Vector3(3.38f, 3.02f, -0.02f), snow, pitch: 0.28f);
+        b.Box(new Vector3(-3.38f, 2.76f, 0.02f), new Vector3(3.38f, 3.02f, 2.68f), snow, pitch: -0.28f);
+        b.Ellipsoid(new Vector3(-2.25f, 0.02f, 1.75f), new Vector3(1.65f, 0.5f, 1.1f), snow, segments: 12, rings: 6);
+        b.Ellipsoid(new Vector3(2.45f, -0.02f, -1.5f), new Vector3(1.25f, 0.4f, 1.35f), snow, segments: 12, rings: 6);
+    }
+
+    /// <summary>Rusted fuel drums with snow caps and a drift around their feet.</summary>
+    private static void FuelDrums(Builder b)
+    {
+        Color snow = new(0.84f, 0.87f, 0.88f);
+        Vector3[] at = { new(-1.1f, 0, -0.4f), new(0.05f, 0, 0.55f), new(1.15f, 0, -0.65f) };
+        for (int i = 0; i < at.Length; i++)
+        {
+            uint seed = 610 + (uint)i;
+            b.Cylinder(at[i], 0.55f, 1.5f, Jitter(Rust, seed), sides: 12);
+            b.Cylinder(at[i] + new Vector3(0, 0.3f, 0), 0.57f, 0.09f, Jitter(Rust * 0.7f, seed + 1), sides: 12);
+            b.Cylinder(at[i] + new Vector3(0, 1.1f, 0), 0.57f, 0.09f, Jitter(Rust * 0.7f, seed + 2), sides: 12);
+            b.Cylinder(at[i] + new Vector3(0, 1.5f, 0), 0.52f, 0.11f, snow, sides: 12);
+        }
+        b.Cylinder(new Vector3(0.7f, 0.55f, 1.25f), 0.55f, 1.35f, Rust * 0.8f, sides: 12, axis: Vector3.Right, roll: 0.5f);
+        b.Ellipsoid(new Vector3(0, -0.08f, 0.15f), new Vector3(2.35f, 0.34f, 1.65f), snow, segments: 14, rings: 6);
+    }
+
+    /// <summary>A disabled tracked vehicle, its horizontal surfaces and rear buried in snow.</summary>
+    private static void SnowWreck(Builder b)
+    {
+        Color steel = new(0.30f, 0.33f, 0.34f), steelDark = new(0.16f, 0.18f, 0.19f);
+        Color tread = new(0.09f, 0.10f, 0.105f), snow = new(0.84f, 0.87f, 0.88f);
+        b.Box(new Vector3(-2.6f, 0.12f, -1.65f), new Vector3(2.5f, 0.85f, -1.05f), tread);
+        b.Box(new Vector3(-2.6f, 0.12f, 1.05f), new Vector3(2.5f, 0.85f, 1.65f), tread);
+        b.Box(new Vector3(-2.35f, 0.65f, -1.25f), new Vector3(2.25f, 1.35f, 1.25f), steel);
+        b.Box(new Vector3(-0.9f, 1.25f, -0.85f), new Vector3(1.25f, 1.95f, 0.85f), steelDark, yaw: -0.08f);
+        b.Cylinder(new Vector3(0.15f, 1.85f, 0), 0.8f, 0.48f, steel, sides: 10);
+        b.Cylinder(new Vector3(0.65f, 2.02f, 0), 0.11f, 2.2f, steelDark, sides: 8, axis: Vector3.Right);
+        b.Box(new Vector3(-2.3f, 1.34f, -1.18f), new Vector3(2.15f, 1.51f, 1.18f), snow);
+        b.Box(new Vector3(-0.82f, 1.94f, -0.78f), new Vector3(1.15f, 2.11f, 0.78f), snow, yaw: -0.08f);
+        b.Cylinder(new Vector3(0.15f, 2.32f, 0), 0.72f, 0.13f, snow, sides: 10);
+        b.Ellipsoid(new Vector3(-2.25f, 0.15f, 0.25f), new Vector3(1.75f, 0.65f, 1.75f), snow, segments: 12, rings: 6);
     }
 
     /// <summary>A stone well: ring of blocks, two posts, a crossbar and a little pitched roof.</summary>

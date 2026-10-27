@@ -17,3 +17,14 @@ All source colour and OpenGL normal maps below are from [Poly Haven](https://pol
 | Patches | [`brown_mud_02`](https://polyhaven.com/a/brown_mud_02) |
 | High ground | [`rocky_terrain_02`](https://polyhaven.com/a/rocky_terrain_02) |
 | Cliffs | [`rock_face_03`](https://polyhaven.com/a/rock_face_03) |
+
+## Arctic
+
+1K colour and OpenGL normal maps from [ambientCG](https://ambientcg.com), licensed CC0 1.0:
+
+| Layer | ambientCG asset |
+| --- | --- |
+| Shore and low ground | [`Snow004`](https://ambientcg.com/view?id=Snow004) |
+| Exposed patches | [`Rock026`](https://ambientcg.com/view?id=Rock026) |
+| High ground | [`Gravel023`](https://ambientcg.com/view?id=Gravel023) |
+| Cliffs | [`Rock027`](https://ambientcg.com/view?id=Rock027) |
