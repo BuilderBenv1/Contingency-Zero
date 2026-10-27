@@ -547,10 +547,12 @@ internal static class OrderSystem
         {
             int id = world.PathQueue.Dequeue();
             if (!units.Alive[id] || !units.PathPending[id]) continue;
-            world.PathBudget--;
             UnitDef def = world.Catalog[units.TypeIndex[id]];
             FixVec2 goal = units.PathRequestGoal[id];
             units.Path[id] = world.Pathfinder.Find(def.MoveClass, units.Position[id], goal);
+            // The budget counts tiles searched, not requests: many short paths fit in a tick,
+            // one long search uses most of it.
+            world.PathBudget -= Math2.Max(1, world.Pathfinder.LastExpansions);
             units.PathIndex[id] = 0;
             units.PathGoal[id] = goal;
             units.PathPending[id] = false;

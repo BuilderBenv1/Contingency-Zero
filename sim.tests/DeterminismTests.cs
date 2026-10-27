@@ -24,7 +24,7 @@ public class DeterminismTests
     private const ulong GoldenBattleHash = 0x2B85BE6EAC3515A5UL;
 
     /// <summary>Final hash of a 6-minute Hard-vs-Normal AI game on Proving Grounds.</summary>
-    private const ulong GoldenAiHash = 0xACBC471E4F2BB36AUL;
+    private const ulong GoldenAiHash = 0xF1574FFA25090673UL;
 
     private static List<ulong> HashTrace(MatchReplay replay)
     {

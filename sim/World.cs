@@ -62,6 +62,8 @@ public sealed partial class World
     private int _nextProjectileId;
     /// <summary>Path searches allowed per tick; the rest wait their turn in <see cref="PathQueue"/>.</summary>
     internal int PathBudget;
+    /// <summary>Path search budget per tick, in tiles expanded (always serves at least one request).</summary>
+    public const int PathTilesPerTick = 20000;
     /// <summary>Units waiting for a path search, first come first served.</summary>
     internal readonly Queue<int> PathQueue = new();
     /// <summary>Units waiting for a path search (diagnostics).</summary>
@@ -197,7 +199,7 @@ public sealed partial class World
         foreach (var (command, _) in ordered)
             ApplyCommand(command);
 
-        PathBudget = 40;
+        PathBudget = PathTilesPerTick;
         FactorySystem.Tick(this);
         OrderSystem.Tick(this);
         EconomySystem.Tick(this);
