@@ -32,8 +32,8 @@ public partial class TerrainView : Node3D
         "lava" => new TerrainPalette(new Color(0.25f, 0.18f, 0.16f), new Color(0.24f, 0.22f, 0.22f), new Color(0.32f, 0.28f, 0.26f),
             new Color(0.45f, 0.4f, 0.38f), new Color(0.18f, 0.15f, 0.15f), new Color(1.0f, 0.38f, 0.05f, 0.95f), new Color(0.9f, 0.15f, 0.02f), true,
             new Color(0.22f, 0.12f, 0.1f)),
-        "arctic" => new TerrainPalette(new Color(0.62f, 0.67f, 0.69f), new Color(0.72f, 0.75f, 0.76f), new Color(0.76f, 0.78f, 0.78f),
-            new Color(0.84f, 0.85f, 0.84f), new Color(0.42f, 0.45f, 0.47f), new Color(0.35f, 0.55f, 0.7f, 0.8f), new Color(0.12f, 0.25f, 0.4f), false,
+        "arctic" => new TerrainPalette(new Color(0.66f, 0.67f, 0.67f), new Color(0.74f, 0.75f, 0.75f), new Color(0.78f, 0.79f, 0.79f),
+            new Color(0.85f, 0.86f, 0.86f), new Color(0.42f, 0.43f, 0.44f), new Color(0.35f, 0.55f, 0.7f, 0.8f), new Color(0.12f, 0.25f, 0.4f), false,
             new Color(0.6f, 0.68f, 0.76f)),
         _ => new TerrainPalette(new Color(0.462f, 0.495f, 0.385f), new Color(0.363f, 0.462f, 0.308f), new Color(0.407f, 0.473f, 0.341f),
             new Color(0.484f, 0.528f, 0.407f), new Color(0.48f, 0.47f, 0.43f), new Color(0.2f, 0.32f, 0.36f, 0.82f), new Color(0.06f, 0.12f, 0.15f), false,
@@ -122,8 +122,8 @@ public partial class TerrainView : Node3D
         }
         else if (theme == "arctic")
         {
-            // Broad cold daylight without a hard blue cast; snow keeps detail in sun and shade.
-            sun.LightColor = new Color(0.96f, 0.98f, 1f);
+            // Neutral sun keeps open snow white; the cooler ambient supplies blue only in shade.
+            sun.LightColor = new Color(1f, 0.99f, 0.97f);
             sun.LightEnergy = 0.9f;
             env.AmbientLightEnergy = 0.58f;
         }
@@ -608,6 +608,11 @@ void fragment() {
         vec3 tw = tri_weights(geometric);
         float side = 1.0 - smoothstep(0.75, 0.98, anrm.y);
         cliff = 1.0 - smoothstep(0.76, 0.94, anrm.y);
+        // On arctic crests and feet, feather the actual layer weight back into snow. All steep
+        // layers still use triplanar sampling, so this softens the seam without stretching snow.
+        float snow_rounded = normalize(wnorm).y + (n2(w * 0.12 + 4.0) - 0.5) * 0.3;
+        float snow_drift = smoothstep(0.18, 0.86, snow_rounded) * cliff_snow;
+        cliff *= 1.0 - snow_drift * 0.82;
         float rock_tile = tile * 1.3;
         vec3 cs = mix(col2(tex_shore, p, mixk), tri_col(tex_shore, world_pos, tw, tile, mixk), side);
         vec3 cl = mix(col2(tex_low, p, mixk), tri_col(tex_low, world_pos, tw, tile, mixk), side);
@@ -652,6 +657,12 @@ void fragment() {
         c *= 0.9 + 0.2 * n2(w * 0.03 + 11.0);
         float strata = sin(world_pos.y * 2.1 + n2(w * 0.055) * 2.4) * 0.5 + 0.5;
         c *= 1.0 + cliff * (0.16 + strata * 0.16);
+        // Open arctic snow is white-to-pale-grey, not a tinted rock texture. Preserve broad
+        // height-band variation but remove source chroma and most high-frequency gravel grain.
+        float open_snow = cliff_snow * (1.0 - cliff);
+        float snow_luma = dot(c, vec3(0.299, 0.587, 0.114));
+        vec3 calm_snow = vec3(snow_luma) * (0.96 + 0.07 * n2(w * 0.035 + 8.0));
+        c = mix(c, calm_snow, open_snow * 0.8);
         // Temperate moss is a restrained detail in dark seams and on upward-facing ledges,
         // never a green tint over the whole rock face.
         float moss_pockets = smoothstep(0.58, 0.82, n2(w * 0.11 + world_pos.y * 0.07));
@@ -663,8 +674,13 @@ void fragment() {
         vec3 crest_colour = mix(vec3(0.12, 0.095, 0.06), vec3(0.065, 0.064, 0.058), cliff_grey);
         crest_colour = mix(crest_colour, vec3(0.17, 0.18, 0.19), cliff_snow);
         c += crest_colour * crest;
+        // A light dusting on upward-turning ledges complements the broader material drift.
+        float snow_up = smoothstep(0.3, 0.9, normalize(wnorm).y + (n2(w * 0.12 + world_pos.y * 0.025) - 0.5) * 0.34);
+        float snow_feather = snow_up * smoothstep(0.015, 0.42, cliff) * cliff_snow;
+        vec3 snow_cap = vec3(0.72, 0.73, 0.73) * (0.95 + 0.08 * n2(w * 0.18 + 4.0));
+        c = mix(c, snow_cap, snow_feather * 0.58);
         NORMAL_MAP = n;
-        NORMAL_MAP_DEPTH = bump * (0.6 + 0.6 * b2);
+        NORMAL_MAP_DEPTH = bump * (0.6 + 0.6 * b2) * mix(1.0, 0.3, open_snow);
         ROUGHNESS = 0.85 - 0.25 * (b1.x + b2 * 0.3);
         SPECULAR = mix(0.25, 0.12, cliff_grey * cliff);
     } else {
@@ -703,7 +719,7 @@ void fragment() {
     {
         ["desert"] = 0.3f,
         ["temperate"] = 0.2f,
-        ["arctic"] = 0.18f,
+        ["arctic"] = 0f,
     };
 
     /// <summary>Gives the ground shader the theme's texture set: colour and normal maps for shore, ground, patches, high ground and cliffs.</summary>

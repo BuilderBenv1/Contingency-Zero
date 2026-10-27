@@ -136,18 +136,18 @@ public static class RetroLook
                 // Preserve snow, blue-green needles, exposed stone and weathered wreck steel.
                 Color[] featureColours =
                 {
-                    new(0.90f, 0.91f, 0.90f), new(0.72f, 0.76f, 0.82f),
+                    new(0.88f, 0.89f, 0.89f), new(0.76f, 0.77f, 0.77f), new(0.62f, 0.65f, 0.69f),
                     new(0.07f, 0.15f, 0.14f), new(0.12f, 0.23f, 0.21f), new(0.20f, 0.32f, 0.29f),
-                    new(0.30f, 0.34f, 0.40f), new(0.34f, 0.33f, 0.31f),
+                    new(0.30f, 0.32f, 0.35f), new(0.34f, 0.33f, 0.31f),
                 };
                 foreach (Color a in featureColours)
                 foreach (float v in new[] { 0.65f, 0.85f, 1f, 1.2f, 1.45f })
                     pal.Add(new Color(Mathf.Clamp(a.R * v, 0, 1), Mathf.Clamp(a.G * v, 0, 1), Mathf.Clamp(a.B * v, 0, 1)));
             }
         }
-        // Keep desert gently warm like the unquantised scene. Temperate uses its displayed
-        // meadow bands directly: warming those seeds makes green patches snap to mustard.
-        if (theme != "temperate")
+        // Keep desert gently warm like the unquantised scene. Temperate and arctic use their
+        // displayed terrain bands directly: warming snaps meadow to mustard and snow to cyan.
+        if (theme == "desert")
             for (int i = 0; i < pal.Count; i++)
             {
                 Color c = pal[i];

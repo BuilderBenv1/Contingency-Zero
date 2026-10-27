@@ -232,64 +232,111 @@ internal static class ClutterModels
         }
     }
 
-    /// <summary>A weathered arctic hut: dark timber, an open doorway and deep snow on the roof.</summary>
+    /// <summary>A weathered arctic hut: plank walls, framed openings, chimney and wind-blown drifts.</summary>
     private static void ArcticHut(Builder b)
     {
-        Color timber = new(0.25f, 0.27f, 0.27f), trim = new(0.15f, 0.17f, 0.18f);
-        Color snow = new(0.84f, 0.87f, 0.88f), dark = new(0.07f, 0.085f, 0.09f);
+        Color timber = new(0.34f, 0.32f, 0.29f), trim = new(0.18f, 0.19f, 0.19f);
+        Color snow = new(0.84f, 0.86f, 0.86f), dark = new(0.055f, 0.065f, 0.07f);
         b.Box(new Vector3(-3f, 0, -2.3f), new Vector3(3f, 2.5f, -1.85f), timber);
         b.Box(new Vector3(-3f, 0, -1.85f), new Vector3(-2.55f, 2.5f, 2.2f), timber * 0.9f);
         b.Box(new Vector3(2.55f, 0, -1.85f), new Vector3(3f, 2.5f, 2.2f), timber);
         b.Box(new Vector3(-3f, 0, 1.8f), new Vector3(-0.65f, 2.5f, 2.25f), timber);
         b.Box(new Vector3(0.65f, 0, 1.8f), new Vector3(3f, 2.5f, 2.25f), timber * 0.92f);
-        b.Box(new Vector3(-0.62f, 0.02f, 2.24f), new Vector3(0.62f, 1.95f, 2.3f), dark);
-        b.Box(new Vector3(2.99f, 1.05f, 0.1f), new Vector3(3.04f, 1.75f, 1.15f), dark);
+        // Recessed vertical plank seams and pale horizontal battens remain legible at review zoom.
+        for (float x = -2.75f; x < 3f; x += 0.48f)
+        {
+            b.Box(new Vector3(x, 0.06f, -2.315f), new Vector3(x + 0.035f, 2.48f, -2.29f), trim);
+            if (Mathf.Abs(x) > 0.72f)
+                b.Box(new Vector3(x, 0.06f, 2.25f), new Vector3(x + 0.035f, 2.48f, 2.285f), trim);
+        }
+        for (float z = -1.65f; z < 2.1f; z += 0.48f)
+        {
+            b.Box(new Vector3(-3.025f, 0.05f, z), new Vector3(-2.99f, 2.48f, z + 0.035f), trim);
+            b.Box(new Vector3(3f, 0.05f, z), new Vector3(3.025f, 2.48f, z + 0.035f), trim);
+        }
         for (float y = 0.35f; y < 2.4f; y += 0.48f)
         {
-            b.Box(new Vector3(-3.04f, y, -2.34f), new Vector3(3.04f, y + 0.055f, -2.29f), trim);
-            b.Box(new Vector3(-3.04f, y, 2.25f), new Vector3(-0.68f, y + 0.055f, 2.3f), trim);
-            b.Box(new Vector3(0.68f, y, 2.25f), new Vector3(3.04f, y + 0.055f, 2.3f), trim);
+            b.Box(new Vector3(-3.04f, y, -2.34f), new Vector3(3.04f, y + 0.055f, -2.29f), timber * 1.18f);
+            b.Box(new Vector3(-3.04f, y, 2.28f), new Vector3(-0.68f, y + 0.055f, 2.33f), timber * 1.18f);
+            b.Box(new Vector3(0.68f, y, 2.28f), new Vector3(3.04f, y + 0.055f, 2.33f), timber * 1.18f);
         }
+        // Framed plank door, lintel and iron latch.
+        b.Box(new Vector3(-0.62f, 0.02f, 2.24f), new Vector3(0.62f, 1.95f, 2.3f), dark);
+        for (float x = -0.5f; x < 0.6f; x += 0.25f)
+            b.Box(new Vector3(x, 0.08f, 2.305f), new Vector3(x + 0.2f, 1.84f, 2.34f), timber * 0.72f);
+        b.Box(new Vector3(-0.75f, 0, 2.29f), new Vector3(-0.62f, 2.1f, 2.39f), trim);
+        b.Box(new Vector3(0.62f, 0, 2.29f), new Vector3(0.75f, 2.1f, 2.39f), trim);
+        b.Box(new Vector3(-0.75f, 1.95f, 2.29f), new Vector3(0.75f, 2.12f, 2.39f), trim);
+        b.Box(new Vector3(0.32f, 0.92f, 2.35f), new Vector3(0.43f, 1.04f, 2.42f), new Color(0.08f, 0.08f, 0.075f));
+        // Side window with four deep frame members and a crossbar.
+        b.Box(new Vector3(3.025f, 0.95f, -0.05f), new Vector3(3.07f, 1.85f, 1.25f), dark);
+        b.Box(new Vector3(3.06f, 0.88f, -0.12f), new Vector3(3.14f, 1.94f, 0f), trim);
+        b.Box(new Vector3(3.06f, 0.88f, 1.25f), new Vector3(3.14f, 1.94f, 1.37f), trim);
+        b.Box(new Vector3(3.06f, 0.88f, -0.12f), new Vector3(3.14f, 1f, 1.37f), trim);
+        b.Box(new Vector3(3.06f, 1.82f, -0.12f), new Vector3(3.14f, 1.94f, 1.37f), trim);
+        b.Box(new Vector3(3.075f, 1.35f, -0.05f), new Vector3(3.15f, 1.43f, 1.25f), timber * 1.2f);
         b.Box(new Vector3(-3.35f, 2.55f, -2.65f), new Vector3(3.35f, 2.78f, 0f), trim, pitch: 0.28f);
         b.Box(new Vector3(-3.35f, 2.55f, 0f), new Vector3(3.35f, 2.78f, 2.65f), trim, pitch: -0.28f);
         b.Box(new Vector3(-3.38f, 2.76f, -2.68f), new Vector3(3.38f, 3.02f, -0.02f), snow, pitch: 0.28f);
         b.Box(new Vector3(-3.38f, 2.76f, 0.02f), new Vector3(3.38f, 3.02f, 2.68f), snow, pitch: -0.28f);
+        // Soot-dark chimney protrudes through the snowy rear roof.
+        b.Box(new Vector3(1.35f, 2.7f, -1.35f), new Vector3(2.05f, 4.05f, -0.65f), new Color(0.22f, 0.22f, 0.21f));
+        b.Box(new Vector3(1.25f, 3.98f, -1.45f), new Vector3(2.15f, 4.14f, -0.55f), trim);
+        b.Box(new Vector3(1.38f, 4.13f, -1.32f), new Vector3(1.91f, 4.2f, -0.78f), dark);
+        b.Box(new Vector3(1.25f, 4.13f, -1.45f), new Vector3(1.43f, 4.22f, -0.55f), snow);
         b.Ellipsoid(new Vector3(-2.25f, 0.02f, 1.75f), new Vector3(1.65f, 0.5f, 1.1f), snow, segments: 12, rings: 6);
-        b.Ellipsoid(new Vector3(2.45f, -0.02f, -1.5f), new Vector3(1.25f, 0.4f, 1.35f), snow, segments: 12, rings: 6);
+        b.Ellipsoid(new Vector3(2.45f, -0.02f, -1.5f), new Vector3(1.25f, 0.55f, 1.55f), snow, segments: 12, rings: 6);
     }
 
-    /// <summary>Rusted fuel drums with snow caps and a drift around their feet.</summary>
+    /// <summary>Nine weathered drums and a horizontal reserve tank on timber bearers.</summary>
     private static void FuelDrums(Builder b)
     {
-        Color snow = new(0.84f, 0.87f, 0.88f);
-        Vector3[] at = { new(-1.1f, 0, -0.4f), new(0.05f, 0, 0.55f), new(1.15f, 0, -0.65f) };
-        for (int i = 0; i < at.Length; i++)
+        Color snow = new(0.84f, 0.86f, 0.86f), iron = new(0.18f, 0.19f, 0.19f);
+        for (int i = 0; i < 9; i++)
         {
-            uint seed = 610 + (uint)i;
-            b.Cylinder(at[i], 0.55f, 1.5f, Jitter(Rust, seed), sides: 12);
-            b.Cylinder(at[i] + new Vector3(0, 0.3f, 0), 0.57f, 0.09f, Jitter(Rust * 0.7f, seed + 1), sides: 12);
-            b.Cylinder(at[i] + new Vector3(0, 1.1f, 0), 0.57f, 0.09f, Jitter(Rust * 0.7f, seed + 2), sides: 12);
-            b.Cylinder(at[i] + new Vector3(0, 1.5f, 0), 0.52f, 0.11f, snow, sides: 12);
+            float x = (i % 3 - 1) * 1.22f + (Hash(600 + (uint)i) - 0.5f) * 0.18f;
+            float z = (i / 3 - 1) * 1.18f + (Hash(620 + (uint)i) - 0.5f) * 0.16f;
+            Vector3 at = new(x, 0.04f, z + 0.35f);
+            uint seed = 640 + (uint)i;
+            b.Cylinder(at, 0.48f, 1.42f, Jitter(Rust, seed), sides: 12);
+            b.Cylinder(at + new Vector3(0, 0.26f, 0), 0.5f, 0.085f, iron, sides: 12);
+            b.Cylinder(at + new Vector3(0, 1.08f, 0), 0.5f, 0.085f, iron, sides: 12);
+            b.Cylinder(at + new Vector3(0, 1.42f, 0), 0.45f, 0.09f + Hash(seed + 2) * 0.07f, snow, sides: 12);
         }
-        b.Cylinder(new Vector3(0.7f, 0.55f, 1.25f), 0.55f, 1.35f, Rust * 0.8f, sides: 12, axis: Vector3.Right, roll: 0.5f);
-        b.Ellipsoid(new Vector3(0, -0.08f, 0.15f), new Vector3(2.35f, 0.34f, 1.65f), snow, segments: 14, rings: 6);
+        // Reserve tank behind the drum rows; dark end caps and bands keep it from reading as a pipe.
+        b.Box(new Vector3(-1.85f, 0, -2.65f), new Vector3(-1.5f, 0.55f, -1.75f), Wood * 0.6f);
+        b.Box(new Vector3(1.5f, 0, -2.65f), new Vector3(1.85f, 0.55f, -1.75f), Wood * 0.6f);
+        b.Cylinder(new Vector3(-1.75f, 1.15f, -2.2f), 0.68f, 3.5f, Rust * 0.72f, sides: 14, axis: Vector3.Right);
+        b.Cylinder(new Vector3(-1.2f, 1.15f, -2.2f), 0.71f, 0.12f, iron, sides: 14, axis: Vector3.Right);
+        b.Cylinder(new Vector3(1.08f, 1.15f, -2.2f), 0.71f, 0.12f, iron, sides: 14, axis: Vector3.Right);
+        b.Cylinder(new Vector3(0.65f, 1.75f, -2.2f), 0.14f, 0.25f, iron, sides: 8);
+        b.Ellipsoid(new Vector3(0, -0.13f, 0.15f), new Vector3(2.25f, 0.3f, 1.9f), snow, segments: 14, rings: 6);
     }
 
-    /// <summary>A disabled tracked vehicle, its horizontal surfaces and rear buried in snow.</summary>
+    /// <summary>A burnt tracked wreck, partly drifted over but with dark hull, tread and barrel exposed.</summary>
     private static void SnowWreck(Builder b)
     {
-        Color steel = new(0.30f, 0.33f, 0.34f), steelDark = new(0.16f, 0.18f, 0.19f);
-        Color tread = new(0.09f, 0.10f, 0.105f), snow = new(0.84f, 0.87f, 0.88f);
+        Color steel = new(0.24f, 0.25f, 0.25f), steelDark = new(0.10f, 0.105f, 0.11f);
+        Color tread = new(0.065f, 0.07f, 0.075f), snow = new(0.84f, 0.86f, 0.86f);
         b.Box(new Vector3(-2.6f, 0.12f, -1.65f), new Vector3(2.5f, 0.85f, -1.05f), tread);
         b.Box(new Vector3(-2.6f, 0.12f, 1.05f), new Vector3(2.5f, 0.85f, 1.65f), tread);
-        b.Box(new Vector3(-2.35f, 0.65f, -1.25f), new Vector3(2.25f, 1.35f, 1.25f), steel);
+        for (float x = -2.35f; x < 2.4f; x += 0.48f)
+        {
+            b.Box(new Vector3(x, 0.32f, 1.64f), new Vector3(x + 0.31f, 0.68f, 1.72f), steelDark);
+            b.Box(new Vector3(x, 0.32f, -1.72f), new Vector3(x + 0.31f, 0.68f, -1.64f), steelDark);
+        }
+        b.Box(new Vector3(-2.35f, 0.65f, -1.25f), new Vector3(2.25f, 1.35f, 1.25f), steelDark);
         b.Box(new Vector3(-0.9f, 1.25f, -0.85f), new Vector3(1.25f, 1.95f, 0.85f), steelDark, yaw: -0.08f);
         b.Cylinder(new Vector3(0.15f, 1.85f, 0), 0.8f, 0.48f, steel, sides: 10);
-        b.Cylinder(new Vector3(0.65f, 2.02f, 0), 0.11f, 2.2f, steelDark, sides: 8, axis: Vector3.Right);
-        b.Box(new Vector3(-2.3f, 1.34f, -1.18f), new Vector3(2.15f, 1.51f, 1.18f), snow);
-        b.Box(new Vector3(-0.82f, 1.94f, -0.78f), new Vector3(1.15f, 2.11f, 0.78f), snow, yaw: -0.08f);
-        b.Cylinder(new Vector3(0.15f, 2.32f, 0), 0.72f, 0.13f, snow, sides: 10);
-        b.Ellipsoid(new Vector3(-2.25f, 0.15f, 0.25f), new Vector3(1.75f, 0.65f, 1.75f), snow, segments: 12, rings: 6);
+        b.Cylinder(new Vector3(0.65f, 2.02f, 0), 0.11f, 2.5f, steelDark, sides: 8, axis: Vector3.Right);
+        b.Cylinder(new Vector3(3.05f, 2.02f, 0), 0.17f, 0.32f, tread, sides: 8, axis: Vector3.Right);
+        // Patchy accumulation leaves most of the deck and turret sides burnt and visible.
+        b.Box(new Vector3(-2.25f, 1.34f, -1.14f), new Vector3(-0.75f, 1.49f, 0.95f), snow);
+        b.Box(new Vector3(1.25f, 1.34f, -1.05f), new Vector3(2.08f, 1.44f, -0.15f), snow);
+        b.Box(new Vector3(-0.82f, 1.94f, -0.78f), new Vector3(0.12f, 2.08f, 0.55f), snow, yaw: -0.08f);
+        b.Cylinder(new Vector3(-0.05f, 2.31f, -0.12f), 0.52f, 0.11f, snow, sides: 10);
+        b.Ellipsoid(new Vector3(-2.35f, -0.02f, 0.15f), new Vector3(1.25f, 0.58f, 1.55f), snow, segments: 12, rings: 6);
+        b.Ellipsoid(new Vector3(1.9f, -0.06f, -1.15f), new Vector3(1.1f, 0.4f, 0.8f), snow, segments: 12, rings: 6);
     }
 
     /// <summary>A stone well: ring of blocks, two posts, a crossbar and a little pitched roof.</summary>
