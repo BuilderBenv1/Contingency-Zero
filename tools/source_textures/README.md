@@ -28,3 +28,15 @@ All source colour and OpenGL normal maps below are from [Poly Haven](https://pol
 | Exposed patches | [`Rock026`](https://ambientcg.com/view?id=Rock026) |
 | High ground | [`Gravel023`](https://ambientcg.com/view?id=Gravel023) |
 | Cliffs | [`Rock027`](https://ambientcg.com/view?id=Rock027) |
+
+## Lava
+
+1K colour and OpenGL normal maps from [ambientCG](https://ambientcg.com), licensed CC0 1.0:
+
+| Layer | ambientCG asset |
+| --- | --- |
+| Shore | [`Rocks016`](https://ambientcg.com/view?id=Rocks016) |
+| Low ground | [`Gravel024`](https://ambientcg.com/view?id=Gravel024) |
+| Exposed patches | [`Ground045`](https://ambientcg.com/view?id=Ground045) |
+| High ground | [`Rock014`](https://ambientcg.com/view?id=Rock014) |
+| Cliffs | [`Rock033`](https://ambientcg.com/view?id=Rock033) |

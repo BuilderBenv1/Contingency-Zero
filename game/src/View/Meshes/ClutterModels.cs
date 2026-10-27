@@ -20,7 +20,8 @@ internal static class ClutterModels
     public static Vector2 Footprint(string name) => name switch
     {
         "clutter_wall_ruin" => new Vector2(8.4f, 3f),
-        "clutter_house_ruin" or "clutter_farm_ruin" => new Vector2(9.5f, 8.5f),
+        "clutter_house_ruin" or "clutter_farm_ruin" or "clutter_scorched_ruin" => new Vector2(9.5f, 8.5f),
+        "clutter_basalt_spire" => new Vector2(6.5f, 6.5f),
         "clutter_field_wall" or "clutter_stone_wall" => new Vector2(11f, 2.6f),
         "clutter_hedge" => new Vector2(4f, 2.4f),
         "clutter_cliff_boulder" => new Vector2(2.5f, 2.2f),
@@ -44,6 +45,8 @@ internal static class ClutterModels
             case "clutter_wall_ruin": WallRuin(b); break;
             case "clutter_house_ruin": HouseRuin(b); break;
             case "clutter_farm_ruin": HouseRuin(b); break;
+            case "clutter_scorched_ruin": HouseRuin(b); break;
+            case "clutter_basalt_spire": BasaltSpire(b); break;
             case "clutter_field_wall": FieldWall(b); break;
             case "clutter_stone_wall": StoneWall(b); break;
             case "clutter_hedge": Hedge(b); break;
@@ -64,6 +67,12 @@ internal static class ClutterModels
             // The same brick construction reads as weathered grey fieldstone on temperate maps.
             var grey = new Color(0.42f, 0.44f, 0.38f);
             for (int i = 0; i < b.Colours.Count; i++) b.Colours[i] = b.Colours[i].Lerp(grey, 0.65f);
+        }
+        if (name == "clutter_scorched_ruin")
+        {
+            // Keep individual masonry relief while baking the whole shell to charcoal and dark rust.
+            var charcoal = new Color(0.12f, 0.105f, 0.095f);
+            for (int i = 0; i < b.Colours.Count; i++) b.Colours[i] = b.Colours[i].Lerp(charcoal, 0.78f);
         }
         var mesh = new ArrayMesh();
         using Variant v = Variant.CreateFrom(b.Vertices.ToArray()), n = Variant.CreateFrom(b.Normals.ToArray()),
@@ -141,6 +150,34 @@ internal static class ClutterModels
         // A couple of fallen bricks inside.
         b.Box(new Vector3(-1.6f, 0.1f, 0.6f), new Vector3(-0.9f, 0.32f, 1.7f), Jitter(MudBrickDark, seed + 33), yaw: 0.7f);
         b.Box(new Vector3(0.8f, 0.1f, -0.9f), new Vector3(1.5f, 0.3f, -0.2f), Jitter(MudBrick, seed + 35), yaw: -0.4f);
+    }
+
+    /// <summary>An irregular basalt organ: unequal hexagonal columns, broken stubs and talus.</summary>
+    private static void BasaltSpire(Builder b)
+    {
+        const uint seed = 261;
+        Color basalt = new(0.22f, 0.215f, 0.21f), dark = new(0.105f, 0.10f, 0.095f);
+        for (int i = 0; i < 9; i++)
+        {
+            float a = i * 2.39996f + Hash(seed + (uint)i) * 0.35f;
+            float r = i == 0 ? 0f : 0.65f + Hash(seed + 20 + (uint)i) * 1.55f;
+            float radius = 0.42f + Hash(seed + 40 + (uint)i) * 0.4f;
+            float height = i == 0 ? 5.8f : 1.25f + Hash(seed + 60 + (uint)i) * 4.1f;
+            Vector3 at = new(Mathf.Cos(a) * r, -0.08f, Mathf.Sin(a) * r);
+            b.Cylinder(at, radius, height, Jitter(dark.Lerp(basalt, Hash(seed + 80 + (uint)i)), seed + 100 + (uint)i), sides: 6);
+            // A thinner offset cap makes the column heights stepped rather than crystal-pointed.
+            if (i % 3 == 1)
+                b.Cylinder(at + new Vector3(0, height, 0), radius * 0.82f, 0.22f + Hash(seed + 120 + (uint)i) * 0.35f,
+                    dark, sides: 6);
+        }
+        for (int i = 0; i < 7; i++)
+        {
+            float a = Hash(seed + 150 + (uint)i) * Mathf.Tau;
+            float r = 1.8f + Hash(seed + 170 + (uint)i) * 1.15f;
+            float s = 0.18f + Hash(seed + 190 + (uint)i) * 0.32f;
+            b.Ellipsoid(new Vector3(Mathf.Cos(a) * r, s * 0.35f, Mathf.Sin(a) * r),
+                new Vector3(s, s * 0.65f, s * 0.8f), Jitter(dark, seed + 210 + (uint)i), segments: 6, rings: 4);
+        }
     }
 
     /// <summary>A low dry-stone field wall: rough stacked stones, one taller end pillar.</summary>

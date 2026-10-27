@@ -102,7 +102,7 @@ public partial class MatchScene : Node3D
         Effects = new EffectsView { Name = "Effects" };
         AddChild(Effects);
         AddChild(MakeVignette());
-        if (world.Map.Theme is "desert" or "temperate" or "arctic") AddChild(MakeHaze(world.Map.Theme));
+        if (world.Map.Theme is "desert" or "temperate" or "arctic" or "lava") AddChild(MakeHaze(world.Map.Theme));
         if (RetroLook.Enabled) AddChild(RetroLook.MakeLayer(world.Map.Theme));
 
         // Start looking at our own Commander (or the middle when watching).
@@ -186,8 +186,8 @@ public partial class MatchScene : Node3D
         return layer;
     }
 
-    /// <summary>Aerial haze pooling toward the top of the screen: warm desert dust, a faint
-    /// grey-green temperate veil, or cold arctic air. Kept faint under palette quantisation.</summary>
+    /// <summary>Aerial haze pooling toward the top of the screen: dust, cold air, or the
+    /// restrained warm-grey smoke of a volcanic battlefield. Kept faint under palette quantisation.</summary>
     private static CanvasLayer MakeHaze(string theme)
     {
         float k = RetroLook.Enabled ? 0.3f : 1f;
@@ -196,11 +196,12 @@ public partial class MatchScene : Node3D
         {
             "desert" => new Color(0.93f, 0.83f, 0.66f),
             "arctic" => new Color(0.76f, 0.83f, 0.86f),
+            "lava" => new Color(0.5f, 0.43f, 0.39f),
             _ => new Color(0.72f, 0.77f, 0.72f),
         };
-        Color hazeTop = desert ? new Color(0.94f, 0.85f, 0.7f) : haze;
-        float middle = desert ? 0.055f : theme == "arctic" ? 0.035f : 0.025f;
-        float top = desert ? 0.13f : theme == "arctic" ? 0.09f : 0.055f;
+        Color hazeTop = desert ? new Color(0.94f, 0.85f, 0.7f) : theme == "lava" ? new Color(0.56f, 0.46f, 0.4f) : haze;
+        float middle = desert ? 0.055f : theme == "arctic" ? 0.035f : theme == "lava" ? 0.04f : 0.025f;
+        float top = desert ? 0.13f : theme == "arctic" ? 0.09f : theme == "lava" ? 0.105f : 0.055f;
         var layer = new CanvasLayer { Layer = -1, Name = "Haze" };
         var rect = new TextureRect
         {

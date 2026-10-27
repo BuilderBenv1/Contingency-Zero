@@ -110,7 +110,7 @@ public static class RetroLook
         {
             // Ground sources are art-directed in the shader. Seed retro with those displayed
             // bands rather than raw photo averages, which can snap to mustard or cold grey.
-            if (theme is "temperate" or "arctic")
+            if (theme is "temperate" or "arctic" or "lava")
             {
                 TerrainPalette p = TerrainView.PaletteFor(theme);
                 avgs = new[] { p.Shore, p.Low, p.High, p.Peak, p.Rock };
@@ -139,6 +139,18 @@ public static class RetroLook
                     new(0.88f, 0.89f, 0.89f), new(0.76f, 0.77f, 0.77f), new(0.62f, 0.65f, 0.69f),
                     new(0.07f, 0.15f, 0.14f), new(0.12f, 0.23f, 0.21f), new(0.20f, 0.32f, 0.29f),
                     new(0.30f, 0.32f, 0.35f), new(0.34f, 0.33f, 0.31f),
+                };
+                foreach (Color a in featureColours)
+                foreach (float v in new[] { 0.65f, 0.85f, 1f, 1.2f, 1.45f })
+                    pal.Add(new Color(Mathf.Clamp(a.R * v, 0, 1), Mathf.Clamp(a.G * v, 0, 1), Mathf.Clamp(a.B * v, 0, 1)));
+            }
+            if (theme == "lava")
+            {
+                // Keep charcoal ruins, basalt and burnt wood neutral; only actual lava uses ember colours.
+                Color[] featureColours =
+                {
+                    new(0.10f, 0.095f, 0.09f), new(0.17f, 0.155f, 0.14f), new(0.25f, 0.225f, 0.20f),
+                    new(0.34f, 0.30f, 0.27f), new(0.65f, 0.18f, 0.03f), new(0.95f, 0.38f, 0.05f),
                 };
                 foreach (Color a in featureColours)
                 foreach (float v in new[] { 0.65f, 0.85f, 1f, 1.2f, 1.45f })

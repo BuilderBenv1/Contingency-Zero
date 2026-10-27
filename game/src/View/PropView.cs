@@ -159,7 +159,7 @@ public partial class PropView : Node3D
         MapData map = _terrain.Map;
         foreach (Node3D old in _oasisExtras) old.QueueFree();
         _oasisExtras.Clear();
-        if (map.Theme is not ("desert" or "temperate" or "arctic"))
+        if (map.Theme is not ("desert" or "temperate" or "arctic" or "lava"))
         {
             foreach (var (_, mm) in _clutterBatches) mm.VisibleInstanceCount = 0;
             foreach (var (_, mm) in _shadowBatches) mm.VisibleInstanceCount = 0;
@@ -189,6 +189,12 @@ public partial class PropView : Node3D
                 else if (kind < 0.48f) ClusterArcticFuel(placed, cx, cy, wx, wz);
                 else if (kind < 0.68f) ClusterArcticWrecks(placed, cx, cy, wx, wz);
                 else ClusterPineStand(lists, chunksX, cx, cy, wx, wz);
+            }
+            else if (map.Theme == "lava")
+            {
+                if (kind < 0.32f) ClusterScorchedRuins(placed, cx, cy, wx, wz);
+                else if (kind < 0.64f) ClusterBasaltSpires(placed, cx, cy, wx, wz);
+                else ClusterCharredStand(lists, chunksX, cx, cy, wx, wz);
             }
             else if (kind < 0.34f) ClusterVillage(placed, cx, cy, wx, wz);
             else if (kind < 0.52f) ClusterFieldWalls(placed, cx, cy, wx, wz);
@@ -355,6 +361,44 @@ public partial class PropView : Node3D
             string tree = $"tree_arctic_{(int)(Hash(cx + i, cy, s + 3) * 3f)}";
             PlaceClutterAt(lists, chunksX, tree, wx + Mathf.Cos(a) * r, wz + Mathf.Sin(a) * r,
                 Hash(cx, cy + i, s + 4) * Mathf.Tau, 0.85f + Hash(cx + i, cy, s + 5) * 0.5f);
+        }
+    }
+
+    /// <summary>A burnt settlement: two broken masonry shells and scattered wall fragments.</summary>
+    private void ClusterScorchedRuins(Dictionary<string, List<Transform3D>> placed, int cx, int cy, float wx, float wz)
+    {
+        int s = ClutterSalt + 270;
+        PlaceClutter(placed, "clutter_scorched_ruin", wx - 4f, wz - 2f, Hash(cx, cy, s) * Mathf.Tau, 1.05f);
+        PlaceClutter(placed, "clutter_scorched_ruin", wx + 9f, wz + 7f, Hash(cx, cy, s + 1) * Mathf.Tau, 0.78f);
+        PlaceClutter(placed, "clutter_basalt_spire", wx - 10f, wz + 8f, Hash(cx, cy, s + 2) * Mathf.Tau, 0.55f);
+    }
+
+    /// <summary>Columnar basalt erupting in uneven groups rather than a row of identical crystals.</summary>
+    private void ClusterBasaltSpires(Dictionary<string, List<Transform3D>> placed, int cx, int cy, float wx, float wz)
+    {
+        int s = ClutterSalt + 280;
+        int n = 3 + (int)(Hash(cx, cy, s) * 3f);
+        for (int i = 0; i < n; i++)
+        {
+            float a = Hash(cx + i, cy, s + 1) * Mathf.Tau;
+            float r = i == 0 ? 0f : 5f + Hash(cx, cy + i, s + 2) * 8f;
+            PlaceClutter(placed, "clutter_basalt_spire", wx + Mathf.Cos(a) * r, wz + Mathf.Sin(a) * r,
+                Hash(cx, cy + i, s + 3) * Mathf.Tau, 0.7f + Hash(cx + i, cy, s + 4) * 0.65f);
+        }
+    }
+
+    /// <summary>An open stand of detailed burnt trunks and branches, with no living canopy.</summary>
+    private void ClusterCharredStand(Dictionary<(int, string), List<Transform3D>> lists, int chunksX, int cx, int cy, float wx, float wz)
+    {
+        int s = ClutterSalt + 290;
+        int n = 8 + (int)(Hash(cx, cy, s) * 5f);
+        for (int i = 0; i < n; i++)
+        {
+            float a = Hash(cx + i, cy, s + 1) * Mathf.Tau;
+            float r = 3f + Hash(cx, cy + i, s + 2) * 13f;
+            string tree = $"tree_lava_{(int)(Hash(cx + i, cy, s + 3) * 3f)}";
+            PlaceClutterAt(lists, chunksX, tree, wx + Mathf.Cos(a) * r, wz + Mathf.Sin(a) * r,
+                Hash(cx, cy + i, s + 4) * Mathf.Tau, 0.9f + Hash(cx + i, cy, s + 5) * 0.55f);
         }
     }
 
