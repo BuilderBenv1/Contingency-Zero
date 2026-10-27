@@ -64,6 +64,19 @@ internal static class OrderSystem
         UnitStore units = world.Units;
         Order order = units.Orders[id][0];
 
+        // Only the active order claims a destination. Queued orders wait their turn, and orders
+        // whose interaction point moves or depends on weapon/build range don't reserve ground.
+        if (def.CanMove && !def.IsAir && order.Type is OrderType.Move or OrderType.Fight or OrderType.Patrol)
+        {
+            FixVec2 reserved = world.ReserveDestination(id, def.MoveClass, order.Position);
+            if (reserved != order.Position)
+            {
+                order.Position = reserved;
+                units.Orders[id][0] = order;
+                units.ClearPath(id);
+            }
+        }
+
         switch (order.Type)
         {
             case OrderType.Move:

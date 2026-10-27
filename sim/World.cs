@@ -81,6 +81,7 @@ public sealed partial class World
         Rng = new DeterministicRng(seed);
         Terrain = new Terrain(Map);
         Pathfinder = new Pathfinder(Terrain);
+        Units.InitializeGoals(map.TilesX * map.TilesY);
         Grid = new SpatialGrid(map.Width, map.Height);
         Vision = new VisionSystem(map.TilesX, map.TilesY) { RevealAll = Options.RevealMap };
         Mission = mission;
@@ -599,6 +600,7 @@ public sealed partial class World
             h.Add(Units.Target0[id]);
             h.Add(Units.Target1[id]);
             h.Add((int)Units.Fire[id]);
+            h.Add(Units.ReservedGoal[id]);
             h.Add(Units.Orders[id].Count);
             foreach (Order o in Units.Orders[id])
             {

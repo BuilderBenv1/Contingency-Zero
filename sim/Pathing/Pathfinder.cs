@@ -173,11 +173,17 @@ public sealed class Pathfinder
         return null;
     }
 
-    /// <summary>Closest tile to <paramref name="p"/> the mover can stand on, searching outwards in rings.</summary>
-    public FixVec2 NearestPassable(MoveClass moveClass, FixVec2 p, int maxRadius = 12)
+    /// <summary>
+    /// Closest tile to <paramref name="p"/> the mover can stand on, searching outwards in rings.
+    /// An optional tile predicate can exclude destinations claimed by another unit.
+    /// </summary>
+    public FixVec2 NearestPassable(MoveClass moveClass, FixVec2 p, int maxRadius = 12,
+        Func<int, bool>? tileFree = null)
     {
         int px = Clamp(MapData.TileOf(p.X), _terrain.TilesX), py = Clamp(MapData.TileOf(p.Y), _terrain.TilesY);
-        if (_terrain.Passable(moveClass, px, py)) return p;
+        bool Free(int x, int y) => _terrain.Passable(moveClass, x, y)
+                                  && (tileFree is null || tileFree(_terrain.Index(x, y)));
+        if (Free(px, py)) return p;
         for (int r = 1; r <= maxRadius; r++)
         {
             int bestIndex = -1, bestDist = int.MaxValue;
@@ -185,7 +191,7 @@ public sealed class Pathfinder
             for (int x = px - r; x <= px + r; x++)
             {
                 if (Math2.Abs(x - px) != r && Math2.Abs(y - py) != r) continue;
-                if (!_terrain.Passable(moveClass, x, y)) continue;
+                if (!Free(x, y)) continue;
                 int dist = (x - px) * (x - px) + (y - py) * (y - py);
                 int idx = _terrain.Index(x, y);
                 if (dist < bestDist || (dist == bestDist && idx < bestIndex)) { bestDist = dist; bestIndex = idx; }
