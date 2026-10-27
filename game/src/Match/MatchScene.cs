@@ -196,12 +196,12 @@ public partial class MatchScene : Node3D
         {
             "desert" => new Color(0.93f, 0.83f, 0.66f),
             "arctic" => new Color(0.76f, 0.83f, 0.86f),
-            "lava" => new Color(0.5f, 0.43f, 0.39f),
+            "lava" => new Color(0.32f, 0.25f, 0.23f),
             _ => new Color(0.72f, 0.77f, 0.72f),
         };
-        Color hazeTop = desert ? new Color(0.94f, 0.85f, 0.7f) : theme == "lava" ? new Color(0.56f, 0.46f, 0.4f) : haze;
-        float middle = desert ? 0.055f : theme == "arctic" ? 0.035f : theme == "lava" ? 0.04f : 0.025f;
-        float top = desert ? 0.13f : theme == "arctic" ? 0.09f : theme == "lava" ? 0.105f : 0.055f;
+        Color hazeTop = desert ? new Color(0.94f, 0.85f, 0.7f) : theme == "lava" ? new Color(0.42f, 0.29f, 0.23f) : haze;
+        float middle = desert ? 0.055f : theme == "arctic" ? 0.035f : theme == "lava" ? 0.055f : 0.025f;
+        float top = desert ? 0.13f : theme == "arctic" ? 0.09f : theme == "lava" ? 0.14f : 0.055f;
         var layer = new CanvasLayer { Layer = -1, Name = "Haze" };
         var rect = new TextureRect
         {

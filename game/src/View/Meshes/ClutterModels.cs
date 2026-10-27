@@ -70,9 +70,16 @@ internal static class ClutterModels
         }
         if (name == "clutter_scorched_ruin")
         {
-            // Keep individual masonry relief while baking the shell to readable charcoal and dark rust.
-            var charcoal = new Color(0.19f, 0.165f, 0.145f);
-            for (int i = 0; i < b.Colours.Count; i++) b.Colours[i] = b.Colours[i].Lerp(charcoal, 0.68f);
+            // Neutral blackened stone: preserve the masonry relief and streak soot down from
+            // the broken upper courses rather than tinting the ruin orange-brown.
+            var charcoal = new Color(0.11f, 0.105f, 0.1f);
+            for (int i = 0; i < b.Colours.Count; i++)
+            {
+                Vector3 p = b.Vertices[i];
+                float stripe = Mathf.Pow(0.5f + 0.5f * Mathf.Sin(p.X * 6.7f + p.Z * 4.9f), 4f);
+                float fromTop = Mathf.Clamp(p.Y / 3.2f, 0f, 1f);
+                b.Colours[i] = b.Colours[i].Lerp(charcoal, 0.82f).Darkened(stripe * fromTop * 0.38f);
+            }
         }
         var mesh = new ArrayMesh();
         using Variant v = Variant.CreateFrom(b.Vertices.ToArray()), n = Variant.CreateFrom(b.Normals.ToArray()),

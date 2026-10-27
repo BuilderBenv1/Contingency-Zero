@@ -278,6 +278,8 @@ public partial class TerrainView : Node3D
         _material.SetShaderParameter("fog_tex", _fogTexture);
         _material.SetShaderParameter("map_size", new Vector2(map.Width, map.Height));
         _material.SetShaderParameter("retro", RetroLook.Enabled);
+        _material.SetShaderParameter("water_level", water);
+        _material.SetShaderParameter("lava_distance_tex", LavaDistanceTexture(map));
         ApplyGroundTextures(_material, map.Theme);
 
         _ground = new Node3D { Name = "Ground" };
@@ -293,6 +295,48 @@ public partial class TerrainView : Node3D
             BuildChunk(cx, cy);
         }
         return _ground;
+    }
+
+    /// <summary>Horizontal distance to the lava, including on sheer banks where height is useless.</summary>
+    private static ImageTexture LavaDistanceTexture(MapData map)
+    {
+        int vx = map.TilesX + 1, vy = map.TilesY + 1;
+        var distance = new float[vx * vy];
+        const float far = 1e6f;
+        for (int i = 0; i < distance.Length; i++)
+            distance[i] = map.Theme == "lava" && map.Heights[i] < map.WaterLevel ? 0f : far;
+        if (map.Theme == "lava")
+        {
+            const float diagonal = 1.41421356f;
+            for (int y = 0; y < vy; y++)
+            for (int x = 0; x < vx; x++)
+            {
+                int i = y * vx + x;
+                float d = distance[i];
+                if (x > 0) d = Mathf.Min(d, distance[i - 1] + 1f);
+                if (y > 0) d = Mathf.Min(d, distance[i - vx] + 1f);
+                if (x > 0 && y > 0) d = Mathf.Min(d, distance[i - vx - 1] + diagonal);
+                if (x + 1 < vx && y > 0) d = Mathf.Min(d, distance[i - vx + 1] + diagonal);
+                distance[i] = d;
+            }
+            for (int y = vy - 1; y >= 0; y--)
+            for (int x = vx - 1; x >= 0; x--)
+            {
+                int i = y * vx + x;
+                float d = distance[i];
+                if (x + 1 < vx) d = Mathf.Min(d, distance[i + 1] + 1f);
+                if (y + 1 < vy) d = Mathf.Min(d, distance[i + vx] + 1f);
+                if (x + 1 < vx && y + 1 < vy) d = Mathf.Min(d, distance[i + vx + 1] + diagonal);
+                if (x > 0 && y + 1 < vy) d = Mathf.Min(d, distance[i + vx - 1] + diagonal);
+                distance[i] = d;
+            }
+        }
+        var bytes = new byte[distance.Length];
+        for (int i = 0; i < bytes.Length; i++)
+            bytes[i] = (byte)Mathf.RoundToInt(Mathf.Clamp(distance[i] * MapData.TileSize / 12f, 0f, 1f) * 255f);
+        var image = Image.CreateEmpty(vx, vy, false, Image.Format.R8);
+        image.SetData(vx, vy, false, Image.Format.R8, bytes);
+        return ImageTexture.CreateFromImage(image);
     }
 
     /// <summary>Ground texture weights at a corner: (shore, low ground), (high ground, cliff rock).</summary>
@@ -542,6 +586,9 @@ uniform vec3 avg_rock = vec3(0.5);
 uniform vec3 cliff_band = vec3(0.0);
 uniform float cliff_grey = 0.0;
 uniform float cliff_snow = 0.0;
+uniform float lava_heat = 0.0;
+uniform float water_level = 0.0;
+uniform sampler2D lava_distance_tex : filter_linear, repeat_disable;
 uniform float tile = 9.0;
 uniform float tint = 0.45;
 uniform float bump = 1.0;
@@ -562,6 +609,11 @@ float h2(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx +
 float n2(vec2 x) {
     vec2 i = floor(x); vec2 f = fract(x); f = f * f * (3.0 - 2.0 * f);
     return mix(mix(h2(i), h2(i + vec2(1.0, 0.0)), f.x), mix(h2(i + vec2(0.0, 1.0)), h2(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+// A thin, wandering level-set rather than a painted orange vein network.
+float crack(vec2 p) {
+    float v = n2(p) * 0.68 + n2(p * 2.07 + 13.0) * 0.32;
+    return 1.0 - smoothstep(0.003, 0.01, abs(v - 0.5));
 }
 // A texture sampled at two unrelated scales and rotations, blended by slow noise, so the
 // repeat never lines up into a visible grid.
@@ -599,6 +651,7 @@ void fragment() {
     vec2 w = world_pos.xz;
     vec3 c;
     float cliff = 0.0;
+    vec3 lava_emit = vec3(0.0);
     vec3 geometric = normalize(cross(dFdx(world_pos), dFdy(world_pos)));
     geometric *= sign(geometric.y + 0.00001);
     if (textured) {
@@ -684,6 +737,40 @@ void fragment() {
         float snow_ledge = smoothstep(0.55, 0.85, normalize(wnorm).y) * cliff * cliff_snow;
         vec3 snow_cap = vec3(0.64, 0.65, 0.65) * (0.97 + 0.05 * n2(w * 0.18 + 4.0));
         c = mix(c, snow_cap, snow_ledge * 0.82);
+        if (lava_heat > 0.5) {
+            // Volcanic ash is darker than desert soil; exposed rock is charcoal basalt with a
+            // faint red-brown cast, not the pale tan source average used by ordinary cliffs.
+            c *= mix(0.85, 1.0, cliff);
+            float ash_luma = dot(c, vec3(0.299, 0.587, 0.114));
+            c = mix(c, vec3(ash_luma) * vec3(0.9, 0.87, 0.85), (1.0 - cliff) * 0.32);
+            float basalt_luma = dot(c, vec3(0.299, 0.587, 0.114));
+            c = mix(c, vec3(basalt_luma) * vec3(0.34, 0.33, 0.32), cliff * 0.9);
+            // Long vertical joints and shorter bedding fractures give the face a columnar rhythm.
+            float joints = crack(vec2((w.x + w.y * 0.63) * 0.18, world_pos.y * 0.025));
+            float bedding = crack(vec2((w.x - w.y) * 0.035, world_pos.y * 0.42));
+            c *= 1.0 - cliff * (joints * 0.5 + bedding * 0.24);
+            float above = max(world_pos.y - water_level, 0.0);
+            float bank_distance = texture(lava_distance_tex, uv).r * 12.0;
+            bank_distance += (n2(w * 0.28 + 19.0) - 0.5) * 1.2;
+            float bank = 1.0 - smoothstep(2.0, 16.0, bank_distance);
+            // Cooled crust is a shallow, irregular grade, not a separate black strip. Distance
+            // to the river works across vertical faces as well as on the open ash beside it.
+            float crust_noise = 0.75 + 0.25 * n2(w * 0.32);
+            c = mix(c, vec3(0.06, 0.048, 0.042) * crust_noise, bank * 0.34);
+            lava_emit += vec3(1.0, 0.17, 0.012) * bank * sqrt(bank)
+                * (0.3 + 0.7 * n2(w * 0.22 + 9.0)) * 0.85;
+            // Sparse open-ground fissures, gated by broad noise so they never cover the ash.
+            float fissure_sites = smoothstep(0.67, 0.83, n2(w * 0.035 + 31.0))
+                * smoothstep(0.35, 0.7, n2(w * 0.15 + 7.0));
+            float ground_fissure = crack(w * 0.12) * fissure_sites * (1.0 - cliff) * (1.0 - bank);
+            c *= 1.0 - ground_fissure * 0.5;
+            lava_emit += vec3(1.0, 0.22, 0.018) * ground_fissure * 0.75;
+            // Only a few low cliff cracks remain molten; the upper basalt stays cold.
+            float low_face = 1.0 - smoothstep(1.5, 13.0, above);
+            float cliff_fissure = crack(vec2((w.x + w.y * 0.63) * 0.18, world_pos.y * 0.12))
+                * low_face * cliff * smoothstep(0.6, 0.78, n2(w * 0.06 + 4.0));
+            lava_emit += vec3(1.0, 0.12, 0.006) * cliff_fissure * 1.0;
+        }
         NORMAL_MAP = n;
         NORMAL_MAP_DEPTH = bump * (0.6 + 0.6 * b2) * mix(1.0, 0.3, open_snow);
         ROUGHNESS = 0.85 - 0.25 * (b1.x + b2 * 0.3);
@@ -706,7 +793,7 @@ void fragment() {
     }
     ALBEDO = c * light;
     // Local sky bounce keeps shade-side rock readable without a luminous arctic snow outline.
-    EMISSION = c * light * cliff * mix(0.28, 0.08, cliff_snow);
+    EMISSION = c * light * cliff * mix(mix(0.28, 0.42, lava_heat), 0.08, cliff_snow) + lava_emit * light;
 }";
 
     /// <summary>Per-theme ground shader tuning (tile size, band tint, normal depth); unset themes use the shader defaults.</summary>
@@ -759,7 +846,8 @@ void fragment() {
         if (theme == "lava")
         {
             // Basalt stays dark, but its strata and shade-side faces must not collapse to black.
-            mat.SetShaderParameter("cliff_band", new Vector3(0.25f, 0.24f, 0.23f));
+            mat.SetShaderParameter("cliff_band", new Vector3(0.09f, 0.088f, 0.085f));
+            mat.SetShaderParameter("lava_heat", 1f);
         }
         if (GroundTune.TryGetValue(theme, out Vector3 tune))
         {

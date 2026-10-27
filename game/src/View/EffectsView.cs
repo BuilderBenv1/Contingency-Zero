@@ -46,6 +46,39 @@ public partial class EffectsView : Node3D
     private static readonly Color NanoColour = new(0.35f, 1.0f, 0.5f);
     private static readonly Color ReclaimColour = new(0.75f, 0.45f, 1.0f);
     private readonly RandomNumberGenerator _rng = new();
+    private float _lavaSpawn;
+
+    /// <summary>Sparse wind-blown embers and soft ash motes immediately above the lava river.</summary>
+    private void UpdateLavaAir(float dt)
+    {
+        if (_terrain.Map.Theme != "lava") return;
+        _lavaSpawn += dt;
+        while (_lavaSpawn >= 0.14f)
+        {
+            _lavaSpawn -= 0.14f;
+            Vector3 focus = _listener();
+            float range = Mathf.Clamp(_camera.Size * 0.75f, 35f, 90f);
+            for (int attempt = 0; attempt < 8; attempt++)
+            {
+                float x = Mathf.Clamp(focus.X + _rng.RandfRange(-range, range), 0f, _terrain.Map.Width);
+                float z = Mathf.Clamp(focus.Z + _rng.RandfRange(-range, range), 0f, _terrain.Map.Height);
+                if (_terrain.HeightAt(x, z) > _terrain.WaterHeight + 2.5f) continue;
+                bool ash = _rng.Randf() < 0.35f;
+                float life = _rng.RandfRange(3.5f, 6f);
+                var p = new Vector3(x, _terrain.WaterHeight + _rng.RandfRange(1.5f, 8f), z);
+                _sprites.Add(new Sprite
+                {
+                    P = p,
+                    V = new Vector3(_rng.RandfRange(1.2f, 2.8f), _rng.RandfRange(0.7f, 2.1f), _rng.RandfRange(-0.4f, 0.8f)),
+                    C = ash ? new Color(0.12f, 0.105f, 0.095f, 0.3f) : new Color(1f, 0.28f, 0.035f, 0.85f),
+                    Life = life, Max = life,
+                    Size = ash ? _rng.RandfRange(0.6f, 1.1f) : _rng.RandfRange(0.3f, 0.55f),
+                    Grow = ash ? 0.45f : 0f, Smoke = ash,
+                });
+                break;
+            }
+        }
+    }
 
     public void Init(World world, TerrainView terrain, UnitView units, Camera3D camera, Func<Vector3> listener, int viewerTeam, int localPlayer)
     {
@@ -421,6 +454,7 @@ public partial class EffectsView : Node3D
         SyncTerrain();
         float dt = (float)delta;
         UpdatePlumes(dt);
+        UpdateLavaAir(dt);
         float alpha = GetMeta("alpha", 1f).AsSingle();
         Basis cam = _camera.GlobalTransform.Basis;
         Vector3 right = cam.X, up = cam.Y;
