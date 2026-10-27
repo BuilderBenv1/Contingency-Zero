@@ -13,6 +13,15 @@ Design doc: https://claude.ai/artifact/27MRCyBndqGCe4d7uZUm5k
   - `data/missions/` holds the campaign scripts (format: `sim/Missions/MissionScript.cs` plus the keys read by `game/src/Missions/Campaign.cs`).
 - `docs/` — player-facing notes shipped in release zips (`HOW_TO_PLAY.txt`, `RELEASE_NOTES.md`).
 
+## Originality
+
+Contingency Zero is its own game: a Total Annihilation-style RTS for 2026, not a Command & Conquer
+or EA product. Every line of code, model, texture, sound and name in it must be original or under a
+licence that permits commercial use (CC0 for art). Never copy, paste, port or translate code from
+other games' source, including EA's GPL-released C&C code, and never use their assets, names or
+factions. Well-known techniques (A*, flow fields, formations, connectivity zones) are fine,
+implemented from scratch.
+
 ## Hard rules for `sim/`
 
 The sim must produce bit-identical results on every machine, every OS, every run. Online play and replays depend on it.

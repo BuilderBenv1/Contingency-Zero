@@ -13,8 +13,8 @@ still clash. Options: stylise the ground textures (simplified, painterly, strong
 contact shadows under units and buildings, hand-built cliff and outcrop meshes, decals
 (tracks, paths, scorch).
 
-## AI and pathfinding (ideas from studying EA's GPL C&C source; no code copied)
-Ranked by value for effort. All deterministic-safe; sim changes need tests and may move golden hashes.
+## AI and pathfinding
+Standard game-AI techniques, designed and written from scratch for this game. Ranked by value for effort. All deterministic-safe; sim changes need tests and may move golden hashes.
 1. **Connectivity zones per move class** (~1 day): flood-fill reachable regions in `Terrain`; reject or
    snap unreachable goals before A*. Removes worst-case 12k-expansion searches; prerequisite for naval AI.
 2. **Path budget by cells expanded, not requests** (hours): `ServePathRequests` spends expansions.
