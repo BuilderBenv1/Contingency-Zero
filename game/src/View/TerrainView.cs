@@ -629,6 +629,9 @@ vec3 tri_weights(vec3 n) {
     vec3 b = pow(abs(n), vec3(5.0));
     return b / max(dot(b, vec3(1.0)), 0.0001);
 }
+float tri_noise(vec3 p, vec3 b, float scale) {
+    return n2(p.zy / scale) * b.x + n2(p.xz / scale) * b.y + n2(p.xy / scale) * b.z;
+}
 // Every layer gets a real side projection on steep faces. A one-tile wall must not interpolate
 // flat-ground corner weights and stretch a single row of sand down its face.
 vec3 tri_col(sampler2D t, vec3 p, vec3 b, float scale, float k) {
@@ -751,25 +754,31 @@ void fragment() {
             c *= 1.0 - cliff * (joints * 0.5 + bedding * 0.24);
             float above = max(world_pos.y - water_level, 0.0);
             float bank_distance = texture(lava_distance_tex, uv).r * 12.0;
-            bank_distance += (n2(w * 0.28 + 19.0) - 0.5) * 1.2;
-            float bank = 1.0 - smoothstep(2.0, 16.0, bank_distance);
-            // Cooled crust is a shallow, irregular grade, not a separate black strip. Distance
-            // to the river works across vertical faces as well as on the open ash beside it.
-            float crust_noise = 0.75 + 0.25 * n2(w * 0.32);
-            c = mix(c, vec3(0.06, 0.048, 0.042) * crust_noise, bank * 0.34);
-            lava_emit += vec3(1.0, 0.17, 0.012) * bank * sqrt(bank)
-                * (0.3 + 0.7 * n2(w * 0.22 + 9.0)) * 0.85;
+            bank_distance += (tri_noise(world_pos + vec3(19.0, 0.0, 19.0), tw, 3.5) - 0.5) * 1.2;
+            float bank_shape = 1.0 - smoothstep(2.0, 16.0, bank_distance);
+            float walkable = 1.0 - cliff;
+            float bank = bank_shape * walkable;
+            // River heat belongs to walkable cooled crust. On sheer rock it would smear into
+            // vertical curtains, so faces receive only the narrow lava-line rim and thin cracks.
+            float crust_noise = 0.82 + 0.18 * tri_noise(world_pos, tw, 3.0);
+            c = mix(c, c * vec3(0.82, 0.84, 0.86) * crust_noise, bank * 0.22);
+            float glow_noise = 0.45 + 0.55 * tri_noise(world_pos + vec3(9.0), tw, 4.5);
+            lava_emit += vec3(1.0, 0.17, 0.012) * bank * sqrt(bank) * glow_noise * 0.65;
             // Sparse open-ground fissures, gated by broad noise so they never cover the ash.
             float fissure_sites = smoothstep(0.67, 0.83, n2(w * 0.035 + 31.0))
                 * smoothstep(0.35, 0.7, n2(w * 0.15 + 7.0));
-            float ground_fissure = crack(w * 0.12) * fissure_sites * (1.0 - cliff) * (1.0 - bank);
+            float ground_fissure = crack(w * 0.12) * fissure_sites * walkable * (1.0 - bank);
             c *= 1.0 - ground_fissure * 0.5;
             lava_emit += vec3(1.0, 0.22, 0.018) * ground_fissure * 0.75;
             // Only a few low cliff cracks remain molten; the upper basalt stays cold.
             float low_face = 1.0 - smoothstep(1.5, 13.0, above);
             float cliff_fissure = crack(vec2((w.x + w.y * 0.63) * 0.18, world_pos.y * 0.12))
                 * low_face * cliff * smoothstep(0.6, 0.78, n2(w * 0.06 + 4.0));
-            lava_emit += vec3(1.0, 0.12, 0.006) * cliff_fissure * 1.0;
+            lava_emit += vec3(1.0, 0.12, 0.006) * cliff_fissure;
+            float lava_rim = 1.0 - smoothstep(0.1, 2.0, above);
+            lava_emit += vec3(1.0, 0.16, 0.01) * lava_rim * 0.3;
+            float face_ember = (1.0 - smoothstep(2.0, 10.0, above)) * cliff;
+            lava_emit += vec3(0.22, 0.07, 0.015) * face_ember;
         }
         NORMAL_MAP = n;
         NORMAL_MAP_DEPTH = bump * (0.6 + 0.6 * b2) * mix(1.0, 0.3, open_snow);
