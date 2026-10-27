@@ -1,3 +1,21 @@
+## Contingency Zero 1.4
+
+**New in 1.4**
+
+The battlefield:
+- **Realistic terrain for every theme:** calm, natural ground for desert, grassland, arctic and lava maps, with cliffs that look like rock (sandstone, grey stone, snowy crags, black basalt).
+- **The battle leaves its mark:** tank tracks build up across the ground over a match, explosions leave craters, and burning wrecks send up tall smoke columns.
+- **Settlements and landmarks:** mud-brick villages and palm oases in the desert, farms, stone walls, hedges and copses on grassland, huts, fuel dumps and buried wrecks in the snow, scorched ruins, basalt spires and charred trees on lava.
+- **Soft shadows under every unit and building**, and rubble at the foot of cliffs.
+
+Smarter units and opponents:
+- **Units know where they can go.** Ordering a unit somewhere it can't reach sends it to the nearest point it can, instead of stalling while it searches.
+- **Units no longer pile onto the same spot** when moving as a group; each finds its own place.
+- **The computer picks targets more sensibly** in team games, retaliates against attackers and never sends units somewhere they can't reach.
+- **The computer now plays island maps:** on maps like Shoal Chain it builds a shipyard and attacks with ships, amphibious units and aircraft.
+- Big armies move more smoothly; computer games on bridge maps such as Ember Rift finish much sooner.
+
+
 ## Contingency Zero 1.3.1
 
 **New in 1.3.1**
