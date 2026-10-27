@@ -38,6 +38,9 @@ public sealed class AiController
     private int _preferredFactory; // 0 = vehicles, 1 = bots
     private readonly List<(int Unit, FixVec2 Pos)> _knownEnemyStructures = new();
     private bool _enemyAirSeen;
+    private int _attackTargetId = -1;
+    private FixVec2 _attackTargetPos;
+    private bool _islandMode;
     private readonly List<Command> _out = new();
 
     // An attack wave first gathers at a staging point short of the target, then goes in together,
@@ -51,6 +54,9 @@ public sealed class AiController
     public FixVec2 Home => _home;
     public AiDifficulty Difficulty => _difficulty;
     public string LastPlan { get; private set; } = "";
+    internal int CurrentAttackTargetId => _attackTargetId;
+    internal FixVec2 CurrentAttackTarget => _attackTargetPos;
+    internal bool IslandMode => _islandMode;
 
     public AiController(World world, int player, AiDifficulty difficulty, ulong matchSeed)
     {
@@ -79,6 +85,8 @@ public sealed class AiController
 
         _home = FindHome();
         _enemyGuess = GuessEnemyBase();
+        _attackTargetPos = _enemyGuess;
+        _islandMode = !LandConnected(_enemyGuess);
     }
 
     private bool Sees(int unit) => _difficulty == AiDifficulty.Brutal || _w.CanSee(_team, unit);
@@ -118,6 +126,9 @@ public sealed class AiController
         h.Add(_knownEnemyStructures.Count);
         h.Add(_wave.Count);
         h.Add(_waveStageTick);
+        h.Add(_attackTargetId);
+        h.Add(_attackTargetPos);
+        h.Add(_islandMode);
         return h.Value;
     }
 
@@ -381,6 +392,12 @@ public sealed class AiController
         bool energyCritical = Me.Energy < Me.EnergyStorage / 8 && (energy < metal * 9 || metalFloating || Me.BuildRatio < Fix64.Parse("0.9"));
         bool metalLow = Me.Metal < Me.MetalStorage / 5;
 
+        // On a separated enemy island, the first factory must be able to project force across
+        // water. Commanders and basic builders can all place the shipyard; FindSite handles water.
+        if (_islandMode && hasRole("factory_ship") && RoleCount("factory_ship") == 0
+            && (_extractors >= 2 || _w.Tick > 60 * World.TicksPerSecond))
+            return "factory_ship";
+
         // First factory early.
         if (factories == 0 && (_extractors >= 2 || _w.Tick > 60 * World.TicksPerSecond))
             return _preferredFactory == 0 ? "factory_vehicle" : "factory_bot";
@@ -598,18 +615,18 @@ public sealed class AiController
     private void RunFactories()
     {
         int builders = _builders.Count + CountQueued(isBuilder: true);
-        FixVec2 rally = RallyPoint();
 
         foreach (int f in _factories)
         {
             UnitStore u = _w.Units;
+            UnitDef def = _w.Catalog[u.TypeIndex[f]];
+            FixVec2 rally = def.Role == "factory_ship" ? NavalRallyPoint(u.Position[f]) : RallyPoint();
             if (!u.HasRally[f] || FixVec2.DistanceSquared(u.Rally[f], rally) > Fix64.FromInt(400))
                 Issue(CommandType.SetRally, f, rally);
             if (u.FactoryQueue[f].Count > 0) continue;
             // Badly stalled: let the builders catch the economy up before adding more.
             if (Me.BuildRatio < Fix64.Parse(_difficulty <= AiDifficulty.Normal ? "0.5" : "0.35")) continue;
 
-            UnitDef def = _w.Catalog[u.TypeIndex[f]];
             int choice = ChooseUnit(def, ref builders);
             if (choice >= 0) Issue(CommandType.FactoryQueue, f, typeIndex: choice, arg: 1);
         }
@@ -629,13 +646,15 @@ public sealed class AiController
         int[] options = factory.BuildOptions;
         if (options.Length == 0) return -1;
 
-        // Builders first, up to the cap.
-        if (builders < MaxBuilders)
+        // Builders first, up to the cap. An island shipyard needs workers, but must not spend
+        // its whole early production queue filling the ordinary land-builder quota.
+        int builderCap = _islandMode && factory.Role == "factory_ship" ? Math2.Min(2, MaxBuilders) : MaxBuilders;
+        if (builders < builderCap)
         {
             foreach (int o in options)
             {
                 UnitDef d = _w.Catalog[o];
-                if (d.CanBuild && (d.Tier >= 2 || builders < MaxBuilders))
+                if (d.CanBuild && (d.Tier >= 2 || builders < builderCap))
                 {
                     if (d.Tier >= 2 && RoleCount("builder_adv") >= 2) continue;
                     builders++;
@@ -671,6 +690,12 @@ public sealed class AiController
                 "experimental" => 10,
                 _ => 2,
             };
+            if (_islandMode)
+            {
+                if (d.MoveClass == MoveClass.Ship) w *= 6;
+                else if (d.MoveClass == MoveClass.Amphibious || d.IsAir) w *= 4;
+                else w = Math2.Max(1, w / 4);
+            }
             if (w > 0) weights.Add((o, w));
         }
         if (weights.Count == 0) return -1;
@@ -694,6 +719,22 @@ public sealed class AiController
         if (len <= Fix64.Zero) return _home;
         FixVec2 p = _home + dir * (Fix64.FromInt(55) / len);
         return _w.ClampToMap(p);
+    }
+
+    private FixVec2 NavalRallyPoint(FixVec2 origin)
+    {
+        FixVec2 dir = _enemyGuess - origin;
+        Fix64 len = dir.Length();
+        FixVec2 desired = len <= Fix64.Zero ? origin : origin + dir * (Fix64.FromInt(55) / len);
+        desired = _w.ClampToMap(desired);
+        return _w.Pathfinder.NearestPassable(MoveClass.Ship, desired,
+            Math2.Max(_w.Map.TilesX, _w.Map.TilesY));
+    }
+
+    private FixVec2 RallyPointFor(int unit)
+    {
+        UnitDef def = _w.Catalog[_w.Units.TypeIndex[unit]];
+        return def.MoveClass == MoveClass.Ship ? NavalRallyPoint(_w.Units.Position[unit]) : RallyPoint();
     }
 
     private void DefendBase(out bool underAttack)
@@ -720,7 +761,6 @@ public sealed class AiController
     private void RunArmy(bool underAttack)
     {
         UnitStore u = _w.Units;
-        FixVec2 rally = RallyPoint();
 
         if (underAttack && _waveStageTick >= 0) { _wave.Clear(); _waveStageTick = -1; } // home comes first
         if (_waveStageTick >= 0) _wave.RemoveAll(id => !u.Alive[id] || u.Owner[id] != _player);
@@ -733,7 +773,7 @@ public sealed class AiController
             if (o.Type == OrderType.None) waiting.Add(a);
         }
 
-        // Scout early on (Normal+).
+        // Scout early on (Normal+), but never send a land scout to an unreachable island start.
         if (_difficulty >= AiDifficulty.Normal && Minutes < 6 && waiting.Count > 0 && _w.Tick % (40 * World.TicksPerSecond) < _interval)
         {
             int scout = waiting[0];
@@ -741,7 +781,7 @@ public sealed class AiController
             if (starts.Count > 0)
             {
                 FixVec2 dest = starts[_scoutIndex++ % starts.Count];
-                if (FixVec2.DistanceSquared(dest, _home) > Fix64.FromInt(100 * 100))
+                if (FixVec2.DistanceSquared(dest, _home) > Fix64.FromInt(100 * 100) && CanReachTarget(scout, dest))
                 {
                     Issue(CommandType.Fight, scout, dest);
                     waiting.RemoveAt(0);
@@ -762,9 +802,10 @@ public sealed class AiController
                 _waveStageTick = -1;
             else if (there * 10 >= _wave.Count * 7 || waitedLongEnough)
             {
-                FixVec2 target = AttackTarget();
-                foreach (int a in _wave) Issue(CommandType.Fight, a, target);
-                LastPlan = $"wave {_wavesSent} goes in ({_wave.Count} units)";
+                FixVec2 target = AttackTarget(_wave);
+                List<int> reachable = ReachableUnits(_wave, target);
+                foreach (int a in reachable) Issue(CommandType.Fight, a, target);
+                LastPlan = $"wave {_wavesSent} goes in ({reachable.Count} units)";
                 _wave.Clear();
                 _waveStageTick = -1;
             }
@@ -776,58 +817,61 @@ public sealed class AiController
             AiDifficulty.Normal => 100,
             _ => 60,
         } * World.TicksPerSecond;
-        // Don't sit on a big army forever waiting for the wave to fill up.
+        // Don't sit on a big army forever waiting for the wave to fill up. Only units that can
+        // reach the chosen target count toward the wave; stranded land troops stay at their rally.
         int maxGap = _difficulty switch
         {
             AiDifficulty.Easy => 420,
             AiDifficulty.Normal => 240,
             _ => 150,
         } * World.TicksPerSecond;
-        bool overdue = _w.Tick - _lastWaveTick >= maxGap && waiting.Count >= _waveSize / 2 && waiting.Count >= 6;
+        FixVec2 nextTarget = AttackTarget(waiting);
+        List<int> ready = ReachableUnits(waiting, nextTarget);
+        bool overdue = _w.Tick - _lastWaveTick >= maxGap && ready.Count >= _waveSize / 2 && ready.Count >= 6;
 
-        if (_waveStageTick < 0 && (waiting.Count >= _waveSize || overdue) && _w.Tick - _lastWaveTick >= minGap)
+        if (_waveStageTick < 0 && (ready.Count >= _waveSize || overdue) && _w.Tick - _lastWaveTick >= minGap)
         {
-            FixVec2 target = AttackTarget();
-            FixVec2? stage = _difficulty >= AiDifficulty.Normal ? StagingPoint(target) : null;
+            FixVec2? stage = !_islandMode && _difficulty >= AiDifficulty.Normal ? StagingPoint(nextTarget) : null;
             if (stage is { } sp)
             {
                 _wave.Clear();
-                _wave.AddRange(waiting);
+                _wave.AddRange(ready);
                 _waveStage = sp;
                 _waveStageTick = _w.Tick;
-                foreach (int a in waiting) Issue(CommandType.Fight, a, sp);
+                foreach (int a in ready) Issue(CommandType.Fight, a, sp);
             }
             else
             {
-                foreach (int a in waiting) Issue(CommandType.Fight, a, target);
+                foreach (int a in ready) Issue(CommandType.Fight, a, nextTarget);
             }
             _lastWaveTick = _w.Tick;
             _wavesSent++;
             int growth = _difficulty switch { AiDifficulty.Easy => 2, AiDifficulty.Normal => 3, _ => 4 };
             int cap = _difficulty switch { AiDifficulty.Easy => 14, AiDifficulty.Normal => 30, _ => 45 };
             _waveSize = Math2.Min(cap, _waveSize + growth);
-            LastPlan = $"attack wave {_wavesSent} ({waiting.Count} units)";
+            LastPlan = $"attack wave {_wavesSent} ({ready.Count} units)";
             return;
         }
 
         // Units idling far forward (a wave that won its fight) keep pushing instead of walking home.
         if (_difficulty >= AiDifficulty.Normal)
         {
-            FixVec2 next = AttackTarget();
             for (int i = waiting.Count - 1; i >= 0; i--)
             {
                 int a = waiting[i];
-                if (FixVec2.DistanceSquared(u.Position[a], rally) > Fix64.FromInt(130 * 130)
+                FixVec2 rally = RallyPointFor(a);
+                if (CanReachTarget(a, nextTarget)
+                    && FixVec2.DistanceSquared(u.Position[a], rally) > Fix64.FromInt(130 * 130)
                     && FixVec2.DistanceSquared(u.Position[a], _home) > FixVec2.DistanceSquared(rally, _home))
                 {
-                    Issue(CommandType.Fight, a, next);
+                    Issue(CommandType.Fight, a, nextTarget);
                     waiting.RemoveAt(i);
                 }
             }
         }
 
-        // Everyone else gathers at the rally point, in a loose block facing the enemy so a wave
-        // can march out without wading through a crowd.
+        // Everyone else gathers in a loose block. Ships use a water rally and individual slots are
+        // snapped to their own movement class before destination reservation spreads them apart.
         FixVec2 toward = _enemyGuess - _home;
         Fix64 tlen = toward.Length();
         FixVec2 fwd = tlen > Fix64.Zero ? toward * (Fix64.One / tlen) : new FixVec2(Fix64.Zero, Fix64.One);
@@ -835,8 +879,12 @@ public sealed class AiController
         for (int i = 0; i < waiting.Count; i++)
         {
             int a = waiting[i];
+            UnitDef def = _w.Catalog[u.TypeIndex[a]];
+            FixVec2 rally = RallyPointFor(a);
             int col = i % 12 - 6, row = i / 12;
             FixVec2 slot = _w.ClampToMap(rally + side * Fix64.FromInt(col * 7) - fwd * Fix64.FromInt(row * 7));
+            if (def.MoveClass == MoveClass.Ship)
+                slot = _w.Pathfinder.NearestPassable(MoveClass.Ship, slot, Math2.Max(_w.Map.TilesX, _w.Map.TilesY));
             if (FixVec2.DistanceSquared(u.Position[a], slot) > Fix64.FromInt(12 * 12)
                 && FixVec2.DistanceSquared(u.Position[a], rally) > Fix64.FromInt(40 * 40))
                 Issue(CommandType.Move, a, slot);
@@ -853,39 +901,167 @@ public sealed class AiController
         return _w.ClampToMap(p);
     }
 
-    private FixVec2 AttackTarget()
+    /// <summary>
+    /// Picks a target for these particular movers. Nearby enemies, allied focus fire and units that
+    /// hurt us score best. Once picked, a target is kept until it dies or cannot be reached by this
+    /// kind of wave; candidates on another land zone are never selected for that wave.
+    /// </summary>
+    internal FixVec2 AttackTarget(IReadOnlyList<int> movers)
     {
         UnitStore u = _w.Units;
-        // A visible enemy Commander is the prize.
-        for (int id = 0; id < u.Count; id++)
-            if (u.Alive[id] && _w.AreEnemies(_player, u.Owner[id]) && _w.Catalog[u.TypeIndex[id]].IsCommander && Sees(id)
-                && FixVec2.DistanceSquared(u.Position[id], _home) < Fix64.FromInt(900 * 900))
-                return u.Position[id];
-
-        // Otherwise the known enemy structure nearest the enemy's base centre (factories count double).
-        if (_knownEnemyStructures.Count > 0)
+        if (_attackTargetId >= 0)
         {
-            Fix64 sx = Fix64.Zero, sy = Fix64.Zero;
-            foreach (var (_, pos) in _knownEnemyStructures) { sx += pos.X; sy += pos.Y; }
-            var centre = new FixVec2(sx / _knownEnemyStructures.Count, sy / _knownEnemyStructures.Count);
-            FixVec2 best = _knownEnemyStructures[0].Pos;
-            Fix64 bestD = Fix64.MaxValue;
-            foreach (var (id, pos) in _knownEnemyStructures)
+            if (!u.IsValid(_attackTargetId))
             {
-                Fix64 d = FixVec2.DistanceSquared(pos, centre);
-                if (_w.Units.IsValid(id) && _w.Catalog[u.TypeIndex[id]].IsFactory) d = d / 2;
-                if (d < bestD) { bestD = d; best = pos; }
+                _attackTargetId = -1;
             }
-            return best;
+            else
+            {
+                if (Sees(_attackTargetId)) _attackTargetPos = u.Position[_attackTargetId];
+                if (CanAnyReach(movers, _attackTargetPos)) return _attackTargetPos;
+            }
         }
 
-        // Cycle through other start positions if the guess turned out empty.
-        var starts = _w.Map.StartPositions;
-        if (_wavesSent > 0 && starts.Count > 2)
+        int best = -1;
+        FixVec2 bestPos = _attackTargetPos;
+        Fix64 bestScore = Fix64.MaxValue;
+        for (int id = 0; id < u.Count; id++)
         {
-            FixVec2 s = starts[(_wavesSent + _player) % starts.Count];
-            if (FixVec2.DistanceSquared(s, _home) > Fix64.FromInt(100 * 100)) return s;
+            if (!u.Alive[id] || !_w.AreEnemies(_player, u.Owner[id])) continue;
+            bool visible = Sees(id);
+            FixVec2? remembered = KnownStructurePosition(id);
+            if (!visible && remembered is null) continue;
+            FixVec2 pos = visible ? u.Position[id] : remembered!.Value;
+            if (!CanAnyReach(movers, pos)) continue;
+            Fix64 score = TargetScore(id, pos);
+            if (score < bestScore || (score == bestScore && id < best))
+            {
+                best = id;
+                bestPos = pos;
+                bestScore = score;
+            }
         }
-        return _enemyGuess;
+
+        if (best >= 0)
+        {
+            _attackTargetId = best;
+            _attackTargetPos = bestPos;
+            return bestPos;
+        }
+
+        // No contact yet: scout reachable start positions, nearest first, rather than sending a
+        // land army toward an enemy start on the far side of deep water.
+        Fix64 bestD = Fix64.MaxValue;
+        bool found = false;
+        foreach (FixVec2 start in _w.Map.StartPositions)
+        {
+            if (FixVec2.DistanceSquared(start, _home) < Fix64.FromInt(100 * 100)) continue;
+            if (!CanAnyReach(movers, start)) continue;
+            Fix64 d = FixVec2.DistanceSquared(start, _home);
+            if (!found || d < bestD || (d == bestD && start.X < bestPos.X)
+                || (d == bestD && start.X == bestPos.X && start.Y < bestPos.Y))
+            {
+                found = true;
+                bestD = d;
+                bestPos = start;
+            }
+        }
+        if (!found && CanAnyReach(movers, _enemyGuess)) { bestPos = _enemyGuess; found = true; }
+        if (found)
+        {
+            _attackTargetId = -1;
+            _attackTargetPos = bestPos;
+        }
+        return bestPos;
+    }
+
+    private Fix64 TargetScore(int enemy, FixVec2 pos)
+    {
+        UnitStore u = _w.Units;
+        UnitDef def = _w.Catalog[u.TypeIndex[enemy]];
+        Fix64 score = FixVec2.DistanceSquared(pos, _home) / 64;
+        if (def.IsCommander) score -= Fix64.FromInt(12000);
+        if (def.IsFactory) score -= Fix64.FromInt(6000);
+
+        for (int id = 0; id < u.Count; id++)
+            if (u.Alive[id] && u.Owner[id] == _player && u.LastAttacker[id] == enemy)
+            {
+                score -= Fix64.FromInt(30000);
+                break;
+            }
+
+        // Allied waves concentrate on one enemy instead of scattering across every known target.
+        foreach (AiController other in _w.Ais)
+            if (other._player != _player && other._team == _team && other._attackTargetId == enemy)
+                score -= Fix64.FromInt(20000);
+        return score;
+    }
+
+    private FixVec2? KnownStructurePosition(int id)
+    {
+        foreach (var known in _knownEnemyStructures)
+            if (known.Unit == id) return known.Pos;
+        return null;
+    }
+
+    private List<int> ReachableUnits(IReadOnlyList<int> movers, FixVec2 target)
+    {
+        var result = new List<int>();
+        foreach (int id in movers)
+            if (CanReachTarget(id, target)) result.Add(id);
+        return result;
+    }
+
+    private bool CanAnyReach(IReadOnlyList<int> movers, FixVec2 target)
+    {
+        foreach (int id in movers)
+            if (CanReachTarget(id, target)) return true;
+        return false;
+    }
+
+    internal bool CanReachTarget(int id, FixVec2 target)
+    {
+        UnitStore u = _w.Units;
+        if (!u.IsValid(id) || u.Owner[id] != _player) return false;
+        UnitDef def = _w.Catalog[u.TypeIndex[id]];
+        if (def.IsAir) return true;
+        if (!def.CanMove) return false;
+
+        int sx = MapData.TileOf(u.Position[id].X), sy = MapData.TileOf(u.Position[id].Y);
+        int startZone = _w.Terrain.ZoneOf(def.MoveClass, sx, sy);
+        if (startZone < 0) return false;
+        int tx = MapData.TileOf(target.X), ty = MapData.TileOf(target.Y);
+        if (_w.Terrain.ZoneOf(def.MoveClass, tx, ty) == startZone) return true;
+        if (def.MoveClass != MoveClass.Ship) return false;
+
+        // A ship need not occupy a land target's tile: any same-zone water tile inside weapon
+        // range is a valid firing position. This also prevents cross-zone path snapping from
+        // masquerading as a reachable attack order.
+        Fix64 range = Fix64.Zero;
+        foreach (WeaponDef weapon in def.Weapons)
+            if (weapon.TargetsGround && weapon.Kind != WeaponKind.DGun && weapon.Range > range) range = weapon.Range;
+        int maxRadius = Math2.Min(Math2.Max(_w.Map.TilesX, _w.Map.TilesY),
+            (range / MapData.TileSize).ToIntFloor() + 2);
+        Fix64 range2 = range * range;
+        for (int r = 1; r <= maxRadius; r++)
+        for (int y = ty - r; y <= ty + r; y++)
+        for (int x = tx - r; x <= tx + r; x++)
+        {
+            if (Math2.Abs(x - tx) != r && Math2.Abs(y - ty) != r) continue;
+            if (_w.Terrain.ZoneOf(MoveClass.Ship, x, y) != startZone) continue;
+            FixVec2 water = Terrain.FootprintCentre(x, y, 1);
+            if (FixVec2.DistanceSquared(water, target) <= range2) return true;
+        }
+        return false;
+    }
+
+    private bool LandConnected(FixVec2 target)
+    {
+        int tx = MapData.TileOf(target.X), ty = MapData.TileOf(target.Y);
+        int hx = MapData.TileOf(_home.X), hy = MapData.TileOf(_home.Y);
+        int vehicle = _w.Terrain.ZoneOf(MoveClass.Vehicle, hx, hy);
+        // A bot-only reef route is not enough for the ordinary vehicle army. Treat it as island
+        // mode so production also includes ships, amphibious units and aircraft.
+        return vehicle >= 0 && vehicle == _w.Terrain.ZoneOf(MoveClass.Vehicle, tx, ty);
     }
 }

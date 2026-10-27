@@ -106,6 +106,9 @@ public sealed class UnitStore
     public FixVec2[] Anchor = new FixVec2[InitialCapacity];
     /// <summary>Movement direction last tick (for aircraft and the renderer).</summary>
     public FixVec2[] Velocity = new FixVec2[InitialCapacity];
+    /// <summary>Map tile claimed by the active destination order, or -1. Ids are never reused.</summary>
+    public int[] ReservedGoal = new int[InitialCapacity];
+    private int[] _goalOwners = Array.Empty<int>();
 
     // Factories
     public List<int>[] FactoryQueue = new List<int>[InitialCapacity];
@@ -154,6 +157,7 @@ public sealed class UnitStore
         StuckTicks[id] = 0;
         Anchor[id] = position;
         Velocity[id] = FixVec2.Zero;
+        ReservedGoal[id] = -1;
         FactoryQueue[id] = new List<int>();
         FactoryRepeat[id] = false;
         FactoryCurrent[id] = -1;
@@ -191,6 +195,7 @@ public sealed class UnitStore
     public void ClearOrders(int id)
     {
         Orders[id].Clear();
+        ReleaseGoal(id);
         ClearPath(id);
         Anchor[id] = Position[id];
     }
@@ -199,8 +204,36 @@ public sealed class UnitStore
     public void PopOrder(int id)
     {
         if (Orders[id].Count > 0) Orders[id].RemoveAt(0);
+        ReleaseGoal(id);
         ClearPath(id);
         if (Orders[id].Count == 0) Anchor[id] = Position[id];
+    }
+
+    internal void InitializeGoals(int tileCount)
+    {
+        _goalOwners = new int[tileCount];
+        Array.Fill(_goalOwners, -1);
+    }
+
+    /// <summary>The unit holding a map tile as its destination, or -1.</summary>
+    public int GoalOwner(int tile) => tile >= 0 && tile < _goalOwners.Length ? _goalOwners[tile] : -1;
+
+    internal bool ReserveGoal(int id, int tile)
+    {
+        if (tile < 0 || tile >= _goalOwners.Length) return false;
+        int owner = _goalOwners[tile];
+        if (owner >= 0 && owner != id) return false;
+        ReleaseGoal(id);
+        _goalOwners[tile] = id;
+        ReservedGoal[id] = tile;
+        return true;
+    }
+
+    public void ReleaseGoal(int id)
+    {
+        int old = ReservedGoal[id];
+        if (old >= 0 && old < _goalOwners.Length && _goalOwners[old] == id) _goalOwners[old] = -1;
+        ReservedGoal[id] = -1;
     }
 
     private void Grow()
@@ -230,6 +263,7 @@ public sealed class UnitStore
         Array.Resize(ref StuckTicks, size);
         Array.Resize(ref Anchor, size);
         Array.Resize(ref Velocity, size);
+        Array.Resize(ref ReservedGoal, size);
         Array.Resize(ref FactoryQueue, size);
         Array.Resize(ref FactoryRepeat, size);
         Array.Resize(ref FactoryCurrent, size);

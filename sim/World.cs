@@ -62,6 +62,8 @@ public sealed partial class World
     private int _nextProjectileId;
     /// <summary>Path searches allowed per tick; the rest wait their turn in <see cref="PathQueue"/>.</summary>
     internal int PathBudget;
+    /// <summary>Path search budget per tick, in tiles expanded (always serves at least one request).</summary>
+    public const int PathTilesPerTick = 20000;
     /// <summary>Units waiting for a path search, first come first served.</summary>
     internal readonly Queue<int> PathQueue = new();
     /// <summary>Units waiting for a path search (diagnostics).</summary>
@@ -79,6 +81,7 @@ public sealed partial class World
         Rng = new DeterministicRng(seed);
         Terrain = new Terrain(Map);
         Pathfinder = new Pathfinder(Terrain);
+        Units.InitializeGoals(map.TilesX * map.TilesY);
         Grid = new SpatialGrid(map.Width, map.Height);
         Vision = new VisionSystem(map.TilesX, map.TilesY) { RevealAll = Options.RevealMap };
         Mission = mission;
@@ -197,7 +200,7 @@ public sealed partial class World
         foreach (var (command, _) in ordered)
             ApplyCommand(command);
 
-        PathBudget = 40;
+        PathBudget = PathTilesPerTick;
         FactorySystem.Tick(this);
         OrderSystem.Tick(this);
         EconomySystem.Tick(this);
@@ -597,6 +600,7 @@ public sealed partial class World
             h.Add(Units.Target0[id]);
             h.Add(Units.Target1[id]);
             h.Add((int)Units.Fire[id]);
+            h.Add(Units.ReservedGoal[id]);
             h.Add(Units.Orders[id].Count);
             foreach (Order o in Units.Orders[id])
             {

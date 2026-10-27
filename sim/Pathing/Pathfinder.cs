@@ -53,8 +53,18 @@ public sealed class Pathfinder
         int sx = Clamp(MapData.TileOf(from.X), _terrain.TilesX), sy = Clamp(MapData.TileOf(from.Y), _terrain.TilesY);
         int gx = Clamp(MapData.TileOf(to.X), _terrain.TilesX), gy = Clamp(MapData.TileOf(to.Y), _terrain.TilesY);
         int start = _terrain.Index(sx, sy);
+        // A goal in a region the mover can't reach (another island, across water a vehicle can't
+        // ford): aim for the reachable tile nearest it instead of searching the whole region.
+        int startZone = _terrain.ZoneOf(moveClass, sx, sy);
+        if (startZone >= 0 && moveClass != MoveClass.Air && _terrain.ZoneOf(moveClass, gx, gy) != startZone
+            && NearestInZone(moveClass, startZone, gx, gy) is (int rx, int ry))
+        {
+            gx = rx; gy = ry;
+            to = TileCentre(_terrain.Index(gx, gy));
+        }
         int goal = _terrain.Index(gx, gy);
 
+        LastExpansions = 0;
         if (start == goal)
         {
             result.Add(to);
@@ -113,6 +123,7 @@ public sealed class Pathfinder
             }
         }
 
+        LastExpansions = expansions;
         int end = found ? goal : best;
         if (end == start)
         {
@@ -138,11 +149,41 @@ public sealed class Pathfinder
         return result;
     }
 
-    /// <summary>Closest tile to <paramref name="p"/> the mover can stand on, searching outwards in rings.</summary>
-    public FixVec2 NearestPassable(MoveClass moveClass, FixVec2 p, int maxRadius = 12)
+    /// <summary>Tiles expanded by the last <see cref="Find"/>, for budgeting searches per tick.</summary>
+    public int LastExpansions { get; private set; }
+
+    /// <summary>Nearest tile to (gx, gy) in the given zone, searching outward in square rings; ties go to the lowest index.</summary>
+    private (int, int)? NearestInZone(MoveClass moveClass, int zone, int gx, int gy)
+    {
+        int maxR = Math2.Max(_terrain.TilesX, _terrain.TilesY);
+        for (int r = 1; r <= maxR; r++)
+        {
+            int bestIndex = -1, bestDist = int.MaxValue;
+            for (int y = gy - r; y <= gy + r; y++)
+            for (int x = gx - r; x <= gx + r; x++)
+            {
+                if (Math2.Abs(x - gx) != r && Math2.Abs(y - gy) != r) continue;
+                if (_terrain.ZoneOf(moveClass, x, y) != zone) continue;
+                int dist = (x - gx) * (x - gx) + (y - gy) * (y - gy);
+                int idx = _terrain.Index(x, y);
+                if (dist < bestDist || (dist == bestDist && idx < bestIndex)) { bestDist = dist; bestIndex = idx; }
+            }
+            if (bestIndex >= 0) return (bestIndex % _terrain.TilesX, bestIndex / _terrain.TilesX);
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Closest tile to <paramref name="p"/> the mover can stand on, searching outwards in rings.
+    /// An optional tile predicate can exclude destinations claimed by another unit.
+    /// </summary>
+    public FixVec2 NearestPassable(MoveClass moveClass, FixVec2 p, int maxRadius = 12,
+        Func<int, bool>? tileFree = null)
     {
         int px = Clamp(MapData.TileOf(p.X), _terrain.TilesX), py = Clamp(MapData.TileOf(p.Y), _terrain.TilesY);
-        if (_terrain.Passable(moveClass, px, py)) return p;
+        bool Free(int x, int y) => _terrain.Passable(moveClass, x, y)
+                                  && (tileFree is null || tileFree(_terrain.Index(x, y)));
+        if (Free(px, py)) return p;
         for (int r = 1; r <= maxRadius; r++)
         {
             int bestIndex = -1, bestDist = int.MaxValue;
@@ -150,7 +191,7 @@ public sealed class Pathfinder
             for (int x = px - r; x <= px + r; x++)
             {
                 if (Math2.Abs(x - px) != r && Math2.Abs(y - py) != r) continue;
-                if (!_terrain.Passable(moveClass, x, y)) continue;
+                if (!Free(x, y)) continue;
                 int dist = (x - px) * (x - px) + (y - py) * (y - py);
                 int idx = _terrain.Index(x, y);
                 if (dist < bestDist || (dist == bestDist && idx < bestIndex)) { bestDist = dist; bestIndex = idx; }

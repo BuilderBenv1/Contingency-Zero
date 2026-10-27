@@ -49,6 +49,59 @@ public sealed class Terrain
         for (int c = 0; c < classes; c++) _passable[c] = new bool[n];
 
         RefreshPassability(0, 0, map.TilesX - 1, map.TilesY - 1);
+        _zones = new int[classes][];
+    }
+
+    // ---- Connectivity zones ------------------------------------------------------------------
+    // For each move class, every terrain-passable tile gets the id of the connected region it
+    // belongs to (8-way, no corner cutting, same rules as the pathfinder; structures ignored).
+    // Two tiles in different zones can never reach each other, so a search between them can be
+    // skipped. Built lazily by a flood fill in tile order (deterministic) and dropped whenever
+    // passability changes.
+    private readonly int[]?[] _zones;
+
+    /// <summary>Connected-region id of a tile for a mover, or -1 if the tile isn't passable for it.</summary>
+    public int ZoneOf(MoveClass c, int tx, int ty)
+    {
+        if (!InBounds(tx, ty)) return -1;
+        int[] z = _zones[(int)c] ??= BuildZones(c);
+        return z[Index(tx, ty)];
+    }
+
+    private int[] BuildZones(MoveClass c)
+    {
+        int n = TilesX * TilesY;
+        var zone = new int[n];
+        Array.Fill(zone, -1);
+        bool[] pass = _passable[(int)c];
+        var stack = new int[n];
+        int next = 0;
+        for (int seed = 0; seed < n; seed++)
+        {
+            if (!pass[seed] || zone[seed] != -1) continue;
+            int top = 0;
+            stack[top++] = seed;
+            zone[seed] = next;
+            while (top > 0)
+            {
+                int i = stack[--top];
+                int x = i % TilesX, y = i / TilesX;
+                for (int dy = -1; dy <= 1; dy++)
+                for (int dx = -1; dx <= 1; dx++)
+                {
+                    if (dx == 0 && dy == 0) continue;
+                    int nx = x + dx, ny = y + dy;
+                    if (!InBounds(nx, ny)) continue;
+                    int j = Index(nx, ny);
+                    if (zone[j] != -1 || !pass[j]) continue;
+                    if (dx != 0 && dy != 0 && (!pass[Index(x + dx, y)] || !pass[Index(x, y + dy)])) continue;
+                    zone[j] = next;
+                    stack[top++] = j;
+                }
+            }
+            next++;
+        }
+        return zone;
     }
 
     /// <summary>Recomputes static passability for the tiles in a rectangle (inclusive). Returns true if any tile changed for a land mover.</summary>
@@ -79,6 +132,8 @@ public sealed class Terrain
             _passable[(int)MoveClass.Ship][i] = depth >= MinShipDepth;
             _passable[(int)MoveClass.Air][i] = true;
         }
+        // Craters can join or split regions: rebuild connectivity on next use.
+        if (_zones is not null) Array.Clear(_zones);
         return changed;
     }
 
