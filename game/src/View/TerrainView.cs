@@ -729,7 +729,8 @@ void fragment() {
         if (theme == "arctic")
         {
             Color rock = PaletteFor(theme).Rock;
-            mat.SetShaderParameter("cliff_band", new Vector3(rock.R * 0.85f, rock.G * 0.85f, rock.B * 0.85f));
+            // Exposed rock stays distinctly darker than the surrounding snow, even in full sun.
+            mat.SetShaderParameter("cliff_band", new Vector3(rock.R * 0.58f, rock.G * 0.58f, rock.B * 0.58f));
             mat.SetShaderParameter("cliff_snow", 1f);
         }
         if (GroundTune.TryGetValue(theme, out Vector3 tune))
