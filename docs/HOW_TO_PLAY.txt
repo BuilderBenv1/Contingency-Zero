@@ -31,11 +31,15 @@ Controls
 --------
 Camera     Arrow keys or screen edges scroll, mouse wheel zooms,
            middle-drag pans, Q / E turn the view, click the minimap to jump.
+Mouse      Classic Total Annihilation mouse (default): left click selects; with units
+           selected, left click gives the order (move, attack, guard, help build,
+           reclaim) and right click deselects. Settings can switch to the modern
+           scheme, where right click gives orders.
 Select     Left click, or drag a box. Shift adds. Double-click selects all of
            that type on screen. Ctrl+A all combat units, Ctrl+B all builders,
            Home your Commander. Ctrl+1..9 saves a group, 1..9 recalls it.
-Orders     Right click: move / attack / help build / reclaim / set rally point.
-           Shift+right click queues orders. Ctrl+right click attack-moves.
+Orders     Click (see Mouse): move / attack / help build / reclaim / set rally point.
+           Shift+click queues orders. Ctrl+click attack-moves.
            A attack, S stop, M move, P patrol, G guard, R reclaim,
            D Breach Cannon (Commander), F fire state, Tab health bars.
 Building   Pick a structure, click to place. Drag to place a row,

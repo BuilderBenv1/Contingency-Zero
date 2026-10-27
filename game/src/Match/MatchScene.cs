@@ -114,7 +114,7 @@ public partial class MatchScene : Node3D
                     focus = Units.PositionOf(id, 1);
         }
         Rig.Focus = focus;
-        Rig.SetZoom(kind == MatchKind.MenuBackground ? 170 : 115);
+        Rig.SetZoom(kind == MatchKind.MenuBackground ? 170 : 95);
         Rig.InputEnabled = kind != MatchKind.MenuBackground;
 
         Overlay.Init(world, Terrain, Units, Selection, Rig.Camera, session.LocalPlayer, _viewerTeam);

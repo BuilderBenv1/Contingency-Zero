@@ -1,3 +1,11 @@
+## Contingency Zero 1.4.1
+
+- **Classic Total Annihilation mouse** (now the default): left click to select, left click again to give orders, right click to deselect. The modern right-click-to-order scheme is still in Settings.
+- **Edge scrolling up and down works in a window:** moving the mouse to the top or bottom of the screen now scrolls even when the title bar or taskbar sits in the way.
+- **Steady resource bars:** the metal and energy readouts no longer shift sideways when warnings flash.
+- **Bigger units:** units are drawn larger and the camera starts closer, so armies read better against the map.
+
+
 ## Contingency Zero 1.4
 
 **New in 1.4**

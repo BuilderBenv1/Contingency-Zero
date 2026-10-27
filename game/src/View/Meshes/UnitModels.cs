@@ -140,13 +140,17 @@ public static class UnitModels
     /// Light bots are narrow compared with vehicles of the same collision radius, so they are drawn
     /// a little larger than their radius to keep their silhouettes readable from the RTS camera.
     /// </summary>
-    private static float VisualScale(string role) => role switch
+    private static float VisualScale(string role) => MobileScale * role switch
     {
         "scout_bot" => 1.25f,
         "assault_bot" or "aa_bot" => 1.15f,
         "builder_bot" or "mortar_bot" => 1.1f,
         _ => 1f,
     };
+
+    /// <summary>Mobile units are drawn this much larger than their collision radius so they read at
+    /// RTS zoom next to buildings and the map (visual only; the sim's sizes are unchanged).</summary>
+    private const float MobileScale = 1.3f;
 
     /// <summary>True if (role) has a dedicated model; unknown roles fall back to a generic block.</summary>
     internal static bool HasRole(string role) => Roles.ContainsKey(role);

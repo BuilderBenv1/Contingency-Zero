@@ -58,7 +58,7 @@ public partial class SelectionPanel : VBoxContainer
         Clear();
         if (ids.Count == 0)
         {
-            var hint = UiTheme.Label("Left click or drag to select.  Right click to order.\nA attack-move   S stop   R reclaim   G guard   D Breach Cannon   F fire state\nCtrl+1..9 make a group, 1..9 recall it.  Home: find your Commander.  Q/E turn the view.", 14, UiTheme.Dim);
+            var hint = UiTheme.Label((App.Settings.Current.ClassicMouse ? "Left click or drag to select, left click again to order.  Right click deselects." : "Left click or drag to select.  Right click to order.") + "\nA attack-move   S stop   R reclaim   G guard   D Breach Cannon   F fire state\nCtrl+1..9 make a group, 1..9 recall it.  Home: find your Commander.  Q/E turn the view.", 14, UiTheme.Dim);
             hint.AutowrapMode = TextServer.AutowrapMode.WordSmart;
             AddChild(hint);
             return;

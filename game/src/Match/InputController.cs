@@ -361,6 +361,16 @@ public partial class InputController : Node
         _lastClickMs = now;
         _lastClickUnit = hit;
 
+        // Classic TA mouse: with units selected, a left click on anything but one of your own
+        // units is an order (move, attack, guard, assist, reclaim), exactly as a right click is
+        // in the modern scheme. Clicking one of your own units still selects it.
+        if (App.Settings.Current.ClassicMouse && MySelected().Count > 0 && Me >= 0
+            && (hit < 0 || World.Units.Owner[hit] != Me))
+        {
+            OnRight(mb);
+            return;
+        }
+
         if (hit < 0)
         {
             if (!shift) _selection.Clear();
@@ -412,6 +422,12 @@ public partial class InputController : Node
         if (Mode != ClickMode.Select)
         {
             SetMode(ClickMode.Select);
+            return;
+        }
+        // Classic TA mouse: a right click (a real one, not a left click passed on as an order) deselects.
+        if (App.Settings.Current.ClassicMouse && mb.ButtonIndex == MouseButton.Right)
+        {
+            _selection.Clear();
             return;
         }
         var mine = MySelected();

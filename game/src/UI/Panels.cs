@@ -54,6 +54,7 @@ public static class SettingsPanel
         Check("Fullscreen", s.Fullscreen, v => s.Fullscreen = v);
         Check("Scroll at screen edges", s.EdgeScroll, v => s.EdgeScroll = v);
         Check("Always show health bars", s.AlwaysShowHealthBars, v => s.AlwaysShowHealthBars = v);
+        Check("Classic TA mouse: left click orders, right click deselects", s.ClassicMouse, v => s.ClassicMouse = v);
         Check("Old-school look (from the next match)", s.RetroLook, v => s.RetroLook = v);
         var hints = Check("Always show controller prompts", s.GamepadHints, v => s.GamepadHints = v);
 

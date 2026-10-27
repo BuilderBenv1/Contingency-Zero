@@ -22,6 +22,9 @@ public sealed class Settings
     public bool GamepadHints { get; set; } = false;
     /// <summary>The old-school look: chunky pixels, a fixed palette and pixel-textured units and ground.</summary>
     public bool RetroLook { get; set; } = true;
+    /// <summary>Total Annihilation mouse: left click gives orders to the selection, right click deselects.
+    /// Off: modern RTS mouse (right click orders).</summary>
+    public bool ClassicMouse { get; set; } = true;
     public string PlayerName { get; set; } = "Commander";
     public string LastMap { get; set; } = "proving_grounds";
     public string LastFaction { get; set; } = "lattice";

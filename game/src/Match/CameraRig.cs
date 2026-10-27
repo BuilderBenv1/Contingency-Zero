@@ -1,3 +1,4 @@
+using System;
 using ContingencyZero.Game.App;
 using Godot;
 
@@ -102,15 +103,22 @@ public partial class CameraRig : Node3D
 
             if (Settings.Current.EdgeScroll && DisplayServer.WindowIsFocused())
             {
-                Vector2 m = GetViewport().GetMousePosition();
-                Vector2 s = GetViewport().GetVisibleRect().Size;
-                const float edge = 6;
-                if (m.X >= 0 && m.Y >= 0 && m.X <= s.X && m.Y <= s.Y)
+                // Screen coordinates, not the viewport's: in a maximised window the title bar and
+                // the taskbar sit between the game and the screen's top and bottom edges, so the
+                // mouse can't reach the window's edge there. Scroll when it reaches the window's
+                // edge or the usable screen's edge, whichever comes first.
+                Vector2I g = DisplayServer.MouseGetPosition();
+                Vector2I wp = DisplayServer.WindowGetPosition(), ws = DisplayServer.WindowGetSize();
+                Rect2I u = DisplayServer.ScreenGetUsableRect(DisplayServer.WindowGetCurrentScreen());
+                const int edge = 6;
+                bool inX = g.X >= wp.X - edge && g.X <= wp.X + ws.X + edge;
+                bool inY = g.Y >= Math.Min(wp.Y, u.Position.Y) - edge && g.Y <= Math.Max(wp.Y + ws.Y, u.End.Y) + edge;
+                if (inX && inY)
                 {
-                    if (m.X < edge) move -= GroundRight;
-                    if (m.X > s.X - edge) move += GroundRight;
-                    if (m.Y < edge) move += GroundForward;
-                    if (m.Y > s.Y - edge) move -= GroundForward;
+                    if (g.X < Math.Max(wp.X, u.Position.X) + edge) move -= GroundRight;
+                    if (g.X > Math.Min(wp.X + ws.X, u.End.X) - edge - 1) move += GroundRight;
+                    if (g.Y < Math.Max(wp.Y, u.Position.Y) + edge) move += GroundForward;
+                    if (g.Y > Math.Min(wp.Y + ws.Y, u.End.Y) - edge - 1) move -= GroundForward;
                 }
             }
             if (move != Vector3.Zero)

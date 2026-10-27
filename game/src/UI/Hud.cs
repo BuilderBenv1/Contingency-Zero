@@ -390,16 +390,20 @@ public partial class ResourceMeter : HBoxContainer
         var flowCol = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
         flowCol.AddThemeConstantOverride("separation", 0);
         _flow = UiTheme.Label("", 14, UiTheme.Dim);
-        _flow.CustomMinimumSize = new Vector2(150, 0);
+        // Fixed widths and clipped text: changing numbers and warnings never nudge the bar sideways.
+        _flow.CustomMinimumSize = new Vector2(230, 0);
+        _flow.ClipText = true;
         flowCol.AddChild(_flow);
         _forecast = UiTheme.Label("", 12, UiTheme.Dim);
-        _forecast.CustomMinimumSize = new Vector2(150, 0);
+        _forecast.CustomMinimumSize = new Vector2(230, 0);
+        _forecast.ClipText = true;
         flowCol.AddChild(_forecast);
         AddChild(flowCol);
 
         _stall = UiTheme.Label("STALL", 13, UiTheme.Bad);
         _stall.VerticalAlignment = VerticalAlignment.Center;
-        _stall.Visible = false;
+        _stall.CustomMinimumSize = new Vector2(48, 0);
+        _stall.Modulate = new Color(1, 1, 1, 0); // always takes its space; blinks by fading, not by appearing
         AddChild(_stall);
     }
 
@@ -433,7 +437,7 @@ public partial class ResourceMeter : HBoxContainer
         _bar.Value = s / cap;
         _flow.Text = $"+{inc:0.#}  -{spend:0.#}";
         _flow.AddThemeColorOverride("font_color", inc >= spend ? UiTheme.Good : UiTheme.Bad);
-        _stall.Visible = stalling && (Time.GetTicksMsec() / 400) % 2 == 0;
+        _stall.Modulate = new Color(1, 1, 1, stalling && (Time.GetTicksMsec() / 400) % 2 == 0 ? 1 : 0);
 
         float aInc = Average(_income), aSpent = Average(_spent), aWaste = Average(_wasted), aRatio = Average(_ratio), aConv = Average(_converter);
         var (text, colour) = Forecast(s, cap, aInc, aSpent, aWaste, aRatio, aConv, stalling);
