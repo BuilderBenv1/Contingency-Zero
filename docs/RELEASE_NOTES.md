@@ -1,3 +1,10 @@
+## Contingency Zero 1.4.2
+
+- **New sound effects:** every weapon, explosion, impact and construction sound has been redone from real recordings, layered for weight: cannons crack and boom, artillery thumps and echoes, explosions roll and rain debris, and reactor blasts shake the ground. Interface clicks and alerts are crisper and more mechanical.
+- **Battlefield ambience:** a quiet bed of wind, gales and blowing snow, or lava crackle and boil, depending on the map.
+- Prefer the old sounds? Settings has "Synthesised sound effects" to switch back.
+
+
 ## Contingency Zero 1.4.1
 
 - **Classic Total Annihilation mouse** (now the default): left click to select, left click again to give orders, right click to deselect. The modern right-click-to-order scheme is still in Settings.

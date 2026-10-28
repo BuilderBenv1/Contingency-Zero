@@ -156,7 +156,11 @@ public partial class MatchScene : Node3D
 
         Session.Ticked += OnTicked;
         Terrain.UpdateFog(world.Vision, _viewerTeam);
-        if (kind != MatchKind.MenuBackground) MusicHost.Play(MusicPlayer.Track.Battle);
+        if (kind != MatchKind.MenuBackground)
+        {
+            MusicHost.Play(MusicPlayer.Track.Battle);
+            if (Ambience.Make(world.Map.Theme) is { } ambience) AddChild(ambience);
+        }
     }
 
     /// <summary>A dark edge around the battlefield view (under the HUD), for a grittier picture.</summary>

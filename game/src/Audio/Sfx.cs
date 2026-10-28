@@ -7,8 +7,10 @@ using Godot;
 namespace ContingencyZero.Game.Audio;
 
 /// <summary>
-/// Sound effects. There are no audio files: <see cref="Init"/> synthesises every sound on a background
-/// thread (see <see cref="SfxSynth"/>), and playback goes through fixed pools of
+/// Sound effects. Most are recorded sounds designed from CC0 libraries (res://audio/sfx, built by
+/// tools/audio_build.py); <see cref="Init"/> also synthesises every sound on a background thread (see
+/// <see cref="SfxSynth"/>), used for kinds with no recording and when the "synthesised sounds" setting
+/// is on. Playback goes through fixed pools of
 /// <see cref="AudioStreamPlayer"/>s: 8 voices for interface sounds (<see cref="Play"/>) and 32 for the
 /// battlefield (<see cref="PlayAt"/>), so battle noise can never cut off a click or an alert.
 /// </summary>
@@ -45,7 +47,8 @@ public static class Sfx
     // PCM per kind and variant, published once by the synthesis thread.
     private static readonly byte[][]?[] Rendered = new byte[KindCount][][];
     // Streams and their lengths, created on the main thread the first time a kind is played.
-    private static readonly AudioStreamWav[]?[] Streams = new AudioStreamWav[KindCount][];
+    private static readonly AudioStream[]?[] Streams = new AudioStream[KindCount][];
+    private static readonly float[] LiftDb = new float[KindCount];
     private static readonly double[]?[] LengthsMs = new double[KindCount][];
 
     // Rate limiter: a ring of the last few start times per kind.
@@ -175,11 +178,11 @@ public static class Sfx
     {
         int k = (int)kind;
         if ((uint)k >= (uint)KindCount) return;
-        AudioStreamWav[]? streams = Streams[k] ?? Promote(k);
+        AudioStream[]? streams = Streams[k] ?? Promote(k);
         if (streams is null) return; // still synthesising
 
         SfxTraits traits = Traits[k];
-        float db = traits.LevelDb + volumeDb;
+        float db = traits.LevelDb + LiftDb[k] + volumeDb;
         if (!(db > InaudibleDb)) return;
 
         double now = Stopwatch.GetTimestamp() * MsPerTick;
@@ -290,9 +293,38 @@ public static class Sfx
         }
     }
 
-    /// <summary>Wraps a kind's finished PCM in streams (main thread, once per kind).</summary>
-    private static AudioStreamWav[]? Promote(int k)
+    /// <summary>
+    /// Forgets the loaded streams so the next play of each kind picks recorded or synthesised sounds
+    /// afresh (after the setting changes).
+    /// </summary>
+    public static void ReloadSoundSet()
     {
+        for (int k = 0; k < KindCount; k++) { Streams[k] = null; LengthsMs[k] = null; LiftDb[k] = 0f; }
+    }
+
+    /// <summary>The kind's recorded variants, or null if it has none or synthesised sounds are chosen.</summary>
+    private static AudioStream[]? LoadRecorded(int k)
+    {
+        if (App.Settings.Current.SynthSounds) return null;
+        string name = ((SfxKind)k).ToString();
+        if (!RecordedSfx.Kinds.TryGetValue(name, out var info)) return null;
+        var streams = new AudioStream[info.Variants];
+        var lengths = new double[info.Variants];
+        for (int v = 0; v < info.Variants; v++)
+        {
+            if (ResourceLoader.Load<AudioStream>($"res://audio/sfx/{name}_{v + 1}.ogg") is not { } stream) return null;
+            streams[v] = stream;
+            lengths[v] = stream.GetLength() * 1000.0;
+        }
+        LengthsMs[k] = lengths;
+        LiftDb[k] = info.LiftDb;
+        return Streams[k] = streams;
+    }
+
+    /// <summary>Loads a kind's recorded sounds, else wraps its finished PCM in streams (main thread, once per kind).</summary>
+    private static AudioStream[]? Promote(int k)
+    {
+        if (LoadRecorded(k) is { } recorded) return recorded;
         byte[][]? pcm = Volatile.Read(ref Rendered[k]);
         if (pcm is null)
         {
@@ -309,8 +341,8 @@ public static class Sfx
             lengths[v] = pcm[v].Length / 2 * 1000.0 / SfxSynth.SampleRate;
         }
         LengthsMs[k] = lengths;
-        Streams[k] = streams;
-        Rendered[k] = null; // the stream holds its own copy
+        LiftDb[k] = 0f;
+        Streams[k] = streams; // Rendered is kept, so the sound set can be switched back
         return streams;
     }
 
