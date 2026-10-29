@@ -83,4 +83,6 @@ Arctic ground: ambientCG (CC0): Snow004, Rock026, Gravel023, Rock027.
 Sound effects and ambience: designed from CC0 recordings by Kenney
 (kenney.nl), rubberduck (opengameart.org), sfx-kit by wyzowl, and
 felix.blume and inchadney (freesound.org). Every file is listed in
-audio/CREDITS.md in the source. Music is synthesised in code.
+audio/CREDITS.md in the source.
+Music (CC0, opengameart.org): Spring Spring, cynicmusic, Emma_MA,
+Umplix, Wolfgang_, yd and nene.

@@ -2,7 +2,7 @@
 
 Every recorded sound in Contingency Zero is built by `tools/audio_build.py` from the CC0 (public domain)
 recordings below, layered and processed. CC0 needs no attribution; this list is a courtesy and a licence
-record. Music and the victory/defeat stingers are synthesised in code (`game/src/Audio/`).
+record. The music is listed at the end.
 
 | Source file | Licence | Origin |
 |---|---|---|
@@ -13,7 +13,6 @@ record. Music and the victory/defeat stingers are synthesised in code (`game/src
 | impact-sounds/impactMetal_heavy_002.ogg | CC0-1.0 | https://kenney.nl/assets/impact-sounds |
 | impact-sounds/impactMetal_heavy_003.ogg | CC0-1.0 | https://kenney.nl/assets/impact-sounds |
 | impact-sounds/impactMetal_heavy_004.ogg | CC0-1.0 | https://kenney.nl/assets/impact-sounds |
-| impact-sounds/impactMetal_light_002.ogg | CC0-1.0 | https://kenney.nl/assets/impact-sounds |
 | impact-sounds/impactMetal_medium_000.ogg | CC0-1.0 | https://kenney.nl/assets/impact-sounds |
 | impact-sounds/impactMining_000.ogg | CC0-1.0 | https://kenney.nl/assets/impact-sounds |
 | impact-sounds/impactMining_001.ogg | CC0-1.0 | https://kenney.nl/assets/impact-sounds |
@@ -36,13 +35,13 @@ record. Music and the victory/defeat stingers are synthesised in code (`game/src
 | oga-rubberduck-breaking-75/bfh1_rock_falling_05.ogg | CC0-1.0 | https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx |
 | oga-rubberduck-breaking-75/bfh1_rock_falling_09.ogg | CC0-1.0 | https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx |
 | oga-rubberduck-breaking-75/bfh1_rock_hit_01.ogg | CC0-1.0 | https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx |
+| oga-rubberduck-foley-100-v2/sfx100v2_air_02.ogg | CC0-1.0 | https://opengameart.org/content/100-cc0-sfx-2 |
 | oga-rubberduck-foley-100-v2/sfx100v2_air_03.ogg | CC0-1.0 | https://opengameart.org/content/100-cc0-sfx-2 |
 | oga-rubberduck-foley-100-v2/sfx100v2_loop_machine_02.ogg | CC0-1.0 | https://opengameart.org/content/100-cc0-sfx-2 |
 | oga-rubberduck-loops-30/noise_02.ogg | CC0-1.0 | https://opengameart.org/content/30-cc0-sfx-loops |
 | oga-rubberduck-loops-30/water_boiling.ogg | CC0-1.0 | https://opengameart.org/content/30-cc0-sfx-loops |
 | oga-rubberduck-metal-wood-100/metal_slam_01.ogg | CC0-1.0 | https://opengameart.org/content/100-cc0-metal-and-wood-sfx |
 | oga-rubberduck-scifi-50/rocket_01.ogg | CC0-1.0 | https://opengameart.org/content/50-cc0-sci-fi-sfx |
-| oga-rubberduck-scifi-50/terminal_01.ogg | CC0-1.0 | https://opengameart.org/content/50-cc0-sci-fi-sfx |
 | sci-fi-sounds/explosionCrunch_000.ogg | CC0-1.0 | https://kenney.nl/assets/sci-fi-sounds |
 | sci-fi-sounds/explosionCrunch_001.ogg | CC0-1.0 | https://kenney.nl/assets/sci-fi-sounds |
 | sci-fi-sounds/explosionCrunch_002.ogg | CC0-1.0 | https://kenney.nl/assets/sci-fi-sounds |
@@ -65,20 +64,19 @@ record. Music and the victory/defeat stingers are synthesised in code (`game/src
 | sfx-kit/booms-and-bass/bass-rumble-long.wav | CC0-1.0 | https://github.com/wyzowl/sfx-kit |
 | sfx-kit/booms-and-bass/boom-drop-strong.wav | CC0-1.0 | https://github.com/wyzowl/sfx-kit |
 | sfx-kit/booms-and-bass/boom-hit-strong.wav | CC0-1.0 | https://github.com/wyzowl/sfx-kit |
+| sfx-kit/cinematic-hits/cinematic-drum-big.wav | CC0-1.0 | https://github.com/wyzowl/sfx-kit |
+| sfx-kit/cinematic-hits/cinematic-metal-big.wav | CC0-1.0 | https://github.com/wyzowl/sfx-kit |
 | sfx-kit/cinematic-hits/cinematic-thunder-big.wav | CC0-1.0 | https://github.com/wyzowl/sfx-kit |
 | sfx-kit/cinematic-hits/cinematic-thunder-massive.wav | CC0-1.0 | https://github.com/wyzowl/sfx-kit |
-| sfx-kit/digital/digital-blip-clear.wav | CC0-1.0 | https://github.com/wyzowl/sfx-kit |
-| sfx-kit/digital/digital-blip-subtle.wav | CC0-1.0 | https://github.com/wyzowl/sfx-kit |
 | sfx-kit/digital/digital-breach.wav | CC0-1.0 | https://github.com/wyzowl/sfx-kit |
 | sfx-kit/digital/digital-denied.wav | CC0-1.0 | https://github.com/wyzowl/sfx-kit |
-| sfx-kit/digital/digital-power-up.wav | CC0-1.0 | https://github.com/wyzowl/sfx-kit |
+| sfx-kit/digital/digital-power-down.wav | CC0-1.0 | https://github.com/wyzowl/sfx-kit |
 | sfx-kit/digital/digital-radio.wav | CC0-1.0 | https://github.com/wyzowl/sfx-kit |
 | sfx-kit/impacts/impact-deep-hard.wav | CC0-1.0 | https://github.com/wyzowl/sfx-kit |
 | sfx-kit/impacts/impact-heavy-firm.wav | CC0-1.0 | https://github.com/wyzowl/sfx-kit |
 | sfx-kit/impacts/impact-heavy-hard.wav | CC0-1.0 | https://github.com/wyzowl/sfx-kit |
-| sfx-kit/interface/click-hover-soft.wav | CC0-1.0 | https://github.com/wyzowl/sfx-kit |
+| sfx-kit/interface/click-latch-soft.wav | CC0-1.0 | https://github.com/wyzowl/sfx-kit |
 | sfx-kit/interface/click-rocker-firm.wav | CC0-1.0 | https://github.com/wyzowl/sfx-kit |
-| sfx-kit/interface/click-rocker-medium.wav | CC0-1.0 | https://github.com/wyzowl/sfx-kit |
 | sfx-kit/mechanical/mechanical-latch-heavy.wav | CC0-1.0 | https://github.com/wyzowl/sfx-kit |
 | sfx-kit/mechanical/mechanical-lock-heavy.wav | CC0-1.0 | https://github.com/wyzowl/sfx-kit |
 | sfx-kit/mechanical/mechanical-shutter-heavy.wav | CC0-1.0 | https://github.com/wyzowl/sfx-kit |
@@ -92,3 +90,21 @@ record. Music and the victory/defeat stingers are synthesised in code (`game/src
 Collections: Kenney (kenney.nl), rubberduck on OpenGameArt (opengameart.org), sfx-kit by wyzowl,
 felix.blume and inchadney on Freesound, indexed by github.com/Legerdo/open-game-sfx-index and
 github.com/Muges/ambientsounds.
+
+## Music
+
+Orchestral tracks from OpenGameArt, all CC0 (public domain), loudness-matched by `tools/music_build.py`.
+
+| In game | Track | Composer | Licence | Page |
+|---|---|---|---|---|
+| menu_1 | War Theme | Spring Spring | CC0-1.0 | https://opengameart.org/content/war-theme |
+| menu_2 | Epic Endgame Cinematic | cynicmusic | CC0-1.0 | https://opengameart.org/content/epic-endgame-cinematic |
+| battle_1 | Determined Pursuit (Epic Orchestra Loop) | Emma_MA | CC0-1.0 | https://opengameart.org/content/determined-pursuit-epic-orchestra-loop |
+| battle_2 | Battle Theme A | cynicmusic | CC0-1.0 | https://opengameart.org/content/battle-theme-a |
+| battle_3 | Call to War | Umplix | CC0-1.0 | https://opengameart.org/content/call-to-war |
+| battle_4 | Battle Theme | Wolfgang_ | CC0-1.0 | https://opengameart.org/content/battle-theme-0 |
+| battle_5 | War Theme (ver 2) | Spring Spring | CC0-1.0 | https://opengameart.org/content/war-theme |
+| battle_6 | Some Militaristic Tune | Spring Spring | CC0-1.0 | https://opengameart.org/content/some-militaristic-tune |
+| battle_7 | War on Water: Chapter 3 | yd | CC0-1.0 | https://opengameart.org/content/war-on-water-tracks |
+| victory | Production Theme (Intro, Epic Orchestra) | nene | CC0-1.0 | https://opengameart.org/content/production-theme-intro-epic-orchestra |
+| defeat | Epic Endgame Cinematic (closing bars, slowed) | cynicmusic | CC0-1.0 | https://opengameart.org/content/epic-endgame-cinematic |

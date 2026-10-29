@@ -1,8 +1,10 @@
 ## Contingency Zero 1.4.2
 
 - **New sound effects:** every weapon, explosion, impact and construction sound has been redone from real recordings, layered for weight: cannons crack and boom, artillery thumps and echoes, explosions roll and rain debris, and reactor blasts shake the ground. Interface clicks and alerts are crisper and more mechanical.
+- **Orchestral music:** the synth score is replaced by orchestral war music: brass, strings, snares and timpani. Battles shuffle through seven tracks with crossfades, and victory and defeat get their own outros.
+- **Military interface sounds:** selecting and ordering units now sounds like field-radio squelch and heavy switches instead of electronic blips, and menu hover is a barely-there tick.
 - **Battlefield ambience:** a quiet bed of wind, gales and blowing snow, or lava crackle and boil, depending on the map.
-- Prefer the old sounds? Settings has "Synthesised sound effects" to switch back.
+- Prefer the old audio? Settings has "Original synthesised sound and music" to switch back.
 
 
 ## Contingency Zero 1.4.1

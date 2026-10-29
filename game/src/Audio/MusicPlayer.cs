@@ -4,8 +4,8 @@ using Godot;
 namespace ContingencyZero.Game.Audio;
 
 /// <summary>
-/// Procedural background music: moody 90s sci-fi synth, generated at startup (see
-/// <see cref="MusicSynth"/>) and played on the "Music" bus. Add one to the tree and call
+/// Background music: recorded orchestral tracks (see <see cref="MusicLibrary"/>), with the original
+/// synthesised score (<see cref="MusicSynth"/>) as the fallback, played on the "Music" bus. Add one to the tree and call
 /// <see cref="Play"/>; it keeps playing while the game is paused. Menu and Battle are seamless
 /// loops; Victory and Defeat are one-shot outros that shadow the matching result stinger and fade
 /// to silence. Tracks are synthesised in the background, and one requested before it is ready
@@ -96,7 +96,7 @@ public partial class MusicPlayer : Node
             return;
         }
 
-        AudioStreamWav? stream = MusicLibrary.TryGet(_requested);
+        AudioStream? stream = MusicLibrary.TryGet(_requested);
         if (stream is null) return;
 
         Deck incoming = a.Level <= b.Level ? a : b;

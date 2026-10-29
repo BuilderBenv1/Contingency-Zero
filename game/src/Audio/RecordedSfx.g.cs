@@ -9,8 +9,8 @@ internal static class RecordedSfx
 {
     public static readonly Dictionary<string, (int Variants, float LiftDb)> Kinds = new()
     {
-        ["Click"] = (1, 1.22f),
-        ["Hover"] = (1, 3.97f),
+        ["Click"] = (1, 3.58f),
+        ["Hover"] = (1, 1.71f),
         ["Laser"] = (3, 0.00f),
         ["Cannon"] = (3, 5.90f),
         ["Artillery"] = (3, 7.56f),
@@ -23,14 +23,16 @@ internal static class RecordedSfx
         ["ExplosionLarge"] = (3, 10.22f),
         ["ExplosionHuge"] = (2, 2.64f),
         ["BuildStart"] = (1, 0.54f),
-        ["BuildComplete"] = (1, 12.18f),
-        ["UnitReady"] = (1, 6.55f),
+        ["BuildComplete"] = (1, 11.09f),
+        ["UnitReady"] = (1, 10.52f),
         ["Nano"] = (3, 0.00f),
         ["Reclaim"] = (2, 0.00f),
-        ["Select"] = (1, 3.83f),
-        ["Acknowledge"] = (1, 9.50f),
+        ["Select"] = (1, 3.18f),
+        ["Acknowledge"] = (1, 10.50f),
         ["Error"] = (1, 0.73f),
         ["Alert"] = (1, 0.00f),
-        ["MissionMessage"] = (1, 4.01f),
+        ["MissionMessage"] = (1, 10.96f),
+        ["Victory"] = (1, 0.30f),
+        ["Defeat"] = (1, 0.00f),
     };
 }

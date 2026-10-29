@@ -56,7 +56,7 @@ public static class SettingsPanel
         Check("Always show health bars", s.AlwaysShowHealthBars, v => s.AlwaysShowHealthBars = v);
         Check("Classic TA mouse: left click orders, right click deselects", s.ClassicMouse, v => s.ClassicMouse = v);
         Check("Old-school look (from the next match)", s.RetroLook, v => s.RetroLook = v);
-        Check("Synthesised sound effects (the original set)", s.SynthSounds, v => { s.SynthSounds = v; Audio.Sfx.ReloadSoundSet(); });
+        Check("Original synthesised sound and music", s.SynthSounds, v => { s.SynthSounds = v; Audio.Sfx.ReloadSoundSet(); });
         var hints = Check("Always show controller prompts", s.GamepadHints, v => s.GamepadHints = v);
 
         // Interface size: 100% is the 1600x900 design; about 115% suits a Steam Deck's 7-inch screen.

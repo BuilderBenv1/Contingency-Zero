@@ -231,12 +231,12 @@ RDL = "k:oga-rubberduck-loops-30/"
 
 
 def click():
-    return [L("x:interface/click-rocker-medium")]
-
+    # A chunky panel switch.
+    return [mix((L("x:interface/click-rocker-firm"), 0, 0), (lp(L("x:mechanical/mechanical-switch-heavy"), 3000), 0, -8))]
 
 def hover():
-    return [L("x:interface/click-hover-soft")]
-
+    # Barely there: a soft relay tick, dulled.
+    return [lp(L("x:interface/click-latch-soft"), 2500)]
 
 def laser():
     out = []
@@ -392,17 +392,17 @@ def build_start():
 
 
 def build_complete():
-    clunk = L("x:mechanical/mechanical-switch-heavy")
+    # Heavy doors seat home: a slam, a lock and a hydraulic sigh.
     slam = L(RDM + "metal_slam_01")
-    power = seg(L("x:digital/digital-power-up"), 0.05)
-    return [mix((clunk, 0, -2), (slam, 0, -9), (power, 0.04, -4))]
-
+    lock = L("x:mechanical/mechanical-lock-heavy")
+    air = lp(hp(L(RD2 + "air_02"), 400), 5000)
+    return [outdoor(mix((slam, 0, 0), (lock, 0.08, -5), (fade(air, 0.02, 0.4), 0.15, -9)), 0.5, -16, seed=300)]
 
 def unit_ready():
+    # A factory bay opening: shutter clunk and a short hiss.
     shutter = L("x:mechanical/mechanical-shutter-heavy")
-    blip = pitch(L("x:digital/digital-blip-clear"), 0.85)
-    return [mix((shutter, 0, -2), (L(IMP + "impactMetal_light_002"), 0, -12), (blip, 0.09, -3))]
-
+    air = hp(L(RD2 + "air_03"), 500)
+    return [mix((shutter, 0, 0), (L(IMP + "impactMetal_heavy_000"), 0, -9), (air, 0.06, -8))]
 
 def nano():
     # A short buzz of the construction beam: force-field hum over a machine whine, faded at both ends.
@@ -424,29 +424,47 @@ def reclaim():
     return out
 
 
-def select():
-    return [mix((L("x:interface/click-rocker-firm"), 0, 0), (L("x:digital/digital-blip-subtle"), 0.012, -4))]
+def radio(seed, dur=0.09):
+    """A short field-radio squelch burst: band-limited static with a hard key-up click."""
+    st = bp(seg(L("x:digital/digital-radio"), 0.2 + 0.1 * seed, dur), 500, 3200)
+    return fade(st, 0.001, dur * 0.5)
 
+
+def select():
+    # Radio key-up: a switch and a burst of squelch.
+    return [mix((L("x:mechanical/mechanical-switch-light"), 0, -2), (radio(0, 0.07), 0.005, -4))]
 
 def acknowledge():
-    return [mix((L("x:mechanical/mechanical-switch-light"), 0, -2), (pitch(L("x:digital/digital-blip-subtle"), 0.9), 0.01, -3))]
-
+    # Order received: a heavier switch, a squelch, and the radio key dropping.
+    return [mix((L("x:mechanical/mechanical-switch-heavy"), 0, -1), (radio(1, 0.11), 0.01, -5),
+                (L("x:mechanical/mechanical-switch-light"), 0.13, -8))]
 
 def error():
     return [L("x:digital/digital-denied")]
 
 
 def alert():
-    return [L("x:digital/digital-breach")]
-
+    # A klaxon: the two-tone alarm, lowered and roughened.
+    return [sat(pitch(L("x:digital/digital-breach"), 0.8), 2.0)]
 
 def mission_message():
+    # Incoming transmission: squelch, static, squelch.
     static = hp(fade(seg(L("x:digital/digital-radio"), 0.1, 0.32), 0.01, 0.08), 600)
-    beep = L(RDS + "terminal_01")
-    return [mix((static, 0, -6), (beep, 0.18, -2))]
+    return [mix((L("x:mechanical/mechanical-switch-light"), 0, -3), (radio(2, 0.08), 0, -3), (static, 0.07, -8),
+                (radio(3, 0.06), 0.36, -4))]
+
+def victory():
+    # One great orchestral-sized hit to open the victory music.
+    return [outdoor(mix((L("x:cinematic-hits/cinematic-drum-big"), 0, 0), (L("x:cinematic-hits/cinematic-metal-big"), 0, -4),
+                        (seg(L("x:booms-and-bass/boom-hit-strong"), 0, 1.4), 0, -6)), 1.5, -12, seed=310)]
 
 
-# Victory and Defeat stay synthesised: they are written to sit under the matching music outros.
+def defeat():
+    # The base dying: a sinking boom and power draining away.
+    return [mix((L("x:booms-and-bass/boom-drop-strong"), 0, 0), (lp(L("x:digital/digital-power-down"), 1800), 0.1, -6),
+                (L("x:cinematic-hits/cinematic-metal-big"), 0, -8))]
+
+
 DESIGNS = {
     "Click": click, "Hover": hover,
     "Laser": laser, "Cannon": cannon, "Artillery": artillery, "Missile": missile, "Flak": flak, "Bomb": bomb,
@@ -456,11 +474,12 @@ DESIGNS = {
     "BuildStart": build_start, "BuildComplete": build_complete, "UnitReady": unit_ready, "Nano": nano,
     "Reclaim": reclaim,
     "Select": select, "Acknowledge": acknowledge, "Error": error, "Alert": alert, "MissionMessage": mission_message,
+    "Victory": victory, "Defeat": defeat,
 }
 
 # Extra loudness offset (dB) on top of matching the synth: heavier weapons and blasts a touch louder.
 TRIM = {"Cannon": 1.5, "Artillery": 1.5, "ExplosionSmall": 1.0, "ExplosionLarge": 1.5, "ExplosionHuge": 1.0,
-        "Laser": -1.0, "Nano": -2.0, "Hover": -2.0}
+        "Laser": -1.0, "Nano": -2.0, "Hover": -8.0, "Acknowledge": -3.0, "Select": -2.0}
 
 
 # ---- Ambience --------------------------------------------------------------------------------------
@@ -579,7 +598,7 @@ def write_credits():
     lines = ["# Audio credits", "",
              "Every recorded sound in Contingency Zero is built by `tools/audio_build.py` from the CC0 (public domain)",
              "recordings below, layered and processed. CC0 needs no attribution; this list is a courtesy and a licence",
-             "record. Music and the victory/defeat stingers are synthesised in code (`game/src/Audio/`).", "",
+             "record. The music is listed at the end.", "",
              "| Source file | Licence | Origin |", "|---|---|---|"]
     for rel, (lic, src) in sorted(USED.items()):
         name = rel.replace("open-game-sfx-index/audio/", "").replace("sfx-kit/sounds/", "sfx-kit/")

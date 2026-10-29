@@ -25,7 +25,7 @@ public sealed class Settings
     /// <summary>Total Annihilation mouse: left click gives orders to the selection, right click deselects.
     /// Off: modern RTS mouse (right click orders).</summary>
     public bool ClassicMouse { get; set; } = true;
-    /// <summary>Use the original synthesised sound effects instead of the recorded ones.</summary>
+    /// <summary>Use the original synthesised sound effects and music instead of the recorded ones.</summary>
     public bool SynthSounds { get; set; } = false;
     public string PlayerName { get; set; } = "Commander";
     public string LastMap { get; set; } = "proving_grounds";
