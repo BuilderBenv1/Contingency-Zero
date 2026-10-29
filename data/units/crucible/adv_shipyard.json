@@ -1,0 +1,27 @@
+{
+  "id": "crucible_adv_shipyard",
+  "name": "Graving Dock",
+  "faction": "crucible",
+  "role": "factory_adv_ship",
+  "tier": 2,
+  "metalCost": 3000,
+  "energyCost": 5500,
+  "buildTime": 22000,
+  "health": 6720,
+  "footprint": 3,
+  "buildPower": 240,
+  "needsWater": true,
+  "sightRange": 22.0,
+  "upgradesFrom": "factory_ship",
+  "buildOptions": [
+    "crucible_builder_sea",
+    "crucible_patrol_boat",
+    "crucible_destroyer",
+    "crucible_builder_adv_sea",
+    "crucible_cruiser",
+    "crucible_missile_ship",
+    "crucible_battleship"
+  ],
+  "description": "Refit of a shipyard. Adds cruisers, missile ships, battleships and the naval engineer.",
+  "reclaimMultiplier": 1.4
+}

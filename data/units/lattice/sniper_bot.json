@@ -1,0 +1,28 @@
+{
+  "id": "lattice_sniper_bot",
+  "name": "Marksman",
+  "faction": "lattice",
+  "role": "sniper_bot",
+  "tier": 2,
+  "metalCost": 300,
+  "energyCost": 3300,
+  "buildTime": 5000,
+  "health": 494,
+  "moveClass": "bot",
+  "speed": 3.67,
+  "radius": 2.0,
+  "sightRange": 42.4,
+  "weapons": [
+    {
+      "kind": "laser",
+      "range": 49.92,
+      "damage": 520,
+      "reloadSeconds": 5.0,
+      "accuracy": 0.98,
+      "targetsAir": false,
+      "targetsGround": true
+    }
+  ],
+  "description": "One slow, devastating long-range shot. Keep it behind the line.",
+  "salvageWrecks": 4
+}

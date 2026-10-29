@@ -95,6 +95,12 @@ public sealed class UnitDef
     public bool NeedsWater { get; init; }
     /// <summary>Yield multiplier for extractors over the metal spot's base yield.</summary>
     public Fix64 ExtractorMultiplier { get; init; }
+    /// <summary>
+    /// Role of the structure this one is a refit of (e.g. an advanced bot lab refits a "factory_bot").
+    /// When set, it can only be built exactly over one of its owner's finished structures of that
+    /// role, which is torn down when the frame goes up. Empty for ordinary structures.
+    /// </summary>
+    public string UpgradesFrom { get; init; } = "";
 
     public IReadOnlyList<WeaponDef> Weapons { get; init; } = new List<WeaponDef>();
 

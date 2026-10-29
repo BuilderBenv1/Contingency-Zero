@@ -1,0 +1,27 @@
+{
+  "id": "crucible_heavy_bomber",
+  "name": "Thunderhead",
+  "faction": "crucible",
+  "role": "heavy_bomber",
+  "tier": 2,
+  "metalCost": 420,
+  "energyCost": 6600,
+  "buildTime": 6000,
+  "health": 1800,
+  "moveClass": "air",
+  "speed": 5.98,
+  "radius": 3.6,
+  "sightRange": 26.0,
+  "weapons": [
+    {
+      "kind": "bomb",
+      "range": 6.79,
+      "damage": 420,
+      "reloadSeconds": 6.0,
+      "accuracy": 0.9,
+      "splash": 9,
+      "projectileSpeed": 20
+    }
+  ],
+  "description": "Carpets a wide area. Slow; needs fighter cover."
+}

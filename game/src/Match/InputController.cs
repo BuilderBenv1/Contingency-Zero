@@ -438,6 +438,14 @@ public partial class InputController : Node
         return false;
     }
 
+    /// <summary>The name of the factory a refit goes over, in the player's faction (e.g. "Bot Lab").</summary>
+    private string RefitHostName(UnitDef refit)
+    {
+        foreach (UnitDef d in World.Catalog.All)
+            if (d.Role == refit.UpgradesFrom && d.Faction == refit.Faction) return d.Name;
+        return "factorie";
+    }
+
     private List<int> MySelected() =>
         _selection.Ids.Where(id => World.Units.IsValid(id) && World.Units.Owner[id] == Me).ToList();
 
@@ -757,7 +765,8 @@ public partial class InputController : Node
         }
         if (placed == 0)
         {
-            Notice?.Invoke(def.NeedsMetalSpot ? "Extractors must go on a metal spot" : def.NeedsWater ? "This must be built in deep water" : "Can't build there");
+            Notice?.Invoke(def.UpgradesFrom.Length > 0 ? $"A refit: click one of your finished {RefitHostName(def)}s to upgrade it"
+                : def.NeedsMetalSpot ? "Extractors must go on a metal spot" : def.NeedsWater ? "This must be built in deep water" : "Can't build there");
             Sfx.Play(SfxKind.Error, -6);
         }
         else

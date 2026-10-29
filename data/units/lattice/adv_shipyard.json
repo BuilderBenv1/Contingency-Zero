@@ -1,0 +1,27 @@
+{
+  "id": "lattice_adv_shipyard",
+  "name": "Fleetyard",
+  "faction": "lattice",
+  "role": "factory_adv_ship",
+  "tier": 2,
+  "metalCost": 3000,
+  "energyCost": 5500,
+  "buildTime": 22000,
+  "health": 5320,
+  "footprint": 3,
+  "buildPower": 240,
+  "needsWater": true,
+  "sightRange": 23.32,
+  "upgradesFrom": "factory_ship",
+  "buildOptions": [
+    "lattice_builder_sea",
+    "lattice_patrol_boat",
+    "lattice_destroyer",
+    "lattice_builder_adv_sea",
+    "lattice_cruiser",
+    "lattice_missile_ship",
+    "lattice_battleship"
+  ],
+  "description": "Refit of a shipyard. Adds cruisers, missile ships, battleships and the naval engineer.",
+  "reclaimMultiplier": 1.0
+}

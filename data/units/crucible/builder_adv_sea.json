@@ -1,0 +1,32 @@
+{
+  "id": "crucible_builder_adv_sea",
+  "name": "Salvage Barge",
+  "faction": "crucible",
+  "role": "builder_adv_sea",
+  "tier": 2,
+  "metalCost": 420,
+  "energyCost": 2310,
+  "buildTime": 5000,
+  "health": 1800,
+  "moveClass": "ship",
+  "speed": 3.5,
+  "radius": 3,
+  "sightRange": 28.0,
+  "buildPower": 220,
+  "buildRange": 16,
+  "buildOptions": [
+    "crucible_deep_extractor",
+    "crucible_fusion_reactor",
+    "crucible_heavy_turret",
+    "crucible_adv_shipyard",
+    "crucible_metal_extractor",
+    "crucible_solar_collector",
+    "crucible_radar_tower",
+    "crucible_metal_maker",
+    "crucible_metal_storage",
+    "crucible_energy_storage"
+  ],
+  "description": "Naval engineer: fusion, deep extractors and coastal heavy turrets.",
+  "reclaimMultiplier": 1.4,
+  "salvageWrecks": 4
+}

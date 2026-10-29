@@ -1,0 +1,26 @@
+{
+  "id": "lattice_adv_aircraft_plant",
+  "name": "High Skyport",
+  "faction": "lattice",
+  "role": "factory_adv_air",
+  "tier": 2,
+  "metalCost": 3000,
+  "energyCost": 6050,
+  "buildTime": 22000,
+  "health": 3800,
+  "footprint": 3,
+  "buildPower": 220,
+  "sightRange": 23.32,
+  "upgradesFrom": "factory_air",
+  "buildOptions": [
+    "lattice_builder_air",
+    "lattice_fighter",
+    "lattice_bomber",
+    "lattice_gunship",
+    "lattice_builder_adv_air",
+    "lattice_interceptor",
+    "lattice_heavy_bomber"
+  ],
+  "description": "Refit of an aircraft plant. Adds interceptors, heavy bombers and the flying engineer.",
+  "reclaimMultiplier": 1.0
+}

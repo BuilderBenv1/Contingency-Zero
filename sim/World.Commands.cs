@@ -15,6 +15,8 @@ public enum PlacementResult : byte
     NeedsMetalSpot,
     NeedsWater,
     NotBuildable,
+    /// <summary>A refit (e.g. an advanced factory) must go exactly over one of your finished factories of the right kind.</summary>
+    NeedsFactory,
 }
 
 public sealed partial class World
@@ -29,6 +31,22 @@ public sealed partial class World
         UnitDef def = Catalog[typeIndex];
         (tx, ty) = Terrain.FootprintOrigin(position, def.Footprint);
         if (!def.IsStructure) return PlacementResult.NotBuildable;
+        if (def.UpgradesFrom.Length > 0) return CanPlaceRefit(typeIndex, player, position, out tx, out ty);
+        // Placing a structure on its own unfinished frame resumes that frame: snap onto it exactly,
+        // so a click a tile off can't start a second, overlapping frame.
+        {
+            int px = MapData.TileOf(position.X), py = MapData.TileOf(position.Y);
+            if (Terrain.InBounds(px, py))
+            {
+                int under = Terrain.Occupant[Terrain.Index(px, py)];
+                if (under >= 0 && Units.IsValid(under) && Units.TypeIndex[under] == typeIndex && Units.Owner[under] == player
+                    && !Units.Complete[under])
+                {
+                    tx = Units.TileX[under];
+                    ty = Units.TileY[under];
+                }
+            }
+        }
         if (tx < 0 || ty < 0 || tx + def.Footprint > Map.TilesX || ty + def.Footprint > Map.TilesY)
             return PlacementResult.OutOfBounds;
 
@@ -41,8 +59,9 @@ public sealed partial class World
             int occupant = Terrain.Occupant[Terrain.Index(x, y)];
             if (occupant == -1) continue;
             if (IsUpgradeableExtractor(occupant, player, def)) continue;
-            if (Units.TypeIndex[occupant] == typeIndex && Units.Owner[occupant] == player && !Units.Complete[occupant])
-                continue; // joining an existing nanoframe of the same thing
+            if (Units.TypeIndex[occupant] == typeIndex && Units.Owner[occupant] == player && !Units.Complete[occupant]
+                && Units.TileX[occupant] == tx && Units.TileY[occupant] == ty)
+                continue; // joining an existing nanoframe of the same thing, exactly in place
             return PlacementResult.Occupied;
         }
 
@@ -50,6 +69,37 @@ public sealed partial class World
             return PlacementResult.NeedsMetalSpot;
 
         return PlacementResult.Ok;
+    }
+
+    /// <summary>
+    /// Placement for a refit: snaps onto the owner's structure (or the refit's own frame) under
+    /// <paramref name="position"/>, and only succeeds when the whole footprint is that structure.
+    /// </summary>
+    private PlacementResult CanPlaceRefit(int typeIndex, int player, FixVec2 position, out int tx, out int ty)
+    {
+        UnitDef def = Catalog[typeIndex];
+        (tx, ty) = Terrain.FootprintOrigin(position, def.Footprint);
+        int px = MapData.TileOf(position.X), py = MapData.TileOf(position.Y);
+        if (!Terrain.InBounds(px, py)) return PlacementResult.OutOfBounds;
+        int host = Terrain.Occupant[Terrain.Index(px, py)];
+        if (!IsRefitHost(host, player, typeIndex)) return PlacementResult.NeedsFactory;
+        UnitDef hdef = Catalog[Units.TypeIndex[host]];
+        if (hdef.Footprint != def.Footprint) return PlacementResult.NeedsFactory;
+        tx = Units.TileX[host];
+        ty = Units.TileY[host];
+        for (int y = ty; y < ty + def.Footprint; y++)
+        for (int x = tx; x < tx + def.Footprint; x++)
+            if (Terrain.Occupant[Terrain.Index(x, y)] != host) return PlacementResult.NeedsFactory;
+        return PlacementResult.Ok;
+    }
+
+    /// <summary>The owner's finished structure a refit goes over, or an unfinished frame of the refit itself.</summary>
+    private bool IsRefitHost(int host, int player, int typeIndex)
+    {
+        if (!Units.IsValid(host) || Units.Owner[host] != player) return false;
+        if (Units.TypeIndex[host] == typeIndex) return !Units.Complete[host];
+        UnitDef hdef = Catalog[Units.TypeIndex[host]];
+        return Units.Complete[host] && hdef.Role == Catalog[typeIndex].UpgradesFrom;
     }
 
     public PlacementResult CanPlace(int typeIndex, int player, FixVec2 position) =>
@@ -78,12 +128,13 @@ public sealed partial class World
             && Units.TileX[existing] == tx && Units.TileY[existing] == ty)
             return existing;
 
-        // Clear the old extractor out of the way of a deep extractor.
+        // Clear the old extractor out of the way of a deep extractor, or the factory out of the way of its refit.
         for (int y = ty; y < ty + def.Footprint; y++)
         for (int x = tx; x < tx + def.Footprint; x++)
         {
             int occupant = Terrain.Occupant[Terrain.Index(x, y)];
-            if (occupant >= 0 && IsUpgradeableExtractor(occupant, player, def))
+            if (occupant >= 0 && (IsUpgradeableExtractor(occupant, player, def)
+                                  || (def.UpgradesFrom.Length > 0 && IsRefitHost(occupant, player, typeIndex))))
                 Kill(occupant, leaveWreck: false, explode: false);
         }
 

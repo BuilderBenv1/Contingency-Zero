@@ -1,0 +1,28 @@
+{
+  "id": "crucible_adv_bot_lab",
+  "name": "Great Foundry",
+  "faction": "crucible",
+  "role": "factory_adv_bot",
+  "tier": 2,
+  "metalCost": 2400,
+  "energyCost": 4400,
+  "buildTime": 18000,
+  "health": 5520,
+  "footprint": 3,
+  "buildPower": 220,
+  "sightRange": 22.0,
+  "upgradesFrom": "factory_bot",
+  "buildOptions": [
+    "crucible_rigger",
+    "crucible_scout_bot",
+    "crucible_assault_bot",
+    "crucible_aa_bot",
+    "crucible_mortar_bot",
+    "crucible_builder_adv_bot",
+    "crucible_heavy_bot",
+    "crucible_sniper_bot",
+    "crucible_amphibious"
+  ],
+  "description": "Refit of a Bot Lab. Adds tier 2 walkers and the fortification engineer.",
+  "reclaimMultiplier": 1.4
+}

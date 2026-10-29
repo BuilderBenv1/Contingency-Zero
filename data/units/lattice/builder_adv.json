@@ -17,16 +17,16 @@
   "buildOptions": [
     "lattice_deep_extractor",
     "lattice_fusion_reactor",
-    "lattice_heavy_turret",
-    "lattice_plasma_battery",
-    "lattice_advanced_assembly",
     "lattice_experimental_gantry",
+    "lattice_advanced_assembly",
     "lattice_metal_extractor",
     "lattice_solar_collector",
     "lattice_radar_tower",
-    "lattice_metal_maker"
+    "lattice_metal_maker",
+    "lattice_metal_storage",
+    "lattice_energy_storage"
   ],
-  "description": "Builds fusion, deep extractors, heavy defences and gantries.",
+  "description": "Industry engineer: fusion reactors, deep extractors and the gantry.",
   "reclaimMultiplier": 1.0,
   "salvageWrecks": 4
 }

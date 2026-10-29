@@ -92,6 +92,7 @@ public sealed class UnitCatalog
                 h.Add((int)w.Kind); h.Add(w.Range); h.Add(w.Damage); h.Add(w.ReloadTicks); h.Add(w.Splash);
             }
             foreach (int o in d.BuildOptions) h.Add(o);
+            foreach (char c in d.UpgradesFrom) h.Add((int)c);
         }
         return h.Value;
     }
@@ -182,6 +183,7 @@ public sealed class UnitCatalog
             NeedsMetalSpot = Bool(root, "needsMetalSpot"),
             NeedsWater = Bool(root, "needsWater"),
             ExtractorMultiplier = Num(root, "extractorMultiplier"),
+            UpgradesFrom = Text(root, "upgradesFrom", ""),
             Weapons = weapons,
             BuildPowerPerTick = PerTick(Num(root, "buildPower")),
             BuildRange = Num(root, "buildRange", "10"),

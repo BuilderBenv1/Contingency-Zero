@@ -1,0 +1,28 @@
+{
+  "id": "crucible_interceptor",
+  "name": "Wasp",
+  "faction": "crucible",
+  "role": "interceptor",
+  "tier": 2,
+  "metalCost": 140,
+  "energyCost": 2860,
+  "buildTime": 2600,
+  "health": 624,
+  "moveClass": "air",
+  "speed": 15.64,
+  "radius": 2.0,
+  "sightRange": 36.0,
+  "weapons": [
+    {
+      "kind": "missile",
+      "range": 32.98,
+      "damage": 70,
+      "reloadSeconds": 1.1,
+      "accuracy": 0.95,
+      "projectileSpeed": 140,
+      "targetsAir": true,
+      "targetsGround": false
+    }
+  ],
+  "description": "Fast, tough air superiority. Only shoots aircraft."
+}

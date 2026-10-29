@@ -1,0 +1,28 @@
+{
+  "id": "lattice_adv_bot_lab",
+  "name": "Synthesis Lab",
+  "faction": "lattice",
+  "role": "factory_adv_bot",
+  "tier": 2,
+  "metalCost": 2400,
+  "energyCost": 4400,
+  "buildTime": 18000,
+  "health": 4370,
+  "footprint": 3,
+  "buildPower": 220,
+  "sightRange": 23.32,
+  "upgradesFrom": "factory_bot",
+  "buildOptions": [
+    "lattice_surveyor",
+    "lattice_scout_bot",
+    "lattice_assault_bot",
+    "lattice_aa_bot",
+    "lattice_mortar_bot",
+    "lattice_builder_adv_bot",
+    "lattice_heavy_bot",
+    "lattice_sniper_bot",
+    "lattice_amphibious"
+  ],
+  "description": "Refit of a Bot Lab. Adds tier 2 walkers and the fortification engineer.",
+  "reclaimMultiplier": 1.0
+}

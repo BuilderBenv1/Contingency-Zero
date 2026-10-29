@@ -91,6 +91,9 @@ public static class UnitModels
         ["aa_bot"] = Models.AaBot,
         ["mortar_bot"] = Models.MortarBot,
         ["amphibious"] = Models.Amphibious,
+        ["builder_adv_bot"] = Models.BuilderBot,
+        ["heavy_bot"] = Models.AssaultBot,
+        ["sniper_bot"] = Models.AaBot,
         // Vehicles
         ["builder_vehicle"] = Models.BuilderVehicle,
         ["tank"] = Models.Tank,
@@ -100,16 +103,23 @@ public static class UnitModels
         ["builder_adv"] = Models.BuilderAdv,
         ["heavy_assault"] = Models.HeavyAssault,
         ["long_artillery"] = Models.LongArtillery,
+        ["missile_tank"] = Models.FlakVehicle,
         // Aircraft
         ["builder_air"] = Models.BuilderAir,
         ["fighter"] = Models.Fighter,
         ["bomber"] = Models.Bomber,
         ["gunship"] = Models.Gunship,
+        ["builder_adv_air"] = Models.BuilderAir,
+        ["interceptor"] = Models.Fighter,
+        ["heavy_bomber"] = Models.Bomber,
         // Ships
         ["builder_sea"] = Models.BuilderSea,
         ["patrol_boat"] = Models.PatrolBoat,
         ["destroyer"] = Models.Destroyer,
         ["battleship"] = Models.Battleship,
+        ["builder_adv_sea"] = Models.BuilderSea,
+        ["cruiser"] = Models.Destroyer,
+        ["missile_ship"] = Models.Destroyer,
         // Experimentals
         ["experimental"] = Models.Experimental,
         // Economy
@@ -132,7 +142,10 @@ public static class UnitModels
         ["factory_vehicle"] = Models.FactoryVehicle,
         ["factory_air"] = Models.FactoryAir,
         ["factory_ship"] = Models.FactoryShip,
-        ["factory_adv"] = Models.FactoryAdv,
+        ["factory_adv_vehicle"] = Models.FactoryAdv,
+        ["factory_adv_bot"] = Models.FactoryAdv,
+        ["factory_adv_air"] = Models.FactoryAir,
+        ["factory_adv_ship"] = Models.FactoryShip,
         ["factory_gantry"] = Models.FactoryGantry,
     };
 

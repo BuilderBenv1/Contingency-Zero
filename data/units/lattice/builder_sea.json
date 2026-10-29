@@ -28,7 +28,7 @@
     "lattice_light_turret",
     "lattice_aa_turret",
     "lattice_radar_tower",
-    "lattice_advanced_assembly"
+    "lattice_adv_shipyard"
   ],
   "description": "Naval constructor.",
   "reclaimMultiplier": 1.0,

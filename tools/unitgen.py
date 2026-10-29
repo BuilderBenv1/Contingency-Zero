@@ -65,6 +65,19 @@ NAMES = {
     "heavy_turret": ("Bastion", "Rampart"),
     "plasma_battery": ("Lance Battery", "Slag Battery"),
     "advanced_assembly": ("Advanced Assembly", "Heavy Works"),
+    "adv_bot_lab": ("Synthesis Lab", "Great Foundry"),
+    "adv_aircraft_plant": ("High Skyport", "Great Hangar"),
+    "adv_shipyard": ("Fleetyard", "Graving Dock"),
+    "builder_adv_bot": ("Warden", "Sapper"),
+    "heavy_bot": ("Paladin", "Ironclad"),
+    "sniper_bot": ("Marksman", "Rivet Gun"),
+    "missile_tank": ("Volley", "Hailstorm"),
+    "builder_adv_air": ("Overseer", "Skycrane"),
+    "heavy_bomber": ("Eclipse", "Thunderhead"),
+    "interceptor": ("Falcon", "Wasp"),
+    "builder_adv_sea": ("Shipwright", "Salvage Barge"),
+    "cruiser": ("Tidewarden", "Ironside"),
+    "missile_ship": ("Starfall", "Broadside"),
     "experimental_gantry": ("Experimental Gantry", "Colossus Gantry"),
 }
 
@@ -79,21 +92,44 @@ ID_OVERRIDES = {
 T1_STRUCTURES = ["metal_extractor", "solar_collector", "wind_turbine", "metal_storage", "energy_storage",
                  "metal_maker", "bot_lab", "vehicle_plant", "aircraft_plant", "shipyard",
                  "light_turret", "aa_turret", "radar_tower"]
-T2_STRUCTURES = ["deep_extractor", "fusion_reactor", "heavy_turret", "plasma_battery",
-                 "advanced_assembly", "experimental_gantry"]
+T2_STRUCTURES = ["deep_extractor", "fusion_reactor", "heavy_turret", "plasma_battery", "experimental_gantry"]
 
 FACTORY_OPTIONS = {
     "bot_lab": ["builder_bot", "scout_bot", "assault_bot", "aa_bot", "mortar_bot"],
     "vehicle_plant": ["builder_vehicle", "tank", "flak_vehicle", "artillery_vehicle", "salvager"],
     "aircraft_plant": ["builder_air", "fighter", "bomber", "gunship"],
-    "shipyard": ["builder_sea", "patrol_boat", "destroyer", "battleship"],
-    "advanced_assembly": ["builder_adv", "heavy_assault", "long_artillery", "amphibious"],
-    "experimental_gantry": ["experimental"],
+    "shipyard": ["builder_sea", "patrol_boat", "destroyer"],
 }
+# Advanced factories are refits of a tier 1 factory: they keep its whole list and add tier 2.
+FACTORY_OPTIONS.update({
+    "adv_bot_lab": FACTORY_OPTIONS["bot_lab"] + ["builder_adv_bot", "heavy_bot", "sniper_bot", "amphibious"],
+    "advanced_assembly": FACTORY_OPTIONS["vehicle_plant"] + ["builder_adv", "heavy_assault", "long_artillery", "missile_tank"],
+    "adv_aircraft_plant": FACTORY_OPTIONS["aircraft_plant"] + ["builder_adv_air", "interceptor", "heavy_bomber"],
+    "adv_shipyard": FACTORY_OPTIONS["shipyard"] + ["builder_adv_sea", "cruiser", "missile_ship", "battleship"],
+    "experimental_gantry": ["experimental"],
+})
 
 COMMANDER_OPTIONS = T1_STRUCTURES
-BUILDER_OPTIONS = T1_STRUCTURES + ["advanced_assembly"]
-ADV_BUILDER_OPTIONS = T2_STRUCTURES + ["metal_extractor", "solar_collector", "radar_tower", "metal_maker"]
+# Each tier 1 builder can refit only its own kind of factory (a bot builder makes the advanced bot lab).
+BUILDER_OPTIONS = {
+    "bot": T1_STRUCTURES + ["adv_bot_lab"],
+    "vehicle": T1_STRUCTURES + ["advanced_assembly"],
+    "air": T1_STRUCTURES + ["adv_aircraft_plant"],
+    "sea": T1_STRUCTURES + ["adv_shipyard"],
+}
+# Advanced builders specialise, so a full tier 2 base needs more than one branch:
+#   vehicle  - industry: fusion, deep extractors
+#   bot      - fortification: heavy turrets, plasma batteries
+#   air      - a bit of everything, at low build power
+#   sea      - industry plus coastal heavy turrets
+_BASICS = ["metal_extractor", "solar_collector", "radar_tower", "metal_maker", "metal_storage", "energy_storage"]
+ADV_BUILDER_OPTIONS = {
+    "vehicle": ["deep_extractor", "fusion_reactor", "experimental_gantry", "advanced_assembly"] + _BASICS,
+    "bot": ["heavy_turret", "plasma_battery", "light_turret", "aa_turret", "experimental_gantry", "adv_bot_lab"] + _BASICS,
+    "air": ["deep_extractor", "fusion_reactor", "heavy_turret", "plasma_battery", "experimental_gantry",
+            "adv_aircraft_plant"] + _BASICS,
+    "sea": ["deep_extractor", "fusion_reactor", "heavy_turret", "adv_shipyard"] + _BASICS,
+}
 
 
 def laser(rng, dmg, reload, acc=0.9, air=False, ground=True):
@@ -146,7 +182,7 @@ UNITS = {
     # ---- Bot Lab -----------------------------------------------------------------------------
     "builder_bot": dict(role="builder_bot", tier=1, metalCost=110, energyCost=1300, buildTime=1500,
                         health=380, moveClass="bot", speed=4.6, radius=1.6, sightRange=24,
-                        buildPower=80, buildRange=12, buildOptions=BUILDER_OPTIONS,
+                        buildPower=80, buildRange=12, buildOptions=BUILDER_OPTIONS["bot"],
                         description="Walking constructor. Climbs hills vehicles can't."),
     "scout_bot": dict(role="scout_bot", tier=1, metalCost=30, energyCost=450, buildTime=450,
                       health=110, moveClass="bot", speed=9.5, radius=1.2, sightRange=40,
@@ -168,7 +204,7 @@ UNITS = {
     # ---- Vehicle Plant -----------------------------------------------------------------------
     "builder_vehicle": dict(role="builder_vehicle", tier=1, metalCost=150, energyCost=1700, buildTime=1800,
                             health=750, moveClass="vehicle", speed=4, radius=2.2, sightRange=24,
-                            buildPower=100, buildRange=12, buildOptions=BUILDER_OPTIONS,
+                            buildPower=100, buildRange=12, buildOptions=BUILDER_OPTIONS["vehicle"],
                             description="Armoured constructor with more build power."),
     "tank": dict(role="tank", tier=1, metalCost=120, energyCost=1300, buildTime=1300,
                  health=720, moveClass="vehicle", speed=4.8, radius=2.2, sightRange=26,
@@ -190,7 +226,7 @@ UNITS = {
     # ---- Aircraft Plant ----------------------------------------------------------------------
     "builder_air": dict(role="builder_air", tier=1, metalCost=120, energyCost=2800, buildTime=2200,
                         health=230, moveClass="air", speed=11, radius=2, sightRange=28,
-                        buildPower=60, buildRange=12, buildOptions=BUILDER_OPTIONS,
+                        buildPower=60, buildRange=12, buildOptions=BUILDER_OPTIONS["air"],
                         description="Flying constructor. Builds anywhere, dies to anything."),
     "fighter": dict(role="fighter", tier=1, metalCost=90, energyCost=2600, buildTime=1500,
                     health=190, moveClass="air", speed=15, radius=1.8, sightRange=34,
@@ -208,7 +244,7 @@ UNITS = {
     # ---- Shipyard ----------------------------------------------------------------------------
     "builder_sea": dict(role="builder_sea", tier=1, metalCost=180, energyCost=1600, buildTime=1800,
                         health=950, moveClass="ship", speed=4.5, radius=3, sightRange=26,
-                        buildPower=100, buildRange=14, buildOptions=BUILDER_OPTIONS,
+                        buildPower=100, buildRange=14, buildOptions=BUILDER_OPTIONS["sea"],
                         description="Naval constructor."),
     "patrol_boat": dict(role="patrol_boat", tier=1, metalCost=110, energyCost=1100, buildTime=1300,
                         health=620, moveClass="ship", speed=7.5, radius=2.6, sightRange=30,
@@ -226,8 +262,8 @@ UNITS = {
     # ---- Advanced Assembly -------------------------------------------------------------------
     "builder_adv": dict(role="builder_adv", tier=2, metalCost=400, energyCost=5000, buildTime=6000,
                         health=950, moveClass="vehicle", speed=3.8, radius=2.6, sightRange=26,
-                        buildPower=240, buildRange=14, buildOptions=ADV_BUILDER_OPTIONS,
-                        description="Builds fusion, deep extractors, heavy defences and gantries."),
+                        buildPower=240, buildRange=14, buildOptions=ADV_BUILDER_OPTIONS["vehicle"],
+                        description="Industry engineer: fusion reactors, deep extractors and the gantry."),
     "heavy_assault": dict(role="heavy_assault", tier=2, metalCost=480, energyCost=6000, buildTime=6000,
                           health=3300, moveClass="vehicle", speed=3.4, radius=3, sightRange=28,
                           weapons=[cannon(23, 160, 1.6, splash=2.2), laser(16, 30, 0.5)],
@@ -236,10 +272,58 @@ UNITS = {
                            health=1250, moveClass="vehicle", speed=2.6, radius=3.2, sightRange=26,
                            weapons=[artillery(95, 270, 6.0, 7, acc=0.6, min_range=20)],
                            description="Shells bases from across the map. Needs radar or spotters."),
+    "missile_tank": dict(role="missile_tank", tier=2, metalCost=380, energyCost=4600, buildTime=4600,
+                         health=1300, moveClass="vehicle", speed=4.0, radius=2.8, sightRange=28,
+                         weapons=[dict(kind="missile", range=44, damage=95, reloadSeconds=2.6, accuracy=0.92,
+                                       projectileSpeed=75, targetsAir=True, targetsGround=True)],
+                         description="Rocket launcher that hits ground and air alike."),
+
+    # ---- Advanced bot lab (refit of the Bot Lab) -----------------------------------------------
+    "builder_adv_bot": dict(role="builder_adv_bot", tier=2, metalCost=360, energyCost=4500, buildTime=5500,
+                            health=820, moveClass="bot", speed=3.6, radius=2.2, sightRange=26,
+                            buildPower=200, buildRange=12, buildOptions=ADV_BUILDER_OPTIONS["bot"],
+                            description="Fortification engineer: heavy turrets and plasma batteries. Climbs hills."),
+    "heavy_bot": dict(role="heavy_bot", tier=2, metalCost=420, energyCost=5200, buildTime=5200,
+                      health=2600, moveClass="bot", speed=3.2, radius=2.8, sightRange=26,
+                      weapons=[laser(20, 55, 0.8, 0.9), cannon(20, 90, 1.8, splash=1.8)],
+                      description="Armoured walker that takes ground tanks can't climb."),
+    "sniper_bot": dict(role="sniper_bot", tier=2, metalCost=300, energyCost=6000, buildTime=5000,
+                       health=520, moveClass="bot", speed=3.4, radius=2.0, sightRange=40,
+                       weapons=[laser(48, 520, 5.0, 0.98)],
+                       description="One slow, devastating long-range shot. Keep it behind the line."),
     "amphibious": dict(role="amphibious", tier=2, metalCost=250, energyCost=3500, buildTime=3500,
                        health=1550, moveClass="amphibious", speed=4.2, radius=2.6, sightRange=26,
                        weapons=[laser(18, 36, 0.7)],
                        description="Walks under water and climbs out on the far shore."),
+    # ---- Advanced aircraft plant (refit of the aircraft plant) ----------------------------------
+    "builder_adv_air": dict(role="builder_adv_air", tier=2, metalCost=260, energyCost=6500, buildTime=4800,
+                            health=600, moveClass="air", speed=9, radius=2.4, sightRange=30,
+                            buildPower=90, buildRange=12, buildOptions=ADV_BUILDER_OPTIONS["air"],
+                            description="Flying engineer. Builds any tier 2 structure, slowly."),
+    "interceptor": dict(role="interceptor", tier=2, metalCost=140, energyCost=5200, buildTime=2600,
+                        health=520, moveClass="air", speed=17, radius=2.0, sightRange=36,
+                        weapons=[missile_aa(34, 70, 1.1, speed=140)],
+                        description="Fast, tough air superiority. Only shoots aircraft."),
+    "heavy_bomber": dict(role="heavy_bomber", tier=2, metalCost=420, energyCost=12000, buildTime=6000,
+                         health=1500, moveClass="air", speed=6.5, radius=3.6, sightRange=26,
+                         weapons=[bomb(420, 6.0, 9)],
+                         description="Carpets a wide area. Slow; needs fighter cover."),
+
+    # ---- Advanced shipyard (refit of the shipyard) --------------------------------------------
+    "builder_adv_sea": dict(role="builder_adv_sea", tier=2, metalCost=420, energyCost=4200, buildTime=5000,
+                            health=1500, moveClass="ship", speed=3.8, radius=3, sightRange=28,
+                            buildPower=220, buildRange=16, buildOptions=ADV_BUILDER_OPTIONS["sea"],
+                            description="Naval engineer: fusion, deep extractors and coastal heavy turrets."),
+    "cruiser": dict(role="cruiser", tier=2, metalCost=900, energyCost=9000, buildTime=9000,
+                    health=4200, moveClass="ship", speed=3.8, radius=4.4, sightRange=34,
+                    weapons=[cannon(40, 180, 1.6, splash=2), flak(34, 40, 0.6)],
+                    description="Escort with a heavy gun and flak. Guards the fleet from the air."),
+    "missile_ship": dict(role="missile_ship", tier=2, metalCost=1100, energyCost=12000, buildTime=11000,
+                         health=2400, moveClass="ship", speed=3.2, radius=4.4, sightRange=30,
+                         weapons=[dict(kind="missile", range=120, damage=380, reloadSeconds=6.0, accuracy=0.9,
+                                       projectileSpeed=60, targetsAir=False, targetsGround=True, splash=4)],
+                         description="Long-range cruise missiles. Strikes deep inland."),
+
     "experimental": dict(role="experimental", tier=3, metalCost=7500, energyCost=110000, buildTime=90000,
                          health=32000, moveClass="bot", speed=2.2, radius=8, sightRange=44,
                          weapons=[], deathExplosionDamage=4000, deathExplosionRadius=36, wreckFraction=0.5,
@@ -306,10 +390,24 @@ UNITS = {
                            health=4200, footprint=2, sightRange=30,
                            weapons=[artillery(220, 480, 6.5, 8, acc=0.55, min_range=40, speed=60)],
                            description="Strategic artillery. Covers a third of the map."),
-    "advanced_assembly": dict(role="factory_adv", tier=2, metalCost=2800, energyCost=9000, buildTime=20000,
-                              health=5200, footprint=3, buildPower=240, sightRange=22,
+    # Advanced factories are refits: built over your own tier 1 factory of the same kind, which
+    # goes offline while the refit is under way. They keep the tier 1 list and add tier 2.
+    "adv_bot_lab": dict(role="factory_adv_bot", tier=2, metalCost=2400, energyCost=8000, buildTime=18000,
+                        health=4600, footprint=3, buildPower=220, sightRange=22, upgradesFrom="factory_bot",
+                        buildOptions=FACTORY_OPTIONS["adv_bot_lab"],
+                        description="Refit of a Bot Lab. Adds tier 2 walkers and the fortification engineer."),
+    "advanced_assembly": dict(role="factory_adv_vehicle", tier=2, metalCost=2800, energyCost=9000, buildTime=20000,
+                              health=5200, footprint=3, buildPower=240, sightRange=22, upgradesFrom="factory_vehicle",
                               buildOptions=FACTORY_OPTIONS["advanced_assembly"],
-                              description="Builds tier 2 units and the advanced builder."),
+                              description="Refit of a Vehicle Plant. Adds tier 2 vehicles and the industry engineer."),
+    "adv_aircraft_plant": dict(role="factory_adv_air", tier=2, metalCost=3000, energyCost=11000, buildTime=22000,
+                               health=4000, footprint=3, buildPower=220, sightRange=22, upgradesFrom="factory_air",
+                               buildOptions=FACTORY_OPTIONS["adv_aircraft_plant"],
+                               description="Refit of an aircraft plant. Adds interceptors, heavy bombers and the flying engineer."),
+    "adv_shipyard": dict(role="factory_adv_ship", tier=2, metalCost=3000, energyCost=10000, buildTime=22000,
+                         health=5600, footprint=3, buildPower=240, needsWater=True, sightRange=22,
+                         upgradesFrom="factory_ship", buildOptions=FACTORY_OPTIONS["adv_shipyard"],
+                         description="Refit of a shipyard. Adds cruisers, missile ships, battleships and the naval engineer."),
     "experimental_gantry": dict(role="factory_gantry", tier=2, metalCost=6000, energyCost=30000, buildTime=40000,
                                 health=8500, footprint=4, buildPower=600, sightRange=24,
                                 buildOptions=FACTORY_OPTIONS["experimental_gantry"],

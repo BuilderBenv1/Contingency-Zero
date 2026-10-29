@@ -15,8 +15,7 @@
   "buildOptions": [
     "crucible_builder_sea",
     "crucible_patrol_boat",
-    "crucible_destroyer",
-    "crucible_battleship"
+    "crucible_destroyer"
   ],
   "description": "Builds ships. Must sit in deep water.",
   "reclaimMultiplier": 1.4

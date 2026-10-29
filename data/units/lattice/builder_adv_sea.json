@@ -1,0 +1,32 @@
+{
+  "id": "lattice_builder_adv_sea",
+  "name": "Shipwright",
+  "faction": "lattice",
+  "role": "builder_adv_sea",
+  "tier": 2,
+  "metalCost": 420,
+  "energyCost": 2310,
+  "buildTime": 5000,
+  "health": 1425,
+  "moveClass": "ship",
+  "speed": 4.1,
+  "radius": 3,
+  "sightRange": 29.68,
+  "buildPower": 220,
+  "buildRange": 16,
+  "buildOptions": [
+    "lattice_deep_extractor",
+    "lattice_fusion_reactor",
+    "lattice_heavy_turret",
+    "lattice_adv_shipyard",
+    "lattice_metal_extractor",
+    "lattice_solar_collector",
+    "lattice_radar_tower",
+    "lattice_metal_maker",
+    "lattice_metal_storage",
+    "lattice_energy_storage"
+  ],
+  "description": "Naval engineer: fusion, deep extractors and coastal heavy turrets.",
+  "reclaimMultiplier": 1.0,
+  "salvageWrecks": 4
+}

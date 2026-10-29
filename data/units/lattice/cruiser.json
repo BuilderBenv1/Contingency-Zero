@@ -1,0 +1,38 @@
+{
+  "id": "lattice_cruiser",
+  "name": "Tidewarden",
+  "faction": "lattice",
+  "role": "cruiser",
+  "tier": 2,
+  "metalCost": 900,
+  "energyCost": 4950,
+  "buildTime": 9000,
+  "health": 3990,
+  "moveClass": "ship",
+  "speed": 4.1,
+  "radius": 4.4,
+  "sightRange": 36.04,
+  "weapons": [
+    {
+      "kind": "cannon",
+      "range": 41.6,
+      "damage": 180,
+      "reloadSeconds": 1.6,
+      "accuracy": 0.85,
+      "splash": 2,
+      "projectileSpeed": 70
+    },
+    {
+      "kind": "flak",
+      "range": 35.36,
+      "damage": 40,
+      "reloadSeconds": 0.6,
+      "accuracy": 0.9,
+      "splash": 2,
+      "targetsAir": true,
+      "targetsGround": false
+    }
+  ],
+  "description": "Escort with a heavy gun and flak. Guards the fleet from the air.",
+  "salvageWrecks": 4
+}

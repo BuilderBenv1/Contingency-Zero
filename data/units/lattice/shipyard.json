@@ -15,8 +15,7 @@
   "buildOptions": [
     "lattice_builder_sea",
     "lattice_patrol_boat",
-    "lattice_destroyer",
-    "lattice_battleship"
+    "lattice_destroyer"
   ],
   "description": "Builds ships. Must sit in deep water.",
   "reclaimMultiplier": 1.0

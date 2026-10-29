@@ -1,0 +1,33 @@
+{
+  "id": "crucible_builder_adv_air",
+  "name": "Skycrane",
+  "faction": "crucible",
+  "role": "builder_adv_air",
+  "tier": 2,
+  "metalCost": 260,
+  "energyCost": 3580,
+  "buildTime": 4800,
+  "health": 720,
+  "moveClass": "air",
+  "speed": 8.28,
+  "radius": 2.4,
+  "sightRange": 30.0,
+  "buildPower": 90,
+  "buildRange": 12,
+  "buildOptions": [
+    "crucible_deep_extractor",
+    "crucible_fusion_reactor",
+    "crucible_heavy_turret",
+    "crucible_plasma_battery",
+    "crucible_experimental_gantry",
+    "crucible_adv_aircraft_plant",
+    "crucible_metal_extractor",
+    "crucible_solar_collector",
+    "crucible_radar_tower",
+    "crucible_metal_maker",
+    "crucible_metal_storage",
+    "crucible_energy_storage"
+  ],
+  "description": "Flying engineer. Builds any tier 2 structure, slowly.",
+  "reclaimMultiplier": 1.4
+}

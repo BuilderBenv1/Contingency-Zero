@@ -1,0 +1,33 @@
+{
+  "id": "lattice_builder_adv_air",
+  "name": "Overseer",
+  "faction": "lattice",
+  "role": "builder_adv_air",
+  "tier": 2,
+  "metalCost": 260,
+  "energyCost": 3580,
+  "buildTime": 4800,
+  "health": 570,
+  "moveClass": "air",
+  "speed": 9.72,
+  "radius": 2.4,
+  "sightRange": 31.8,
+  "buildPower": 90,
+  "buildRange": 12,
+  "buildOptions": [
+    "lattice_deep_extractor",
+    "lattice_fusion_reactor",
+    "lattice_heavy_turret",
+    "lattice_plasma_battery",
+    "lattice_experimental_gantry",
+    "lattice_adv_aircraft_plant",
+    "lattice_metal_extractor",
+    "lattice_solar_collector",
+    "lattice_radar_tower",
+    "lattice_metal_maker",
+    "lattice_metal_storage",
+    "lattice_energy_storage"
+  ],
+  "description": "Flying engineer. Builds any tier 2 structure, slowly.",
+  "reclaimMultiplier": 1.0
+}

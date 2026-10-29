@@ -2,7 +2,7 @@
   "campaign": "crucible",
   "order": 4,
   "title": "Iron Tide",
-  "briefing": "The Lattice holds the strait at Coastal Divide. Its two shipyards sit off the western shore behind a harbour fleet, and its boats shell anything we build at the water's edge. Both land bridges are walled, and the Lattice Commander sits behind heavy guns. Don't fight the guns. Build a Shipyard, put Destroyers and Battleships in the water, and sink both Lattice shipyards.",
+  "briefing": "The Lattice holds Saltwater Strait. Its two shipyards sit off the western shore behind a harbour fleet, and its boats shell anything we build at the water's edge. Both land bridges are walled, and the Lattice Commander sits behind heavy guns. Don't fight the guns. Build a Drydock, refit it into a Graving Dock, put Destroyers and Battleships in the water, and sink both Lattice shipyards.",
   "map": "coastal_divide",
   "players": [
     {

@@ -1,0 +1,29 @@
+{
+  "id": "crucible_missile_tank",
+  "name": "Hailstorm",
+  "faction": "crucible",
+  "role": "missile_tank",
+  "tier": 2,
+  "metalCost": 380,
+  "energyCost": 2530,
+  "buildTime": 4600,
+  "health": 1560,
+  "moveClass": "vehicle",
+  "speed": 3.68,
+  "radius": 2.8,
+  "sightRange": 28.0,
+  "weapons": [
+    {
+      "kind": "missile",
+      "range": 42.68,
+      "damage": 95,
+      "reloadSeconds": 2.6,
+      "accuracy": 0.92,
+      "projectileSpeed": 75,
+      "targetsAir": true,
+      "targetsGround": true
+    }
+  ],
+  "description": "Rocket launcher that hits ground and air alike.",
+  "salvageWrecks": 4
+}

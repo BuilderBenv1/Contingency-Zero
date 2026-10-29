@@ -28,7 +28,7 @@
     "crucible_light_turret",
     "crucible_aa_turret",
     "crucible_radar_tower",
-    "crucible_advanced_assembly"
+    "crucible_adv_shipyard"
   ],
   "description": "Naval constructor.",
   "reclaimMultiplier": 1.4,

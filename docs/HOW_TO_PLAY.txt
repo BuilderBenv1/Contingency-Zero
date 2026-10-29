@@ -27,6 +27,21 @@ the flow; if income can't keep up, all building slows down evenly (a "stall").
 Watch the two bars at the top. Wrecks, rocks and trees can be reclaimed by
 builders (R) for metal and energy.
 
+Tier 2
+------
+Each kind of builder can refit its own kind of factory into an advanced one:
+a bot builder upgrades a Bot Lab, a vehicle builder a Vehicle Plant, an air
+builder an aircraft plant, a naval builder a shipyard. Pick the advanced
+factory in the builder's menu and click your factory. The factory stops
+producing while the refit is under way; afterwards it builds its old units
+plus tier 2 ones, including an advanced builder.
+Advanced builders specialise:
+  vehicle  industry: fusion reactors, deep extractors
+  bot      fortification: heavy turrets, plasma batteries
+  air      any tier 2 structure, but slowly
+  naval    industry plus heavy turrets
+Any of them can start the experimental gantry.
+
 Controls
 --------
 Camera     Arrow keys or screen edges scroll, mouse wheel zooms,

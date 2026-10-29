@@ -17,16 +17,16 @@
   "buildOptions": [
     "crucible_deep_extractor",
     "crucible_fusion_reactor",
-    "crucible_heavy_turret",
-    "crucible_plasma_battery",
-    "crucible_advanced_assembly",
     "crucible_experimental_gantry",
+    "crucible_advanced_assembly",
     "crucible_metal_extractor",
     "crucible_solar_collector",
     "crucible_radar_tower",
-    "crucible_metal_maker"
+    "crucible_metal_maker",
+    "crucible_metal_storage",
+    "crucible_energy_storage"
   ],
-  "description": "Builds fusion, deep extractors, heavy defences and gantries.",
+  "description": "Industry engineer: fusion reactors, deep extractors and the gantry.",
   "reclaimMultiplier": 1.4,
   "salvageWrecks": 4
 }

@@ -290,6 +290,20 @@ public sealed class AiController
             }
         }
 
+        // Island maps are won at sea: a naval builder refits the shipyard as soon as another factory
+        // can cover for it, even if it is busy helping elsewhere.
+        if (_islandMode && _difficulty >= AiDifficulty.Normal && Minutes >= 8 && !energyStall
+            && RoleCount("factory_adv_ship") == 0
+            && RoleCount("factory_bot") + RoleCount("factory_vehicle") + RoleCount("factory_air") + RoleCount("factory_ship") >= 2)
+        {
+            foreach (int b in _builders)
+            {
+                UnitDef def = _w.Catalog[_w.Units.TypeIndex[b]];
+                if (RefitRole(def) != "factory_adv_ship" || _w.Units.CurrentOrder(b).Type == OrderType.Build) continue;
+                if (TryBuild(b, def, "factory_adv_ship")) break;
+            }
+        }
+
         foreach (int b in _builders)
         {
             if (_w.Units.Orders[b].Count > 0) continue;
@@ -326,6 +340,7 @@ public sealed class AiController
         // help with things that make energy, or every builder ends up pouring a trickle into
         // frames that can never finish.
         bool energyStall = Me.Energy < Me.EnergyStorage / 8 && Me.BuildRatio < Fix64.Parse("0.8");
+
         foreach (int f in _frames)
         {
             UnitDef fdef = _w.Catalog[_w.Units.TypeIndex[f]];
@@ -371,18 +386,22 @@ public sealed class AiController
         bool hasRole(string r) => Option(builder, r) >= 0;
         Fix64 metal = MetalPerSecond, energy = EnergyPerSecond;
         // Includes frames and jobs handed out earlier this think.
-        int factories = RoleCount("factory_bot") + RoleCount("factory_vehicle") + RoleCount("factory_air") + RoleCount("factory_ship");
-        bool advanced = hasRole("fusion_reactor");
+        int factories = RoleCount("factory_bot") + RoleCount("factory_vehicle") + RoleCount("factory_air") + RoleCount("factory_ship")
+                        + AdvancedFactories();
+        bool advanced = builder.Tier >= 2;
 
         if (advanced)
         {
-            // Advanced builder: fusion, deep extractors, defences, gantry.
-            if (energy < metal * 14 && RoleCount("fusion_reactor") < 4) return "fusion_reactor";
-            if (HasUpgradeableExtractor()) return "deep_extractor";
-            if (_difficulty >= AiDifficulty.Hard && RoleCount("factory_gantry") == 0 && metal > Fix64.FromInt(25)) return "factory_gantry";
-            if (RoleCount("heavy_turret") < 2 + Minutes / 6) return "heavy_turret";
-            if (_difficulty == AiDifficulty.Brutal && RoleCount("plasma_battery") < 2 && metal > Fix64.FromInt(30)) return "plasma_battery";
-            return energy < metal * 20 ? "fusion_reactor" : "heavy_turret";
+            // Advanced builders specialise (industry, fortification, ...): take the first job on
+            // the list this one can do.
+            if (hasRole("fusion_reactor") && energy < metal * 14 && RoleCount("fusion_reactor") < 4) return "fusion_reactor";
+            if (hasRole("deep_extractor") && HasUpgradeableExtractor()) return "deep_extractor";
+            if (hasRole("factory_gantry") && !_islandMode && _difficulty >= AiDifficulty.Hard && RoleCount("factory_gantry") == 0 && metal > Fix64.FromInt(25)) return "factory_gantry";
+            if (hasRole("heavy_turret") && RoleCount("heavy_turret") < 2 + Minutes / 6) return "heavy_turret";
+            if (hasRole("plasma_battery") && _difficulty == AiDifficulty.Brutal && RoleCount("plasma_battery") < 2 && metal > Fix64.FromInt(30)) return "plasma_battery";
+            if (hasRole("fusion_reactor") && (energy < metal * 20 || !hasRole("heavy_turret"))) return "fusion_reactor";
+            if (hasRole("heavy_turret")) return "heavy_turret";
+            return energy < metal * 10 ? "solar_collector" : "metal_maker";
         }
 
         // Everything costs roughly ten times as much energy as metal, so keep energy income well ahead.
@@ -394,7 +413,7 @@ public sealed class AiController
 
         // On a separated enemy island, the first factory must be able to project force across
         // water. Commanders and basic builders can all place the shipyard; FindSite handles water.
-        if (_islandMode && hasRole("factory_ship") && RoleCount("factory_ship") == 0
+        if (_islandMode && hasRole("factory_ship") && RoleCount("factory_ship") + RoleCount("factory_adv_ship") == 0
             && (_extractors >= 2 || _w.Tick > 60 * World.TicksPerSecond))
             return "factory_ship";
 
@@ -421,9 +440,9 @@ public sealed class AiController
         };
         if ((factories < wanted && !metalLow) || (metalFloating && energyFloating && factories < wanted + 2))
         {
-            if (_difficulty >= AiDifficulty.Hard && RoleCount("factory_air") == 0 && factories >= 2) return "factory_air";
-            if (RoleCount("factory_bot") == 0) return "factory_bot";
-            if (RoleCount("factory_vehicle") == 0) return "factory_vehicle";
+            if (_difficulty >= AiDifficulty.Hard && RoleCount("factory_air") + RoleCount("factory_adv_air") == 0 && factories >= 2) return "factory_air";
+            if (RoleCount("factory_bot") + RoleCount("factory_adv_bot") == 0) return "factory_bot";
+            if (RoleCount("factory_vehicle") + RoleCount("factory_adv_vehicle") == 0) return "factory_vehicle";
             return _preferredFactory == 0 ? "factory_vehicle" : "factory_bot";
         }
 
@@ -437,9 +456,17 @@ public sealed class AiController
         if (_difficulty >= AiDifficulty.Normal && RoleCount("radar_tower") == 0 && Minutes >= 2) return "radar_tower";
 
         // Tier 2 once the economy can carry it.
-        if (!isCommander && _difficulty >= AiDifficulty.Normal && RoleCount("factory_adv") == 0
-            && metal > Fix64.FromInt(_difficulty == AiDifficulty.Normal ? 18 : 12) && hasRole("factory_adv"))
-            return "factory_adv";
+        // A tier 1 builder can only refit its own kind of factory. Normal gets one advanced factory,
+        // Hard and up a second once the first is running.
+        if (!isCommander && _difficulty >= AiDifficulty.Normal && RefitRole(builder) is { } refit
+            && AdvancedFactories() < (_difficulty >= AiDifficulty.Hard && Minutes >= 14 ? 2 : 1)
+            && RoleCount(refit) == 0 && RefitHost(Option(builder, refit)) >= 0
+            // A refit takes its factory offline: keep something else producing. On an island map the
+            // navy comes first, so the shipyard is the first refit.
+            && factories >= 2
+            && (!_islandMode || refit == "factory_adv_ship" || RoleCount("factory_adv_ship") > 0)
+            && metal > Fix64.FromInt(_difficulty == AiDifficulty.Normal ? 18 : 12))
+            return refit;
 
         if (energy < metal * 10) return EnergyRole();
         if (energyFloating && RoleCount("metal_maker") < 4 + Minutes) return "metal_maker";
@@ -469,6 +496,29 @@ public sealed class AiController
         return false;
     }
 
+    /// <summary>The advanced factory this builder can refit, by role, or null.</summary>
+    private string? RefitRole(UnitDef builder)
+    {
+        foreach (int o in builder.BuildOptions)
+            if (_w.Catalog[o].UpgradesFrom.Length > 0) return _w.Catalog[o].Role;
+        return null;
+    }
+
+    private int AdvancedFactories() =>
+        RoleCount("factory_adv_bot") + RoleCount("factory_adv_vehicle") + RoleCount("factory_adv_air") + RoleCount("factory_adv_ship");
+
+    /// <summary>The first of our finished factories a refit of <paramref name="type"/> can go over, or -1.</summary>
+    private int RefitHost(int type)
+    {
+        if (type < 0) return -1;
+        string host = _w.Catalog[type].UpgradesFrom;
+        UnitStore u = _w.Units;
+        for (int id = 0; id < u.Count; id++)
+            if (u.Alive[id] && u.Owner[id] == _player && u.Complete[id] && _w.Catalog[u.TypeIndex[id]].Role == host)
+                return id;
+        return -1;
+    }
+
     private int Option(UnitDef builder, string role)
     {
         foreach (int o in builder.BuildOptions)
@@ -482,7 +532,12 @@ public sealed class AiController
         if (type < 0) return false;
         UnitDef tdef = _w.Catalog[type];
         FixVec2? site;
-        if (tdef.NeedsMetalSpot)
+        if (tdef.UpgradesFrom.Length > 0)
+        {
+            int host = RefitHost(type);
+            site = host >= 0 ? _w.Units.Position[host] : null;
+        }
+        else if (tdef.NeedsMetalSpot)
             site = role == "deep_extractor" ? OwnExtractorSite() : FreeSpotNear(_w.Units.Position[builder]);
         else
             site = FindSite(type, tdef);
@@ -620,7 +675,7 @@ public sealed class AiController
         {
             UnitStore u = _w.Units;
             UnitDef def = _w.Catalog[u.TypeIndex[f]];
-            FixVec2 rally = def.Role == "factory_ship" ? NavalRallyPoint(u.Position[f]) : RallyPoint();
+            FixVec2 rally = def.Role is "factory_ship" or "factory_adv_ship" ? NavalRallyPoint(u.Position[f]) : RallyPoint();
             if (!u.HasRally[f] || FixVec2.DistanceSquared(u.Rally[f], rally) > Fix64.FromInt(400))
                 Issue(CommandType.SetRally, f, rally);
             if (u.FactoryQueue[f].Count > 0) continue;
@@ -631,6 +686,9 @@ public sealed class AiController
             if (choice >= 0) Issue(CommandType.FactoryQueue, f, typeIndex: choice, arg: 1);
         }
     }
+
+    private int AdvancedBuilders() =>
+        RoleCount("builder_adv") + RoleCount("builder_adv_bot") + RoleCount("builder_adv_air") + RoleCount("builder_adv_sea");
 
     private int CountQueued(bool isBuilder)
     {
@@ -648,7 +706,15 @@ public sealed class AiController
 
         // Builders first, up to the cap. An island shipyard needs workers, but must not spend
         // its whole early production queue filling the ordinary land-builder quota.
-        int builderCap = _islandMode && factory.Role == "factory_ship" ? Math2.Min(2, MaxBuilders) : MaxBuilders;
+        int builderCap = _islandMode && factory.Role is "factory_ship" or "factory_adv_ship" ? Math2.Min(2, MaxBuilders) : MaxBuilders;
+        // An advanced factory's first job is its advanced builder: it unlocks this branch's tier 2 structures.
+        if (AdvancedBuilders() < (_difficulty >= AiDifficulty.Hard ? 2 : 1))
+            foreach (int o in options)
+                if (_w.Catalog[o].CanBuild && _w.Catalog[o].Tier >= 2)
+                {
+                    _roleCount[_w.Catalog[o].Role] = RoleCount(_w.Catalog[o].Role) + 1;
+                    return o;
+                }
         if (builders < builderCap)
         {
             foreach (int o in options)
@@ -656,7 +722,7 @@ public sealed class AiController
                 UnitDef d = _w.Catalog[o];
                 if (d.CanBuild && (d.Tier >= 2 || builders < builderCap))
                 {
-                    if (d.Tier >= 2 && RoleCount("builder_adv") >= 2) continue;
+                    if (d.Tier >= 2 && AdvancedBuilders() >= 2) continue;
                     builders++;
                     return o;
                 }
@@ -687,6 +753,13 @@ public sealed class AiController
                 "heavy_assault" => 6,
                 "long_artillery" => 2,
                 "amphibious" => 2,
+                "heavy_bot" => 6,
+                "sniper_bot" => 2,
+                "missile_tank" => _enemyAirSeen ? 5 : 3,
+                "interceptor" => _enemyAirSeen ? 5 : 1,
+                "heavy_bomber" => 2,
+                "cruiser" => 3,
+                "missile_ship" => 2,
                 "experimental" => 10,
                 _ => 2,
             };

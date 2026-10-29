@@ -74,6 +74,70 @@ public class EconomyTests
     }
 
     [Fact]
+    public void An_advanced_factory_is_a_refit_of_its_own_kind_of_factory()
+    {
+        World world = Flat(5000, 20000);
+        world.SpawnUnit("lattice_fusion_reactor", 0, At(30, 220));
+        world.SpawnUnit("lattice_fusion_reactor", 0, At(220, 220));
+        world.SpawnUnit("lattice_metal_storage", 0, At(220, 30)); // room for the start metal
+        int lab = world.SpawnUnit("lattice_bot_lab", 0, At(100, 100));
+        int builder = world.SpawnUnit("lattice_surveyor", 0, At(80, 130));
+        int advLab = Type("lattice_adv_bot_lab");
+
+        // Only over a finished bot lab: not on open ground, and the vehicle builder can't make it at all.
+        Assert.Equal(PlacementResult.NeedsFactory, world.CanPlace(advLab, 0, At(180, 60)));
+        Assert.Equal(PlacementResult.Ok, world.CanPlace(advLab, 0, world.Units.Position[lab] + new FixVec2(Fix64.FromInt(5), Fix64.Zero)));
+        Assert.DoesNotContain(advLab, world.Catalog[Type("lattice_builder_vehicle")].BuildOptions);
+        Assert.Contains(advLab, world.Catalog[Type("lattice_surveyor")].BuildOptions);
+
+        world.Step(new[] { Build(world, builder, "lattice_adv_bot_lab", world.Units.Position[lab]) });
+        RunUntil(world, () => !world.Units.Alive[lab], 600);
+        Assert.False(world.Units.Alive[lab], "the old lab should be torn down for the refit");
+        int frame = world.Units.CurrentOrder(builder).Target;
+        Assert.Equal(advLab, world.Units.TypeIndex[frame]);
+
+        RunUntil(world, () => world.Units.Complete[frame], 12000);
+        Assert.True(world.Units.Complete[frame], $"refit at {world.Units.BuildProgress[frame]} of {world.Catalog[advLab].BuildTime}, ratio {world.Players[0].BuildRatio}");
+        // The refit keeps the bot lab's list and adds tier 2.
+        Assert.Contains(Type("lattice_assault_bot"), world.Catalog[advLab].BuildOptions);
+        Assert.Contains(Type("lattice_heavy_bot"), world.Catalog[advLab].BuildOptions);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void An_abandoned_frame_can_be_resumed(bool byPlacingAgain)
+    {
+        World world = Flat(0, 0);
+        world.SpawnUnit("lattice_solar_collector", 0, At(30, 220));
+        int cmdr = world.SpawnUnit("lattice_commander", 0, At(40, 40));
+        FixVec2 site = At(70, 40);
+        world.Step(new[] { Build(world, cmdr, "lattice_solar_collector", site) });
+        RunUntil(world, () => world.Units.CurrentOrder(cmdr).Target >= 0 && world.Units.CurrentOrder(cmdr).Type == OrderType.Build, 600);
+        int frame = world.Units.CurrentOrder(cmdr).Target;
+        RunUntil(world, () => world.Units.BuildProgress[frame] > Fix64.FromInt(300), 3000);
+
+        // Walk away, then come back.
+        world.Step(new[] { new Command(world.Tick, 0, CommandType.Move, cmdr, At(40, 150)) });
+        RunUntil(world, () => world.Units.Position[cmdr].Y > Fix64.FromInt(140), 900);
+        Fix64 left = world.Units.BuildProgress[frame];
+        Assert.False(world.Units.Complete[frame]);
+        // Placing again a few units off-centre (a tile out) must still join the same frame.
+        world.Step(new[] { byPlacingAgain ? Build(world, cmdr, "lattice_solar_collector", world.Units.Position[frame] + new FixVec2(Fix64.FromInt(6), Fix64.FromInt(5)))
+                                          : new Command(world.Tick, 0, CommandType.Assist, cmdr, TargetId: frame) });
+        RunUntil(world, () => world.Units.Complete[frame], 20000);
+        Assert.True(world.Units.Complete[frame], $"stuck at {world.Units.BuildProgress[frame]} (was {left}), order {world.Units.CurrentOrder(cmdr).Type}");
+        Assert.Equal(1, CountAlive(world, Type("lattice_solar_collector")) - 1); // no second frame
+    }
+
+    private static int CountAlive(World w, int type)
+    {
+        int n = 0;
+        for (int id = 0; id < w.Units.Count; id++) if (w.Units.Alive[id] && w.Units.TypeIndex[id] == type) n++;
+        return n;
+    }
+
+    [Fact]
     public void Poor_player_stalls_and_every_build_slows_by_the_same_ratio()
     {
         World world = Flat(0, 0);

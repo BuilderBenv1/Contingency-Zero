@@ -1,10 +1,13 @@
-## Contingency Zero 1.4.2
+## Contingency Zero 1.5.0
 
 - **New sound effects:** every weapon, explosion, impact and construction sound has been redone from real recordings, layered for weight: cannons crack and boom, artillery thumps and echoes, explosions roll and rain debris, and reactor blasts shake the ground. Interface clicks and alerts are crisper and more mechanical.
 - **Orchestral music:** the synth score is replaced by orchestral war music: brass, strings, snares and timpani. Battles shuffle through seven tracks with crossfades, and victory and defeat get their own outros.
 - **Military interface sounds:** selecting and ordering units now sounds like field-radio squelch and heavy switches instead of electronic blips, and menu hover is a barely-there tick.
 - **Battlefield ambience:** a quiet bed of wind, gales and blowing snow, or lava crackle and boil, depending on the map.
 - Prefer the old audio? Settings has "Original synthesised sound and music" to switch back.
+- **Tier 2 by branch:** each kind of builder refits its own factory into an advanced one (bot builder → advanced bot lab, vehicle builder → advanced vehicle plant, and the same for aircraft and ships). A refit takes the factory offline while it's under way, then it builds both tiers. Advanced builders specialise: vehicles in industry, bots in fortification, aircraft in a bit of everything (slowly), ships in industry and coastal guns.
+- **Ten new tier 2 units per side:** armoured walker, long-range marksman, rocket truck (hits ground and air), interceptor, heavy carpet bomber, cruiser, cruise-missile ship, and an advanced builder for bots, aircraft and ships. Battleships now come from the advanced shipyard.
+- **Map names:** Coastal Divide is now Saltwater Strait, and Grand Continent is now Eight Crowns.
 - **Construction units help each other:** send a builder to another builder that's constructing something and it works on the same frame. With the classic mouse, left-clicking an unfinished building, a damaged unit or a busy builder with construction units selected now sends them to help, instead of selecting it.
 
 

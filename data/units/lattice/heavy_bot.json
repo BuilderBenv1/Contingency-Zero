@@ -1,0 +1,37 @@
+{
+  "id": "lattice_heavy_bot",
+  "name": "Paladin",
+  "faction": "lattice",
+  "role": "heavy_bot",
+  "tier": 2,
+  "metalCost": 420,
+  "energyCost": 2860,
+  "buildTime": 5200,
+  "health": 2470,
+  "moveClass": "bot",
+  "speed": 3.46,
+  "radius": 2.8,
+  "sightRange": 27.56,
+  "weapons": [
+    {
+      "kind": "laser",
+      "range": 20.8,
+      "damage": 55,
+      "reloadSeconds": 0.8,
+      "accuracy": 0.9,
+      "targetsAir": false,
+      "targetsGround": true
+    },
+    {
+      "kind": "cannon",
+      "range": 20.8,
+      "damage": 90,
+      "reloadSeconds": 1.8,
+      "accuracy": 0.85,
+      "splash": 1.8,
+      "projectileSpeed": 70
+    }
+  ],
+  "description": "Armoured walker that takes ground tanks can't climb.",
+  "salvageWrecks": 4
+}

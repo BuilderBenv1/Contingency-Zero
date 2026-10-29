@@ -2,7 +2,7 @@
   "id": "crucible_advanced_assembly",
   "name": "Heavy Works",
   "faction": "crucible",
-  "role": "factory_adv",
+  "role": "factory_adv_vehicle",
   "tier": 2,
   "metalCost": 2800,
   "energyCost": 4950,
@@ -11,12 +11,18 @@
   "footprint": 3,
   "buildPower": 240,
   "sightRange": 22.0,
+  "upgradesFrom": "factory_vehicle",
   "buildOptions": [
+    "crucible_builder_vehicle",
+    "crucible_anvil",
+    "crucible_flak_vehicle",
+    "crucible_artillery_vehicle",
+    "crucible_salvager",
     "crucible_builder_adv",
     "crucible_heavy_assault",
     "crucible_long_artillery",
-    "crucible_amphibious"
+    "crucible_missile_tank"
   ],
-  "description": "Builds tier 2 units and the advanced builder.",
+  "description": "Refit of a Vehicle Plant. Adds tier 2 vehicles and the industry engineer.",
   "reclaimMultiplier": 1.4
 }

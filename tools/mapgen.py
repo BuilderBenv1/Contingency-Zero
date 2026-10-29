@@ -397,7 +397,7 @@ def coastal_divide():
     h += np.where((np.abs(xx - nx / 2) < 14) & (islands > 0.68), 90, 0)
     h = symmetrize(blur(h, 1), "point")
     starts = [(18, 64), (109, 63)]
-    return finish("Coastal Divide", "temperate", n, h, water, starts, "point", rng,
+    return finish("Saltwater Strait", "temperate", n, h, water, starts, "point", rng,
                   description="Two coasts face each other across open sea. Land bridges at either end.",
                   metal_extra=12, trees=0.3, rocks=15, wrecks=2, wind=(10, 26))
 
@@ -829,7 +829,7 @@ def grand_continent():
     order = [(26, 70), (165, 121), (121, 26), (70, 165), (70, 26), (121, 165), (165, 70), (26, 121)]
     assert sorted(order) == sorted(all_s), all_s
 
-    return finish2("Grand Continent", "temperate", n, h, water, order, mode, rng,
+    return finish2("Eight Crowns", "temperate", n, h, water, order, mode, rng,
                    description="Eight kingdoms round an inland sea, walled apart by mountains. Fight through "
                                "the passes, or wade the causeways to the rich isle in the middle.",
                    base_spots=5, metal_extra=5, trees=0.33, rocks=40, wrecks=3, wind=(6, 20),

@@ -1,0 +1,26 @@
+{
+  "id": "crucible_adv_aircraft_plant",
+  "name": "Great Hangar",
+  "faction": "crucible",
+  "role": "factory_adv_air",
+  "tier": 2,
+  "metalCost": 3000,
+  "energyCost": 6050,
+  "buildTime": 22000,
+  "health": 4800,
+  "footprint": 3,
+  "buildPower": 220,
+  "sightRange": 22.0,
+  "upgradesFrom": "factory_air",
+  "buildOptions": [
+    "crucible_builder_air",
+    "crucible_fighter",
+    "crucible_bomber",
+    "crucible_gunship",
+    "crucible_builder_adv_air",
+    "crucible_interceptor",
+    "crucible_heavy_bomber"
+  ],
+  "description": "Refit of an aircraft plant. Adds interceptors, heavy bombers and the flying engineer.",
+  "reclaimMultiplier": 1.4
+}

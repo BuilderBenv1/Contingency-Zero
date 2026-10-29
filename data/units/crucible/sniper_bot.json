@@ -1,0 +1,28 @@
+{
+  "id": "crucible_sniper_bot",
+  "name": "Rivet Gun",
+  "faction": "crucible",
+  "role": "sniper_bot",
+  "tier": 2,
+  "metalCost": 300,
+  "energyCost": 3300,
+  "buildTime": 5000,
+  "health": 624,
+  "moveClass": "bot",
+  "speed": 3.13,
+  "radius": 2.0,
+  "sightRange": 40.0,
+  "weapons": [
+    {
+      "kind": "laser",
+      "range": 46.56,
+      "damage": 520,
+      "reloadSeconds": 5.0,
+      "accuracy": 0.98,
+      "targetsAir": false,
+      "targetsGround": true
+    }
+  ],
+  "description": "One slow, devastating long-range shot. Keep it behind the line.",
+  "salvageWrecks": 4
+}

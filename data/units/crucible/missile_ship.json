@@ -1,0 +1,30 @@
+{
+  "id": "crucible_missile_ship",
+  "name": "Broadside",
+  "faction": "crucible",
+  "role": "missile_ship",
+  "tier": 2,
+  "metalCost": 1100,
+  "energyCost": 6600,
+  "buildTime": 11000,
+  "health": 2880,
+  "moveClass": "ship",
+  "speed": 2.94,
+  "radius": 4.4,
+  "sightRange": 30.0,
+  "weapons": [
+    {
+      "kind": "missile",
+      "range": 116.4,
+      "damage": 380,
+      "reloadSeconds": 6.0,
+      "accuracy": 0.9,
+      "projectileSpeed": 60,
+      "targetsAir": false,
+      "targetsGround": true,
+      "splash": 4
+    }
+  ],
+  "description": "Long-range cruise missiles. Strikes deep inland.",
+  "salvageWrecks": 4
+}

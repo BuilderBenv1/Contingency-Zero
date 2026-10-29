@@ -1,0 +1,38 @@
+{
+  "id": "crucible_cruiser",
+  "name": "Ironside",
+  "faction": "crucible",
+  "role": "cruiser",
+  "tier": 2,
+  "metalCost": 900,
+  "energyCost": 4950,
+  "buildTime": 9000,
+  "health": 5040,
+  "moveClass": "ship",
+  "speed": 3.5,
+  "radius": 4.4,
+  "sightRange": 34.0,
+  "weapons": [
+    {
+      "kind": "cannon",
+      "range": 38.8,
+      "damage": 180,
+      "reloadSeconds": 1.6,
+      "accuracy": 0.85,
+      "splash": 2,
+      "projectileSpeed": 70
+    },
+    {
+      "kind": "flak",
+      "range": 32.98,
+      "damage": 40,
+      "reloadSeconds": 0.6,
+      "accuracy": 0.9,
+      "splash": 2,
+      "targetsAir": true,
+      "targetsGround": false
+    }
+  ],
+  "description": "Escort with a heavy gun and flak. Guards the fleet from the air.",
+  "salvageWrecks": 4
+}
