@@ -5,6 +5,7 @@
 - **Military interface sounds:** selecting and ordering units now sounds like field-radio squelch and heavy switches instead of electronic blips, and menu hover is a barely-there tick.
 - **Battlefield ambience:** a quiet bed of wind, gales and blowing snow, or lava crackle and boil, depending on the map.
 - Prefer the old audio? Settings has "Original synthesised sound and music" to switch back.
+- **Construction units help each other:** send a builder to another builder that's constructing something and it works on the same frame. With the classic mouse, left-clicking an unfinished building, a damaged unit or a busy builder with construction units selected now sends them to help, instead of selecting it.
 
 
 ## Contingency Zero 1.4.1

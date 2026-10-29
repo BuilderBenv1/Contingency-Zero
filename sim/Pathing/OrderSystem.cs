@@ -385,6 +385,7 @@ internal static class OrderSystem
         FixVec2 tpos = units.Position[target];
 
         bool canWork = def.CanAssist;
+        int job = canWork ? EconomySystem.AssistJob(world, target) : -1;
         bool needsWork = !units.Complete[target]
                          || (tdef.IsFactory && units.FactoryCurrent[target] >= 0)
                          || units.Health[target] < tdef.MaxHealth;
@@ -392,6 +393,22 @@ internal static class OrderSystem
         if (canWork && tdef.IsStructure && units.Complete[target] && !tdef.IsFactory && !needsWork)
         {
             units.PopOrder(id); // finished and healthy: nothing left to help with
+            return;
+        }
+
+        // Helping another builder: go to the frame it is working on.
+        if (job >= 0 && job != target && !tdef.IsFactory)
+        {
+            if (!EconomySystem.InBuildRange(world, id, def, job))
+            {
+                UnitDef jdef = world.Catalog[units.TypeIndex[job]];
+                Fix64 jhalf = jdef.IsStructure ? Fix64.FromInt(jdef.Footprint * MapData.TileSize / 2) : jdef.Radius;
+                MoveTo(world, id, def, units.Position[job], def.BuildRange + jhalf - Fix64.One);
+            }
+            else
+            {
+                units.ClearPath(id);
+            }
             return;
         }
 

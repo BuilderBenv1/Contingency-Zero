@@ -363,9 +363,11 @@ public partial class InputController : Node
 
         // Classic TA mouse: with units selected, a left click on anything but one of your own
         // units is an order (move, attack, guard, assist, reclaim), exactly as a right click is
-        // in the modern scheme. Clicking one of your own units still selects it.
+        // in the modern scheme. Clicking one of your own units still selects it, except that
+        // construction units sent to an unfinished frame, a damaged unit or a busy builder help
+        // or repair it.
         if (App.Settings.Current.ClassicMouse && MySelected().Count > 0 && Me >= 0
-            && (hit < 0 || World.Units.Owner[hit] != Me))
+            && (hit < 0 || World.Units.Owner[hit] != Me || BuildersCanHelp(hit)))
         {
             OnRight(mb);
             return;
@@ -412,6 +414,28 @@ public partial class InputController : Node
                         && !cam.IsPositionBehind(v.Pos) && screen.HasPoint(cam.UnprojectPosition(v.Pos)))
             .Select(v => v.Id);
         if (add) _selection.Add(ids); else _selection.Set(ids);
+    }
+
+    /// <summary>
+    /// True when the selection holds construction units (other than <paramref name="target"/>) and the
+    /// target is something they can work on: an unfinished frame, a damaged unit, or a builder
+    /// that is constructing something.
+    /// </summary>
+    private bool BuildersCanHelp(int target)
+    {
+        if (!World.Units.IsValid(target)) return false;
+        var mine = MySelected();
+        if (mine.Contains(target)) return false;
+        bool builders = mine.Any(id => World.Catalog[World.Units.TypeIndex[id]].CanAssist);
+        if (!builders) return false;
+        UnitDef tdef = World.Catalog[World.Units.TypeIndex[target]];
+        if (!World.Units.Complete[target] || World.Units.Health[target] < tdef.MaxHealth) return true;
+        if (tdef.CanAssist && World.Units.Orders[target].Count > 0)
+        {
+            var o = World.Units.Orders[target][0];
+            return o.Type == OrderType.Build && o.Target >= 0 && World.Units.IsValid(o.Target) && !World.Units.Complete[o.Target];
+        }
+        return false;
     }
 
     private List<int> MySelected() =>

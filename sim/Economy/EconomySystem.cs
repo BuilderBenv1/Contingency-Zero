@@ -112,15 +112,15 @@ internal static class EconomySystem
                     int target = order.Target;
                     if (!units.IsValid(target)) break;
                     UnitDef tdef = catalog[units.TypeIndex[target]];
-                    if (!InBuildRange(world, id, def, target)) break;
-                    if (!units.Complete[target])
+                    int job = AssistJob(world, target);
+                    if (job >= 0)
                     {
-                        PlanWork(world, planned, pending, metalDemand, energyDemand, owner, id, target, def.BuildPowerPerTick);
+                        if (InBuildRange(world, id, def, job))
+                            PlanWork(world, planned, pending, metalDemand, energyDemand, owner, id, job, def.BuildPowerPerTick);
                     }
-                    else if (tdef.IsFactory && units.FactoryCurrent[target] >= 0 && units.IsValid(units.FactoryCurrent[target])
-                             && !units.Complete[units.FactoryCurrent[target]])
+                    else if (!InBuildRange(world, id, def, target))
                     {
-                        PlanWork(world, planned, pending, metalDemand, energyDemand, owner, id, units.FactoryCurrent[target], def.BuildPowerPerTick);
+                        break;
                     }
                     else if (units.Health[target] < tdef.MaxHealth)
                     {
@@ -234,6 +234,34 @@ internal static class EconomySystem
             // Mobile units are counted when their factory releases them.
             if (!catalog[units.TypeIndex[frame]].CanMove) world.Players[units.Owner[frame]].UnitsBuilt++;
         }
+    }
+
+    /// <summary>
+    /// The frame a unit assisting <paramref name="target"/> should put its build power into: the target
+    /// itself while unfinished, the unit on a factory's pad, or the frame a builder is constructing
+    /// (so construction units can help each other). -1 when there is nothing to build.
+    /// </summary>
+    internal static int AssistJob(World world, int target)
+    {
+        UnitStore units = world.Units;
+        if (!units.IsValid(target)) return -1;
+        if (!units.Complete[target]) return target;
+        UnitDef tdef = world.Catalog[units.TypeIndex[target]];
+        if (tdef.IsFactory)
+        {
+            int product = units.FactoryCurrent[target];
+            return product >= 0 && units.IsValid(product) && !units.Complete[product] ? product : -1;
+        }
+        if (tdef.BuildPowerPerTick > Fix64.Zero && units.Orders[target].Count > 0)
+        {
+            Order o = units.Orders[target][0];
+            if (o.Type == OrderType.Build && o.Target >= 0 && units.IsValid(o.Target) && !units.Complete[o.Target])
+                return o.Target;
+            // Helping a helper: follow the chain one step (A assists B, who assists a frame).
+            if (o.Type is OrderType.Assist or OrderType.RepairArea && units.IsValid(o.Target) && !units.Complete[o.Target])
+                return o.Target;
+        }
+        return -1;
     }
 
     internal static bool InBuildRange(World world, int builder, UnitDef def, int target)

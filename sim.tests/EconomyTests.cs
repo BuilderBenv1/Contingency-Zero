@@ -49,6 +49,31 @@ public class EconomyTests
     }
 
     [Fact]
+    public void A_builder_assisting_another_builder_works_on_its_frame()
+    {
+        World world = Flat();
+        world.SpawnUnit("lattice_fusion_reactor", 0, At(30, 220));
+        int a = world.SpawnUnit("lattice_builder_vehicle", 0, At(60, 60));
+        int b = world.SpawnUnit("lattice_builder_vehicle", 0, At(130, 110));
+        world.Step(new[] { Build(world, a, "lattice_vehicle_plant", At(100, 60)) });
+        RunUntil(world, () => world.Units.CurrentOrder(a).Type == OrderType.Build && world.Units.CurrentOrder(a).Target >= 0, 600);
+        int frame = world.Units.CurrentOrder(a).Target;
+        Assert.Equal(OrderType.Build, world.Units.CurrentOrder(a).Type);
+        Assert.True(frame >= 0, "the first builder never started the frame");
+
+        world.Step(new[] { new Command(world.Tick, 0, CommandType.Assist, b, TargetId: a) });
+        Fix64 power = world.Catalog[Type("lattice_builder_vehicle")].BuildPowerPerTick;
+        // The helper drives over to the frame, then both builders' power goes in every tick.
+        RunUntil(world, () => EconomySystemProbe.InRange(world, b, frame), 900);
+        Assert.False(world.Units.Complete[frame], "the frame finished before the helper arrived");
+        world.Step();
+        Fix64 before = world.Units.BuildProgress[frame];
+        world.Step();
+        Fix64 gained = world.Units.BuildProgress[frame] - before;
+        Assert.True(gained >= power * Fix64.FromInt(2) - Fix64.One, $"frame gained {gained}, expected two builders' worth ({power * Fix64.FromInt(2)})");
+    }
+
+    [Fact]
     public void Poor_player_stalls_and_every_build_slows_by_the_same_ratio()
     {
         World world = Flat(0, 0);
@@ -216,4 +241,10 @@ public class EconomyTests
         RunUntil(world, () => world.Units.Complete[frame], 60);
         Assert.True(world.Units.Complete[frame], "the frame stuck just short of finished");
     }
+}
+
+internal static class EconomySystemProbe
+{
+    public static bool InRange(World world, int builder, int target) =>
+        ContingencyZero.Sim.Economy.EconomySystem.InBuildRange(world, builder, world.Catalog[world.Units.TypeIndex[builder]], target);
 }
