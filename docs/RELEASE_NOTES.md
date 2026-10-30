@@ -7,6 +7,8 @@
 - Prefer the old audio? Settings has "Original synthesised sound and music" to switch back.
 - **Tier 2 by branch:** each kind of builder refits its own factory into an advanced one (bot builder → advanced bot lab, vehicle builder → advanced vehicle plant, and the same for aircraft and ships). A refit takes the factory offline while it's under way, then it builds both tiers. Advanced builders specialise: vehicles in industry, bots in fortification, aircraft in a bit of everything (slowly), ships in industry and coastal guns.
 - **Ten new tier 2 units per side:** armoured walker, long-range marksman, rocket truck (hits ground and air), interceptor, heavy carpet bomber, cruiser, cruise-missile ship, and an advanced builder for bots, aircraft and ships. Battleships now come from the advanced shipyard.
+- **Builders give up sites they can't reach:** a ship told to build inland, or a vehicle sent up a slope only bots can climb, now reports the order failed instead of standing there for the rest of the game. The computer only picks sites its builders can reach.
+- **Computer navies attack:** fleets that can't reach the land army's target now sail for the best target they can shoot from the water, and on island maps the computer refits its shipyard early.
 - **Map names:** Coastal Divide is now Saltwater Strait, and Grand Continent is now Eight Crowns.
 - **Construction units help each other:** send a builder to another builder that's constructing something and it works on the same frame. With the classic mouse, left-clicking an unfinished building, a damaged unit or a busy builder with construction units selected now sends them to help, instead of selecting it.
 

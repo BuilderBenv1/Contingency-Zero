@@ -1,7 +1,10 @@
 using ContingencyZero.Sim.Core;
 using ContingencyZero.Sim.Data;
 using ContingencyZero.Sim.Map;
+using ContingencyZero.Sim.Match;
 using ContingencyZero.Sim.Pathing;
+using ContingencyZero.Sim.State;
+using static ContingencyZero.Sim.Tests.TestData;
 using Xunit;
 
 namespace ContingencyZero.Sim.Tests;
@@ -45,6 +48,26 @@ public class ConnectivityTests
         Assert.Equal(terrain.ZoneOf(MoveClass.Vehicle, 10, 4), terrain.ZoneOf(MoveClass.Vehicle, ex, ey));
         Assert.True(ey < 14, $"stopped at the near bank, not across the channel (row {ey})");
         Assert.True(pf.LastExpansions < 400, $"searched {pf.LastExpansions} tiles");
+    }
+
+    [Fact]
+    public void A_builder_that_cannot_reach_the_site_gives_the_order_up()
+    {
+        var players = new[] { new PlayerSetup("A", 0, "lattice", 0), new PlayerSetup("B", 1, "crucible", 1) };
+        var world = new World(Catalog, Split(), 1, players, new MatchOptions(1000, 1000, SpawnCommanders: false, RevealMap: true));
+        int ship = world.SpawnUnit("lattice_builder_sea", 0, Tile(10, 16));
+        // A solar collector well inland: the ship can't get within build range.
+        world.Step(new[] { new Command(0, 0, CommandType.Build, ship, Tile(10, 3), TypeIndex: Type("lattice_solar_collector")) });
+        RunUntil(world, () => world.Units.Orders[ship].Count == 0, 1500);
+        Assert.Empty(world.Units.Orders[ship]);
+        for (int id = 0; id < world.Units.Count; id++)
+            Assert.False(world.Units.Alive[id] && world.Units.TypeIndex[id] == Type("lattice_solar_collector"), "no frame should be started");
+
+        // At the water's edge it is in range, and builds.
+        world.Step(new[] { new Command(world.Tick, 0, CommandType.Build, ship, Tile(10, 11), TypeIndex: Type("lattice_wind_turbine")) });
+        RunUntil(world, () => world.Units.CurrentOrder(ship).Target >= 0 && world.Units.CurrentOrder(ship).Type == OrderType.Build, 1500);
+        Assert.True(world.Units.CurrentOrder(ship).Type == OrderType.Build,
+            $"place {world.CanPlace(Type("lattice_wind_turbine"), 0, Tile(10, 11))}, ship at {world.Units.Position[ship]}");
     }
 
     [Fact]

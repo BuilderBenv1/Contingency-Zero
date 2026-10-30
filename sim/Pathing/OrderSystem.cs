@@ -246,7 +246,12 @@ internal static class OrderSystem
         {
             if (!units.IsValid(order.Target) || units.Complete[order.Target]) { units.PopOrder(id); return; }
             if (!EconomySystem.InBuildRange(world, id, def, order.Target))
+            {
+                // Got as close as it can and still can't reach (a ship sent inland, a vehicle up a
+                // bot-only slope): give the order up rather than standing there forever.
                 MoveTo(world, id, def, units.Position[order.Target], reach);
+                if (CannotReach(world, id, units.Position[order.Target], reach)) FailBuild(world, id, order.Position);
+            }
             else
                 units.ClearPath(id);
             return;
@@ -255,6 +260,7 @@ internal static class OrderSystem
         if (FixVec2.DistanceSquared(units.Position[id], order.Position) > reach * reach)
         {
             MoveTo(world, id, def, order.Position, reach);
+            if (CannotReach(world, id, order.Position, reach)) FailBuild(world, id, order.Position);
             return;
         }
 
@@ -268,6 +274,28 @@ internal static class OrderSystem
         }
         order.Target = frame;
         units.Orders[id][0] = order;
+    }
+
+    /// <summary>
+    /// True once the unit has walked a finished path whose end (where the pathfinder snapped an
+    /// unreachable goal) is still out of <paramref name="reach"/> of <paramref name="goal"/>.
+    /// Crowding or a path still being searched never counts.
+    /// </summary>
+    private static bool CannotReach(World world, int id, FixVec2 goal, Fix64 reach)
+    {
+        UnitStore units = world.Units;
+        if (world.Catalog[units.TypeIndex[id]].IsAir || units.PathPending[id]) return false;
+        var path = units.Path[id];
+        if (path is null || path.Count == 0 || units.PathIndex[id] < path.Count) return false;
+        Fix64 slack = reach + Fix64.FromInt(2);
+        return FixVec2.DistanceSquared(path[path.Count - 1], goal) > slack * slack
+               && FixVec2.DistanceSquared(units.Position[id], goal) > slack * slack;
+    }
+
+    private static void FailBuild(World world, int id, FixVec2 site)
+    {
+        world.Events.Add(new GameEvent(GameEventType.OrderFailed, id, world.Units.Owner[id], 2, Position: site));
+        world.Units.PopOrder(id);
     }
 
     /// <summary>The closest reclaimable thing to <paramref name="from"/> within <paramref name="radius"/> of <paramref name="centre"/>, or -1.</summary>

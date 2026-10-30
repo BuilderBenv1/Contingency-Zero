@@ -425,7 +425,7 @@ public sealed class AiController
         // Keep energy roughly in step with metal: most things cost several times more energy.
         if (energy < metal * 5 + Fix64.FromInt(20) && !energyFloating) return EnergyRole();
         if (_extractors < MaxExtractors && (metalLow || _extractors < 4 || (!metalFloating && _rng.Range(0, 2) == 0))
-            && FreeSpotNear(_w.Units.Position[builderId]) is not null)
+            && FreeSpotNear(_w.Units.Position[builderId], builderId) is not null)
             return "metal_extractor";
         if (energyLow && !energyFloating) return EnergyRole();
         // Turn surplus energy into metal.
@@ -538,9 +538,10 @@ public sealed class AiController
             site = host >= 0 ? _w.Units.Position[host] : null;
         }
         else if (tdef.NeedsMetalSpot)
-            site = role == "deep_extractor" ? OwnExtractorSite() : FreeSpotNear(_w.Units.Position[builder]);
+            site = role == "deep_extractor" ? OwnExtractorSite() : FreeSpotNear(_w.Units.Position[builder], builder);
         else
-            site = FindSite(type, tdef);
+            site = FindSite(type, tdef, builder);
+        if (site is { } chosen && !CanWorkAt(builder, chosen, tdef)) site = null;
         if (site is null) return false;
         _claimedSites.Add(site.Value);
         Issue(CommandType.Build, builder, site.Value, typeIndex: type);
@@ -575,7 +576,32 @@ public sealed class AiController
     }
 
     /// <summary>Nearest metal spot to <paramref name="from"/> that is free, safe-looking and not claimed.</summary>
-    private FixVec2? FreeSpotNear(FixVec2 from)
+    /// <summary>
+    /// Whether <paramref name="builder"/> can get within build range of a structure at
+    /// <paramref name="site"/>: some tile it can reach (same connectivity zone) is close enough.
+    /// Stops ships being sent to build inland, or vehicles up bot-only slopes.
+    /// </summary>
+    private bool CanWorkAt(int builder, FixVec2 site, UnitDef tdef)
+    {
+        UnitDef b = _w.Catalog[_w.Units.TypeIndex[builder]];
+        if (b.IsAir || !b.CanMove) return true;
+        Terrain t = _w.Terrain;
+        int zone = t.ZoneOf(b.MoveClass, MapData.TileOf(_w.Units.Position[builder].X), MapData.TileOf(_w.Units.Position[builder].Y));
+        if (zone < 0) return true; // standing somewhere odd (on a pad): don't second-guess
+        Fix64 reach = b.BuildRange + Fix64.FromInt(tdef.Footprint * MapData.TileSize / 2) - Fix64.FromInt(2);
+        int r = (reach / MapData.TileSize).ToIntFloor();
+        int cx = MapData.TileOf(site.X), cy = MapData.TileOf(site.Y);
+        for (int y = cy - r; y <= cy + r; y++)
+        for (int x = cx - r; x <= cx + r; x++)
+        {
+            if (!t.InBounds(x, y) || t.ZoneOf(b.MoveClass, x, y) != zone) continue;
+            FixVec2 c = Terrain.FootprintCentre(x, y, 1);
+            if (FixVec2.DistanceSquared(c, site) <= reach * reach) return true;
+        }
+        return false;
+    }
+
+    private FixVec2? FreeSpotNear(FixVec2 from, int builder = -1)
     {
         int extractor = -1;
         foreach (int o in AllExtractorTypes()) { extractor = o; break; }
@@ -590,6 +616,7 @@ public sealed class AiController
             if (FixVec2.DistanceSquared(s.Position, _home) > maxDist * maxDist) continue;
             if (_w.CanPlace(extractor, _player, s.Position) != PlacementResult.Ok) continue;
             if (EnemyNear(s.Position, Fix64.FromInt(40))) continue;
+            if (builder >= 0 && !CanWorkAt(builder, s.Position, _w.Catalog[extractor])) continue;
             // Weigh distance from the builder and from home so builders don't wander off.
             Fix64 d = FixVec2.DistanceSquared(s.Position, from) + FixVec2.DistanceSquared(s.Position, _home) / 2;
             if (d < bestD) { bestD = d; best = s.Position; }
@@ -615,7 +642,7 @@ public sealed class AiController
     /// A spot near home for a structure, searched in rings outwards. Sites sit on a grid with gaps
     /// so the base keeps walkable lanes, avoid metal spots, and lean toward the front for defences.
     /// </summary>
-    private FixVec2? FindSite(int type, UnitDef tdef)
+    private FixVec2? FindSite(int type, UnitDef tdef, int builder = -1)
     {
         int fp = tdef.Footprint;
         int step = fp + 1;
@@ -637,6 +664,7 @@ public sealed class AiController
                 if (_w.CanPlace(type, _player, centre, out int ox, out int oy) != PlacementResult.Ok) continue;
                 if (!tdef.NeedsMetalSpot && _w.MetalUnderFootprint(ox - 1, oy - 1, fp + 2) > Fix64.Zero) continue;
                 if (!LanesClear(ox, oy, fp)) continue;
+                if (builder >= 0 && !CanWorkAt(builder, centre, tdef)) continue;
 
                 Fix64 score = Fix64.FromInt(dx * dx + dy * dy);
                 FixVec2 off = centre - _home;
@@ -943,6 +971,26 @@ public sealed class AiController
             }
         }
 
+        // Ships that can't reach the land army's target would otherwise sit at their rally all game:
+        // once there are enough of them, send the fleet at the best target it can shoot from water.
+        if (_difficulty >= AiDifficulty.Normal)
+        {
+            var fleet = new List<int>();
+            foreach (int a in waiting)
+                if (_w.Catalog[u.TypeIndex[a]].MoveClass == MoveClass.Ship && _w.Catalog[u.TypeIndex[a]].IsArmed
+                    && !CanReachTarget(a, nextTarget))
+                    fleet.Add(a);
+            if (fleet.Count >= (_difficulty == AiDifficulty.Normal ? 8 : 6) && NavalTarget(fleet) is { } naval)
+            {
+                foreach (int a in fleet)
+                {
+                    Issue(CommandType.Fight, a, naval);
+                    waiting.Remove(a);
+                }
+                LastPlan = $"fleet sails ({fleet.Count} ships)";
+            }
+        }
+
         // Everyone else gathers in a loose block. Ships use a water rally and individual slots are
         // snapped to their own movement class before destination reservation spreads them apart.
         FixVec2 toward = _enemyGuess - _home;
@@ -1075,6 +1123,29 @@ public sealed class AiController
         foreach (var known in _knownEnemyStructures)
             if (known.Unit == id) return known.Pos;
         return null;
+    }
+
+    /// <summary>The best-scoring enemy (seen, or a remembered structure) the fleet can shoot from the water, or null.</summary>
+    private FixVec2? NavalTarget(IReadOnlyList<int> fleet)
+    {
+        UnitStore u = _w.Units;
+        FixVec2? best = null;
+        Fix64 bestScore = Fix64.MaxValue;
+        for (int id = 0; id < u.Count; id++)
+        {
+            if (!u.Alive[id] || !_w.AreEnemies(_player, u.Owner[id])) continue;
+            bool visible = Sees(id);
+            FixVec2? remembered = KnownStructurePosition(id);
+            if (!visible && remembered is null) continue;
+            FixVec2 pos = visible ? u.Position[id] : remembered!.Value;
+            if (_w.Catalog[u.TypeIndex[id]].IsAir) continue;
+            Fix64 score = TargetScore(id, pos);
+            if (score >= bestScore) continue;
+            if (!CanAnyReach(fleet, pos)) continue;
+            bestScore = score;
+            best = pos;
+        }
+        return best;
     }
 
     private List<int> ReachableUnits(IReadOnlyList<int> movers, FixVec2 target)
